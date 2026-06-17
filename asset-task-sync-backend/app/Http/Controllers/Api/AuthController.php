@@ -160,6 +160,47 @@ class AuthController extends Controller
     }
 
     /**
+     * Create a new user (Admin only).
+     */
+    public function storeUser(Request $request)
+    {
+        $admin = $request->user();
+
+        if (!$admin->hasRole('admin')) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            'role' => 'required|in:admin,technician,requester',
+            'department' => 'nullable|string|max:255',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'status' => 'active',
+        ]);
+
+        Profile::create([
+            'user_id' => $user->id,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'department' => $validated['department'] ?? null,
+        ]);
+
+        $user->assignRole($validated['role']);
+
+        return response()->json([
+            'message' => 'User created successfully',
+            'user' => $user->load('profile', 'roles'),
+        ], 201);
+    }
+
+    /**
      * Approve a pending user (Admin only).
      */
     public function approveUser(Request $request, $id)

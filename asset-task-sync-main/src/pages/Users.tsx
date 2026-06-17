@@ -68,15 +68,19 @@ const Users = () => {
   });
 
   const handleCreateUser = async () => {
-    await createUser.mutateAsync(newUser);
-    setIsDialogOpen(false);
-    setNewUser({
-      name: '',
-      email: '',
-      role: 'requester',
-      department: '',
-      password: '',
-    });
+    try {
+      await createUser.mutateAsync(newUser);
+      setIsDialogOpen(false);
+      setNewUser({
+        name: '',
+        email: '',
+        role: 'requester',
+        department: '',
+        password: '',
+      });
+    } catch {
+      // Error toast is handled in useCreateUser
+    }
   };
 
   const handleRoleUpdate = async (userId: string, newRole: AppRole) => {

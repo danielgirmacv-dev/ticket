@@ -180,7 +180,11 @@ In **cPanel → Select PHP Version** (or MultiPHP Manager), set **PHP 8.2 or hig
 
 ## Part 4 — cPanel: Frontend (React)
 
-### 1. Upload Build Output
+You can build the frontend **on your computer** or **on cPanel** if **Setup Node.js App** is available.
+
+### Option A — Build locally, upload `dist/`
+
+#### 1. Upload build output
 
 Upload everything inside `asset-task-sync-main/dist/` to:
 
@@ -197,7 +201,40 @@ public_html/
 └── ...
 ```
 
-### 2. Add `.htaccess` for React Routing
+### Option B — Build on cPanel using Node.js
+
+1. Go to **cPanel → Software → Setup Node.js App**
+2. Click **Create Application**
+3. Set:
+   - **Node.js version:** 18 or 20
+   - **Application mode:** Production
+   - **Application root:** `/home/youruser/asset-task-sync/asset-task-sync-main`
+   - **Application URL:** your main domain (optional if only used for building)
+4. Update API URL in `src/integrations/laravel/client.ts` on the server:
+
+   ```typescript
+   const API_URL = 'https://api.yourdomain.com/api';
+   ```
+
+5. In **Terminal**, activate the Node virtualenv (cPanel shows this command on the Node.js app page), then:
+
+   ```bash
+   cd ~/asset-task-sync/asset-task-sync-main
+   npm install
+   npm run build
+   cp -r dist/* ~/public_html/
+   ```
+
+   If `npm run build` fails, use:
+
+   ```bash
+   node node_modules/vite/bin/vite.js build
+   cp -r dist/* ~/public_html/
+   ```
+
+> **Note:** After `npm run build`, the live site is static files in `public_html`. You do not need Node running as a long-lived server for this React app.
+
+### Add `.htaccess` for React routing (both options)
 
 Create `public_html/.htaccess` so client-side routes (e.g. `/tickets`, `/auth`) work on refresh:
 
@@ -271,7 +308,7 @@ This runs Laravel's scheduler, which includes:
 | **404 on `/tickets` or other routes** | Add SPA `.htaccess` in `public_html` (see Part 4) |
 | **Database connection failed** | Verify cPanel MySQL host (`localhost`), database name, username, and password |
 | **No Terminal / Composer on server** | Run `composer install --no-dev` locally and upload the `vendor/` folder |
-| **API still calls localhost** | Update `client.ts`, rebuild frontend (`npm run build`), and re-upload `dist/` |
+| **API still calls localhost** | Update `client.ts`, rebuild (`npm run build` on cPanel Node or locally), copy `dist/` to `public_html` |
 | **Blank page on frontend** | Check browser console; ensure `assets/` folder was uploaded with `index.html` |
 | **Authorization / login fails** | Confirm `APP_URL` matches the API subdomain and SSL is active |
 

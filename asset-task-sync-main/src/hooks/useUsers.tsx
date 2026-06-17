@@ -54,30 +54,13 @@ export function useCreateUser() {
 
   return useMutation({
     mutationFn: async (data: CreateUserData) => {
-      // 1. Register the user
-      const response = await laravelClient.post('/register', {
+      const response = await laravelClient.post('/users', {
         name: data.name,
         email: data.email,
         password: data.password,
-        password_confirmation: data.password,
+        role: data.role,
+        department: data.department || undefined,
       });
-
-      const newUser = response.data.user;
-      const profileId = newUser.profile.id;
-
-      // 2. Update role if not requester (default)
-      if (data.role !== 'requester') {
-        await laravelClient.patch(`/profiles/${profileId}/role`, {
-          role: data.role
-        });
-      }
-
-      // 3. Update department if provided
-      if (data.department) {
-        await laravelClient.put(`/profiles/${profileId}`, {
-          department: data.department
-        });
-      }
 
       return response.data;
     },
@@ -86,7 +69,10 @@ export function useCreateUser() {
       toast.success('User created successfully');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create user');
+      const message = error.response?.data?.message
+        || error.response?.data?.errors?.email?.[0]
+        || 'Failed to create user';
+      toast.error(message);
     }
   });
 }

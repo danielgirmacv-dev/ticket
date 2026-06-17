@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useAssets, useCreateAsset, useUpdateAsset, useDeleteAsset, useImportAssetsCsv } from '@/hooks/useAssets';
+import { useUsers } from '@/hooks/useUsers';
 import { Asset } from '@/integrations/laravel/client';
 import { Plus, Search, Filter, Monitor, Printer, Server, Network, MoreVertical, Edit, Trash2, Loader2, Upload, Download } from 'lucide-react';
 import { format } from 'date-fns';
@@ -65,6 +66,7 @@ const Assets = () => {
   });
 
   const { data: assets, isLoading } = useAssets();
+  const { data: users } = useUsers();
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
@@ -72,6 +74,7 @@ const Assets = () => {
 
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
   const [newStatus, setNewStatus] = useState<string>('');
+  const [assignedTo, setAssignedTo] = useState<string>('none');
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
@@ -88,14 +91,19 @@ const Assets = () => {
     });
   };
 
-  const handleEditStatus = (asset: Asset) => {
+  const handleEditAsset = (asset: Asset) => {
     setEditingAsset(asset);
     setNewStatus(asset.status);
+    setAssignedTo(asset.assigned_to || 'none');
   };
 
-  const handleUpdateStatus = async () => {
+  const handleUpdateAsset = async () => {
     if (!editingAsset) return;
-    await updateAsset.mutateAsync({ id: editingAsset.id, status: newStatus as any });
+    await updateAsset.mutateAsync({
+      id: editingAsset.id,
+      status: newStatus as Asset['status'],
+      assigned_to: assignedTo === 'none' ? null : assignedTo,
+    });
     setEditingAsset(null);
   };
 
@@ -369,6 +377,30 @@ const Assets = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid gap-2">
+                  <Label>Assigned To (optional)</Label>
+                  <Select
+                    value={newAsset.assigned_to || 'none'}
+                    onValueChange={(val) =>
+                      setNewAsset({
+                        ...newAsset,
+                        assigned_to: val === 'none' ? undefined : val,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {users?.filter((u) => u.status === 'active').map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="purchase">Purchase Date</Label>
@@ -433,9 +465,9 @@ const Assets = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditStatus(asset)}>
+                      <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
                         <Edit className="h-4 w-4 mr-2" />
-                        Change Status
+                        Edit Asset
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
@@ -479,12 +511,12 @@ const Assets = () => {
                       </span>
                     </div>
                   )}
-                  {asset.assigned_user && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Assigned To</span>
-                      <span className="font-medium">{asset.assigned_user.name}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Assigned To</span>
+                    <span className="font-medium">
+                      {asset.assigned_user?.name || 'Unassigned'}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -502,29 +534,20 @@ const Assets = () => {
         </div>
       )}
 
-      {/* Change Status Dialog */}
+      {/* Edit Asset Dialog */}
       <Dialog open={!!editingAsset} onOpenChange={() => setEditingAsset(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Asset Status</DialogTitle>
+            <DialogTitle>Edit Asset</DialogTitle>
             <DialogDescription>
-              Update the status of {editingAsset?.name}
+              Update status or assign a user to {editingAsset?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Current Status</Label>
-              <div className={cn(
-                'status-badge border inline-block mt-2',
-                editingAsset && statusStyles[editingAsset.status]
-              )}>
-                {editingAsset?.status}
-              </div>
-            </div>
-            <div>
-              <Label>New Status</Label>
+              <Label>Status</Label>
               <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -535,13 +558,29 @@ const Assets = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label>Assigned To</Label>
+              <Select value={assignedTo} onValueChange={setAssignedTo}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {users?.filter((u) => u.status === 'active').map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingAsset(null)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateStatus}>
-              Update Status
+            <Button onClick={handleUpdateAsset} disabled={updateAsset.isPending}>
+              {updateAsset.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
