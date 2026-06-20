@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\MaintenanceScheduleController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\DepartmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Assets
     Route::apiResource('assets', AssetController::class);
     Route::post('/assets/import-csv', [AssetController::class, 'importCsv']);
+
+    // Locations & Departments
+    Route::apiResource('locations', LocationController::class);
+    Route::post('/locations/import-csv', [LocationController::class, 'importCsv']);
+
+    Route::apiResource('departments', DepartmentController::class);
+    Route::post('/departments/import-csv', [DepartmentController::class, 'importCsv']);
 
     // Maintenance Tickets
     Route::apiResource('maintenance-tickets', MaintenanceTicketController::class);

@@ -12,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useAssets } from '@/hooks/useAssets';
+import { useAuth } from '@/hooks/useAuth';
 import { useCreateTicket } from '@/hooks/useTickets';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
 import { Send, CheckCircle, Loader2 } from 'lucide-react';
@@ -23,6 +25,7 @@ const Requests = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { data: assets, isLoading: isLoadingAssets } = useAssets();
+  const { role, profile } = useAuth();
   const createTicket = useCreateTicket();
 
   const [formData, setFormData] = useState<Partial<MaintenanceTicket>>({
@@ -35,6 +38,8 @@ const Requests = () => {
 
   const [location, setLocation] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringInterval, setRecurringInterval] = useState('monthly');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +55,8 @@ const Requests = () => {
         ...formData,
         description: fullDescription,
         scheduled_date: scheduledDate,
+        is_recurring: isRecurring,
+        recurring_interval: isRecurring ? recurringInterval : null,
       });
 
       setIsSubmitted(true);
@@ -181,7 +188,7 @@ const Requests = () => {
                   <SelectValue placeholder="Select an asset (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {assets?.filter(a => a.status === 'active' || a.status === 'maintenance').map(asset => (
+                  {assets?.filter(a => (a.status === 'active' || a.status === 'maintenance') && (role !== 'requester' || a.assigned_to === profile?.id)).map(asset => (
                     <SelectItem key={asset.id} value={asset.id}>
                       <span className="capitalize">{asset.type}</span> - {asset.name} ({asset.serial_number})
                     </SelectItem>
@@ -228,6 +235,31 @@ const Requests = () => {
                 When would you prefer the maintenance to be scheduled?
               </p>
             </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label>Recurring ticket</Label>
+                <p className="text-xs text-muted-foreground">Automatically schedule repeat maintenance</p>
+              </div>
+              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+            </div>
+            {isRecurring && (
+              <div className="space-y-2">
+                <Label>Recurring interval</Label>
+                <Select value={recurringInterval} onValueChange={(val: any) => setRecurringInterval(val)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-4">
               <Button type="button" variant="outline" onClick={() => window.history.back()}>

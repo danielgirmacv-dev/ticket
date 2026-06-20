@@ -24,7 +24,7 @@ class TestEmail extends Command
             $testUser->name = 'Test User';
             $testUser->email = $email;
 
-            Mail::to($email)->send(new AccountApproved($testUser));
+            Mail::to($email)->queue(new AccountApproved($testUser));
 
             $this->info('✅ Email sent successfully!');
             $this->info('Check your inbox: ' . $email);

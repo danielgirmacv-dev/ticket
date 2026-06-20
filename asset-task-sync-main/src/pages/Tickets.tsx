@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useTickets, useCreateTicket } from '@/hooks/useTickets';
+import { useAuth } from '@/hooks/useAuth';
 import { useAssets } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
@@ -64,6 +65,8 @@ const Tickets = () => {
   const [ticketToAssign, setTicketToAssign] = useState<MaintenanceTicket | null>(null);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState<string>('monthly');
+
+  const { role } = useAuth();
 
   const { data: tickets, isLoading: isLoadingTickets } = useTickets();
   const { data: assets } = useAssets();
@@ -110,6 +113,7 @@ const Tickets = () => {
     all: filteredTickets,
     pending: filteredTickets.filter(t => t.status === 'submitted'),
     in_progress: filteredTickets.filter(t => t.status === 'in_progress'),
+    review: filteredTickets.filter(t => t.status === 'completed_pending_review'),
     completed: filteredTickets.filter(t => t.status === 'completed'),
   };
 
@@ -254,14 +258,15 @@ const Tickets = () => {
               <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Issue Ticket
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+          {role !== 'requester' && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Issue Ticket
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create Issue Ticket</DialogTitle>
                 <DialogDescription>
@@ -384,7 +389,8 @@ const Tickets = () => {
                 </DialogFooter>
               </form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -407,6 +413,12 @@ const Tickets = () => {
             In Progress
             <Badge variant="secondary" className="ml-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
               {ticketsByStatus.in_progress.length}
+            </Badge>
+          </TabsTrigger>
+          <TabsTrigger value="review" className="gap-2">
+            In Review
+            <Badge variant="secondary" className="ml-1 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+              {ticketsByStatus.review.length}
             </Badge>
           </TabsTrigger>
           <TabsTrigger value="completed" className="gap-2">

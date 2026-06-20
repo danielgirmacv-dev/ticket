@@ -16,6 +16,8 @@ import {
   Plus,
   FileText,
   ScrollText,
+  MapPin,
+  Briefcase,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +37,8 @@ const Sidebar = () => {
     { href: '/calendar', icon: Calendar, label: 'Calendar' },
     { href: '/schedules', icon: Wrench, label: 'Schedules' },
     { href: '/reports', icon: FileText, label: 'Reports' },
+    { href: '/locations', icon: MapPin, label: 'Locations' },
+    { href: '/departments', icon: Briefcase, label: 'Departments' },
     { href: '/users', icon: Users, label: 'Users' },
     { href: '/activity-logs', icon: ScrollText, label: 'Activity' },
     { href: '/settings', icon: Settings, label: 'Settings' },

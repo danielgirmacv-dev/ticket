@@ -124,6 +124,23 @@ export interface MaintenanceTicket {
   updated_at: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  address?: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Notification {
   id: string;
   user_id: number;

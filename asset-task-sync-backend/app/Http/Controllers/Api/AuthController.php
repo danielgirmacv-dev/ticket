@@ -236,8 +236,8 @@ class AuthController extends Controller
                 $telegram->sendApprovalNotification($user);
             }
 
-            // Send email notification
-            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\AccountApproved($user));
+            // Send email notification (queued)
+            \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\AccountApproved($user));
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to notify user of approval: ' . $e->getMessage());
         }
