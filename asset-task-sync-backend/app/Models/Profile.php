@@ -20,6 +20,7 @@ class Profile extends Model
         'department',
         'telegram_username',
         'telegram_chat_id',
+        'location_id',
     ];
 
     protected $casts = [
@@ -32,6 +33,14 @@ class Profile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The location this profile belongs to.
+     */
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
     }
 
     /**

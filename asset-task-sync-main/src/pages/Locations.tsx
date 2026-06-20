@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, useImportLocationsCsv } from '@/hooks/useLocations';
-import { Loader2, Plus, Upload, Edit, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Upload, Edit, Trash2, Users } from 'lucide-react';
+import { useProfilesByLocation } from '@/hooks/useProfilesByLocation';
 import { toast } from 'sonner';
 
 const Locations = () => {
@@ -20,6 +21,10 @@ const Locations = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: '', address: '', description: '' });
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [isViewUsersOpen, setIsViewUsersOpen] = useState(false);
+
+  const { data: profiles, isLoading: isProfilesLoading } = useProfilesByLocation(selectedLocation?.id);
 
   const handleSave = async () => {
     try {
@@ -144,6 +149,9 @@ const Locations = () => {
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(loc)}>
                             <Edit className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => { setSelectedLocation(loc); setIsViewUsersOpen(true); }}>
+                            <Users className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(loc.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -157,6 +165,42 @@ const Locations = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isViewUsersOpen} onOpenChange={setIsViewUsersOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Users at {selectedLocation?.name}</DialogTitle>
+            <DialogDescription>Profiles assigned to this location</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-4">
+            {isProfilesLoading ? (
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div>
+                {profiles?.length ? (
+                  <ul className="list-disc pl-6">
+                    {profiles.map((p: any) => (
+                      <li key={p.id} className="py-1">
+                        <div className="font-medium">{p.name}</div>
+                        <div className="text-sm text-muted-foreground">{p.email} {p.user?.roles?.length ? ` — ${p.user.roles.map((r:any)=>r.name).join(', ')}`: ''}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-muted-foreground">No users assigned to this location.</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewUsersOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

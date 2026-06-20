@@ -1,0 +1,23 @@
+[Unit]
+Description=Laravel Queue Worker
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+ExecStart=/usr/bin/php /path/to/asset-task-sync-backend/artisan queue:work redis --sleep=3 --tries=3 --timeout=90
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=laravel-worker
+
+[Install]
+WantedBy=multi-user.target
+
+# Notes:
+# - Replace `/path/to/asset-task-sync-backend` with the absolute path on your server.
+# - Place this file at `/etc/systemd/system/laravel-worker.service`, then run:
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now laravel-worker
+#     sudo journalctl -u laravel-worker -f

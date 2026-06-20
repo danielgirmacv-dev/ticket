@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Locations & Departments
     Route::apiResource('locations', LocationController::class);
     Route::post('/locations/import-csv', [LocationController::class, 'importCsv']);
+    Route::get('/locations/{location}/profiles', [LocationController::class, 'profiles']);
 
     Route::apiResource('departments', DepartmentController::class);
     Route::post('/departments/import-csv', [DepartmentController::class, 'importCsv']);

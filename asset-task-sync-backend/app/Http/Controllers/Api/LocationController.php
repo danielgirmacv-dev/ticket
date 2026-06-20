@@ -39,6 +39,18 @@ class LocationController extends Controller
         return response()->json($location);
     }
 
+    /**
+     * Return profiles/users that belong to this location.
+     */
+    public function profiles(Location $location)
+    {
+        $profiles = $location->profiles()->with(['user' => function ($query) {
+            $query->select('id', 'name', 'email');
+        }, 'user.roles'])->get();
+
+        return response()->json($profiles);
+    }
+
     public function update(Request $request, Location $location)
     {
         if (!$request->user()->hasRole('admin')) {
