@@ -11,6 +11,8 @@ export interface UserWithRole {
   email: string;
   avatar_url: string | null;
   department: string | null;
+  location_id?: string | null;
+  location?: any;
   created_at: string;
   role: AppRole;
   status?: 'pending' | 'active' | 'rejected';
@@ -32,6 +34,8 @@ export function useUsers() {
           email: profile.email,
           avatar_url: profile.avatar_url,
           department: profile.department,
+          location_id: profile.location_id,
+          location: profile.location,
           created_at: profile.created_at,
           role: role,
           status: profile.user?.status || 'active'
@@ -47,6 +51,7 @@ interface CreateUserData {
   name: string;
   role: AppRole;
   department?: string;
+  location_id?: string;
 }
 
 export function useCreateUser() {
@@ -60,6 +65,7 @@ export function useCreateUser() {
         password: data.password,
         role: data.role,
         department: data.department || undefined,
+        location_id: data.location_id || undefined,
       });
 
       return response.data;

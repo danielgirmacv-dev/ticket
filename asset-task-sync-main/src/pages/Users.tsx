@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useUsers, useCreateUser, useUpdateUserRole, AppRole, UserWithRole } from '@/hooks/useUsers';
-import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { useLocations } from '@/hooks/useLocations';
+import { useDepartments } from '@/hooks/useDepartments';
+import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -45,9 +47,12 @@ const Users = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const { data: users, isLoading } = useUsers();
+  const { data: locations } = useLocations();
+  const { data: departments } = useDepartments();
   const createUser = useCreateUser();
   const updateUserRole = useUpdateUserRole();
 
@@ -56,6 +61,7 @@ const Users = () => {
     email: '',
     role: 'requester' as AppRole,
     department: '',
+    location_id: 'none',
     password: '',
   });
 
@@ -65,17 +71,22 @@ const Users = () => {
     email: '',
     role: 'requester' as AppRole,
     department: '',
+    location_id: 'none',
   });
 
   const handleCreateUser = async () => {
     try {
-      await createUser.mutateAsync(newUser);
+      await createUser.mutateAsync({
+        ...newUser,
+        location_id: newUser.location_id === 'none' ? undefined : newUser.location_id,
+      });
       setIsDialogOpen(false);
       setNewUser({
         name: '',
         email: '',
         role: 'requester',
         department: '',
+        location_id: 'none',
         password: '',
       });
     } catch {
@@ -94,6 +105,7 @@ const Users = () => {
       email: user.email,
       role: user.role,
       department: user.department || '',
+      location_id: user.location_id || 'none',
     });
   };
 
@@ -105,11 +117,14 @@ const Users = () => {
       await handleRoleUpdate(editingUser.id, editFormData.role);
 
       // Update profile fields
-      const profileUpdates: Record<string, string> = {};
+      const profileUpdates: Record<string, any> = {};
       if (editFormData.name !== editingUser.name) profileUpdates.name = editFormData.name;
       if (editFormData.email !== editingUser.email) profileUpdates.email = editFormData.email;
       if (editFormData.department !== (editingUser.department || '')) {
         profileUpdates.department = editFormData.department;
+      }
+      if (editFormData.location_id !== (editingUser.location_id || 'none')) {
+        profileUpdates.location_id = editFormData.location_id === 'none' ? null : editFormData.location_id;
       }
       if (Object.keys(profileUpdates).length > 0) {
         await laravelClient.put(`/profiles/${editingUser.id}`, profileUpdates);
@@ -169,7 +184,8 @@ const Users = () => {
       (user.department?.toLowerCase() || '').includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchesLocation = locationFilter === 'all' || user.location_id === locationFilter;
+    return matchesSearch && matchesRole && matchesStatus && matchesLocation;
   }) || [];
 
   const usersByRole = {
@@ -248,6 +264,17 @@ const Users = () => {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={locationFilter} onValueChange={setLocationFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {locations?.map((loc: any) => (
+                <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="accent">
@@ -300,14 +327,39 @@ const Users = () => {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      placeholder="e.g., IT Support"
-                      value={newUser.department}
-                      onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
-                    />
+                    <Label>Department</Label>
+                    <Select
+                      value={newUser.department || 'none'}
+                      onValueChange={(val: string) => setNewUser({ ...newUser, department: val === 'none' ? '' : val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {departments?.map((dept: any) => (
+                          <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Location</Label>
+                  <Select
+                    value={newUser.location_id}
+                    onValueChange={(val: string) => setNewUser({ ...newUser, location_id: val })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {locations?.map((loc: any) => (
+                        <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Temporary Password</Label>
@@ -345,6 +397,7 @@ const Users = () => {
                   <th>Role</th>
                   <th>Status</th>
                   <th>Department</th>
+                  <th>Location</th>
                   <th>Joined</th>
                   <th className="text-right">Actions</th>
                 </tr>
@@ -420,6 +473,12 @@ const Users = () => {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Building2 className="h-4 w-4" />
                           {user.department || '-'}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {user.location?.name || '-'}
                         </div>
                       </td>
                       <td className="text-muted-foreground">
@@ -519,11 +578,37 @@ const Users = () => {
             </div>
             <div>
               <Label>Department</Label>
-              <Input
-                value={editFormData.department}
-                onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
-                placeholder="e.g., IT Department"
-              />
+              <Select
+                value={editFormData.department || 'none'}
+                onValueChange={(val: string) => setEditFormData({ ...editFormData, department: val === 'none' ? '' : val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {departments?.map((dept: any) => (
+                    <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Location</Label>
+              <Select
+                value={editFormData.location_id}
+                onValueChange={(val: string) => setEditFormData({ ...editFormData, location_id: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {locations?.map((loc: any) => (
+                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

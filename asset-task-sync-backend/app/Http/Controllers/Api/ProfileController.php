@@ -21,7 +21,8 @@ class ProfileController extends Controller
             'user' => function ($query) {
                 $query->select('id', 'name', 'email', 'status', 'created_at', 'updated_at');
             },
-            'user.roles'
+            'user.roles',
+            'location'
         ])->get();
 
         return response()->json($profiles);
@@ -32,7 +33,7 @@ class ProfileController extends Controller
      */
     public function show(Profile $profile)
     {
-        return response()->json($profile->load('user.roles', 'assignedAssets', 'requestedTickets', 'assignedTickets'));
+        return response()->json($profile->load('user.roles', 'assignedAssets', 'requestedTickets', 'assignedTickets', 'location'));
     }
 
     /**
@@ -49,6 +50,7 @@ class ProfileController extends Controller
             'name' => 'sometimes|string|max:255',
             'avatar_url' => 'nullable|string',
             'department' => 'nullable|string',
+            'location_id' => 'nullable|exists:locations,id',
         ];
 
         if (auth()->user()->hasRole('admin')) {

@@ -21,6 +21,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'telegram_username' => 'nullable|string|max:255',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $user = User::create([
@@ -36,6 +37,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'telegram_username' => $validated['telegram_username'] ?? null,
+            'location_id' => $validated['location_id'] ?? null,
         ]);
 
         // Assign default role
@@ -176,6 +178,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
             'role' => 'required|in:admin,technician,requester',
             'department' => 'nullable|string|max:255',
+            'location_id' => 'nullable|exists:locations,id',
         ]);
 
         $user = User::create([
@@ -190,6 +193,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'department' => $validated['department'] ?? null,
+            'location_id' => $validated['location_id'] ?? null,
         ]);
 
         $user->assignRole($validated['role']);
