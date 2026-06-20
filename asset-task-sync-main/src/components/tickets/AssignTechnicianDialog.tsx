@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { useAssignTicket } from '@/hooks/useTicketWorkflow';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
 
@@ -62,20 +62,15 @@ export function AssignTechnicianDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                    <div>
+                    <div className="flex flex-col gap-2">
                         <Label>Technician</Label>
-                        <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select technician" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {technicians.map((tech) => (
-                                    <SelectItem key={tech.id} value={tech.id}>
-                                        {tech.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            options={technicians.map(tech => ({ value: tech.id, label: tech.name }))}
+                            value={selectedTechnician}
+                            onValueChange={setSelectedTechnician}
+                            placeholder="Select technician"
+                            emptyText="No technician found"
+                        />
                     </div>
                 </div>
                 <DialogFooter>

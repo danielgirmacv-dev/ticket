@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,17 @@ import { useCreateTicket } from '@/hooks/useTickets';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
 import { Send, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const Requests = () => {
   const { toast } = useToast();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const { data: assets, isLoading: isLoadingAssets } = useAssets();
   const { role, profile } = useAuth();
@@ -40,6 +47,13 @@ const Requests = () => {
   const [preferredDate, setPreferredDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState('monthly');
+
+  // Pre-fill location from requester profile
+  useEffect(() => {
+    if (profile?.location?.name && !location) {
+      setLocation(profile.location.name);
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +73,7 @@ const Requests = () => {
         recurring_interval: isRecurring ? recurringInterval : null,
       });
 
-      setIsSubmitted(true);
+      setShowSuccessDialog(true);
       setFormData({
         title: '',
         type: 'maintenance',
@@ -68,43 +82,15 @@ const Requests = () => {
         status: 'submitted',
       });
 
-      setLocation('');
+      // Keep location pre-filled
+      setLocation(profile?.location?.name || '');
       setPreferredDate('');
-
-      toast({
-        title: "Request submitted",
-        description: "Your maintenance request has been submitted successfully.",
-      });
     } catch (error) {
       // Error is handled by the mutation hook
     }
   };
 
-  if (isSubmitted) {
-    return (
-      <DashboardLayout
-        title="Submit Request"
-        subtitle="Create a new maintenance request"
-      >
-        <Card className="max-w-2xl mx-auto">
-          <CardContent className="py-16 text-center">
-            <div className="flex justify-center mb-6">
-              <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center animate-fade-in">
-                <CheckCircle className="h-8 w-8 text-success" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-semibold mb-2">Request Submitted!</h2>
-            <p className="text-muted-foreground mb-6">
-              Your maintenance request has been submitted successfully. You will receive a notification once a technician is assigned.
-            </p>
-            <Button variant="accent" onClick={() => setIsSubmitted(false)}>
-              Submit Another Request
-            </Button>
-          </CardContent>
-        </Card>
-      </DashboardLayout>
-    );
-  }
+
 
   if (isLoadingAssets) {
     return (
@@ -282,6 +268,34 @@ const Requests = () => {
           </form>
         </CardContent>
       </Card>
+
+      {/* Success Dialog Modal */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md text-center p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl animate-scale-up">
+          <DialogHeader className="flex flex-col items-center justify-center space-y-4">
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-success/10 text-success">
+              <span className="absolute inset-0 rounded-full bg-success/20 animate-ping opacity-75" />
+              <svg className="w-12 h-12 text-success relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-checkmark-draw" />
+              </svg>
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+              Request Submitted!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm max-w-sm">
+              Your maintenance request has been submitted successfully. You will receive a notification once a technician is assigned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6 flex justify-center">
+            <Button 
+              onClick={() => setShowSuccessDialog(false)}
+              className="w-full max-w-xs bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-600/90 text-white font-semibold py-6 rounded-xl shadow-lg shadow-success/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { CheckCircle, XCircle, UserPlus, Play, CheckCheck, Star, Wrench } from 'lucide-react';
 
 const parseSpareParts = (text: string) =>
@@ -196,20 +197,15 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                 <DialogDescription>Select a technician to assign to this ticket.</DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
-                                <div>
+                                <div className="flex flex-col gap-2">
                                     <Label>Technician</Label>
-                                    <Select value={selectedTechnician} onValueChange={setSelectedTechnician}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select technician" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {technicians.map((tech) => (
-                                                <SelectItem key={tech.id} value={tech.id}>
-                                                    {tech.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Combobox
+                                        options={technicians.map(tech => ({ value: tech.id, label: tech.name }))}
+                                        value={selectedTechnician}
+                                        onValueChange={setSelectedTechnician}
+                                        placeholder="Select technician"
+                                        emptyText="No technician found"
+                                    />
                                 </div>
                             </div>
                             <DialogFooter>

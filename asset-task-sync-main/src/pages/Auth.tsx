@@ -7,8 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Wrench, Shield, Users } from 'lucide-react';
+import { Loader2, Wrench, Shield, Users, Check } from 'lucide-react';
 import { z } from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -19,6 +26,9 @@ export default function Auth() {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
@@ -94,17 +104,18 @@ export default function Auth() {
         toast.error(result.error.message);
       }
     } else if (result.isPending) {
-      toast.success(result.message || 'Registration successful! Awaiting admin approval.');
+      setSuccessMessage(result.message || 'Registration successful! Awaiting admin approval.');
+      setShowSuccessDialog(true);
+      
       // Clear form
       setSignupName('');
       setSignupEmail('');
       setSignupPassword('');
       setSignupConfirmPassword('');
       setSignupTelegram('');
-      // Don't navigate - user can't log in yet
     } else {
-      toast.success('Account created successfully!');
-      navigate('/');
+      setSuccessMessage('Account created successfully!');
+      setShowSuccessDialog(true);
     }
   };
 
@@ -291,6 +302,36 @@ export default function Auth() {
           </div>
         </div>
       </div>
+
+      {/* Success Dialog Modal */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md text-center p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl animate-scale-up">
+          <DialogHeader className="flex flex-col items-center justify-center space-y-4">
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-success/10 text-success">
+              <span className="absolute inset-0 rounded-full bg-success/20 animate-ping opacity-75" />
+              <svg className="w-12 h-12 text-success relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-checkmark-draw" />
+              </svg>
+            </div>
+            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+              Registration Successful!
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm max-w-sm">
+              {successMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-6 flex justify-center">
+            <Button 
+              onClick={() => {
+                setShowSuccessDialog(false);
+              }}
+              className="w-full max-w-xs bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-600/90 text-white font-semibold py-6 rounded-xl shadow-lg shadow-success/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -106,7 +106,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user->load('profile', 'roles'),
+            'user' => $user->load('profile.location', 'roles'),
             'token' => $token,
         ]);
     }
@@ -129,7 +129,7 @@ class AuthController extends Controller
     public function user(Request $request)
     {
         return response()->json([
-            'user' => $request->user()->load('profile', 'roles'),
+            'user' => $request->user()->load('profile.location', 'roles'),
         ]);
     }
 
