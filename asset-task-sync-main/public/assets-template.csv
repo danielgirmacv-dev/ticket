@@ -1,6 +1,6 @@
-name,type,serial_number,purchase_date,warranty_expiry,location,status,notes
-Dell OptiPlex 7090,computer,DL-2024-001,2024-01-15,2027-01-15,Building A - Floor 2,active,Primary workstation
-HP LaserJet Pro,printer,HP-2024-001,2024-02-20,2027-02-20,Building A - Floor 1,active,Main office printer
-Cisco Switch 2960,network_device,CS-2024-001,2024-03-10,2027-03-10,Server Room,active,Core network switch
-Dell PowerEdge R740,server,SRV-2024-001,2024-04-05,2027-04-05,Server Room,active,Database server
-Lenovo ThinkPad T14,computer,LT-2024-001,2024-05-12,2027-05-12,Building B - Floor 3,active,Mobile workstation
+name,type,serial_number,purchase_date,warranty_expiry,location,status,notes,assigned_to
+Dell OptiPlex 7090,computer,DL-2024-001,2024-01-15,2027-01-15,Building A - Floor 2,active,Primary workstation,
+HP LaserJet Pro,printer,HP-2024-001,2024-02-20,2027-02-20,Building A - Floor 1,active,Main office printer,
+Cisco Switch 2960,network_device,CS-2024-001,2024-03-10,2027-03-10,Server Room,active,Core network switch,
+Dell PowerEdge R740,server,SRV-2024-001,2024-04-05,2027-04-05,Server Room,active,Database server,
+Lenovo ThinkPad T14,computer,LT-2024-001,2024-05-12,2027-05-12,Building B - Floor 3,active,Mobile workstation,

@@ -8,18 +8,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useMaintenanceSchedules, useCreateSchedule, useDeleteSchedule } from '@/hooks/useMaintenanceSchedules';
+import { useMaintenanceSchedules, useCreateSchedule, useUpdateSchedule, useDeleteSchedule } from '@/hooks/useMaintenanceSchedules';
 import { useAssets } from '@/hooks/useAssets';
-import { Calendar, Plus, Trash2, Loader2 } from 'lucide-react';
+import { Calendar, Plus, Trash2, Loader2, Pencil } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { MaintenanceSchedule } from '@/types/schedule';
 
 export default function Schedules() {
     const { data: schedules, isLoading } = useMaintenanceSchedules();
     const { data: assets } = useAssets();
     const createSchedule = useCreateSchedule();
+    const updateSchedule = useUpdateSchedule();
     const deleteSchedule = useDeleteSchedule();
 
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [editingSchedule, setEditingSchedule] = useState<MaintenanceSchedule | null>(null);
+    const [editForm, setEditForm] = useState<Partial<MaintenanceSchedule>>({});
     const [formData, setFormData] = useState<Partial<MaintenanceSchedule>>({
         title: '',
         description: '',
@@ -49,6 +53,26 @@ export default function Schedules() {
         if (confirm('Are you sure you want to delete this schedule?')) {
             await deleteSchedule.mutateAsync(id);
         }
+    };
+
+    const openEdit = (schedule: MaintenanceSchedule) => {
+        setEditingSchedule(schedule);
+        setEditForm({
+            title: schedule.title,
+            description: schedule.description || '',
+            asset_id: schedule.asset_id,
+            type: schedule.type,
+            frequency: schedule.frequency,
+            next_run_date: schedule.next_run_date?.slice(0, 10),
+            is_active: schedule.is_active,
+        });
+    };
+
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingSchedule) return;
+        await updateSchedule.mutateAsync({ id: editingSchedule.id, ...editForm });
+        setEditingSchedule(null);
     };
 
     if (isLoading) {
@@ -91,13 +115,18 @@ export default function Schedules() {
                                         </CardTitle>
                                         <CardDescription>{schedule.description}</CardDescription>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDelete(schedule.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" onClick={() => openEdit(schedule)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(schedule.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -253,6 +282,67 @@ export default function Schedules() {
                                 </Button>
                                 <Button type="submit" disabled={createSchedule.isPending}>
                                     {createSchedule.isPending ? 'Creating...' : 'Create Schedule'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={!!editingSchedule} onOpenChange={() => setEditingSchedule(null)}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Edit Schedule</DialogTitle>
+                            <DialogDescription>Update this maintenance schedule</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleUpdate}>
+                            <div className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>Title</Label>
+                                    <Input value={editForm.title || ''} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} required />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Description</Label>
+                                    <Textarea value={editForm.description || ''} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Asset</Label>
+                                        <Select value={editForm.asset_id} onValueChange={(v) => setEditForm({ ...editForm, asset_id: v })}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                {assets?.map((a) => (
+                                                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Frequency</Label>
+                                        <Select value={editForm.frequency} onValueChange={(v: any) => setEditForm({ ...editForm, frequency: v })}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="daily">Daily</SelectItem>
+                                                <SelectItem value="weekly">Weekly</SelectItem>
+                                                <SelectItem value="monthly">Monthly</SelectItem>
+                                                <SelectItem value="quarterly">Quarterly</SelectItem>
+                                                <SelectItem value="yearly">Yearly</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Next Run Date</Label>
+                                    <Input type="date" value={editForm.next_run_date || ''} onChange={(e) => setEditForm({ ...editForm, next_run_date: e.target.value })} required />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <Label>Active</Label>
+                                    <Switch checked={editForm.is_active ?? true} onCheckedChange={(c) => setEditForm({ ...editForm, is_active: c })} />
+                                </div>
+                            </div>
+                            <DialogFooter className="mt-6">
+                                <Button type="button" variant="outline" onClick={() => setEditingSchedule(null)}>Cancel</Button>
+                                <Button type="submit" disabled={updateSchedule.isPending}>
+                                    {updateSchedule.isPending ? 'Saving...' : 'Save Changes'}
                                 </Button>
                             </DialogFooter>
                         </form>

@@ -9,7 +9,9 @@ import {
     useCompleteTicket,
     useReviewCompletion,
     useSubmitFeedback,
+    useUpdateProgress,
 } from '@/hooks/useTicketWorkflow';
+import { useUpdateTicket } from '@/hooks/useTickets';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -20,9 +22,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, UserPlus, Play, CheckCheck, Star } from 'lucide-react';
+import { CheckCircle, XCircle, UserPlus, Play, CheckCheck, Star, Wrench } from 'lucide-react';
+
+const parseSpareParts = (text: string) =>
+    text.split('\n').filter(Boolean).map((line) => ({ name: line.trim(), quantity: 1 }));
 
 interface TicketWorkflowProps {
     ticket: MaintenanceTicket;
@@ -37,12 +43,16 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     const [showReviewDialog, setShowReviewDialog] = useState(false);
     const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+    const [showProgressDialog, setShowProgressDialog] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [selectedTechnician, setSelectedTechnician] = useState('');
     const [reviewNotes, setReviewNotes] = useState('');
     const [feedbackRating, setFeedbackRating] = useState(5);
     const [feedbackComment, setFeedbackComment] = useState('');
     const [actionsTaken, setActionsTaken] = useState('');
+    const [diagnosis, setDiagnosis] = useState('');
+    const [sparePartsText, setSparePartsText] = useState('');
+    const [actualDuration, setActualDuration] = useState('');
 
     const approveTicket = useApproveTicket();
     const rejectTicket = useRejectTicket();
@@ -51,6 +61,33 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     const completeTicket = useCompleteTicket();
     const reviewCompletion = useReviewCompletion();
     const submitFeedback = useSubmitFeedback();
+    const updateProgress = useUpdateProgress();
+    const updateTicket = useUpdateTicket();
+
+    const canCancel =
+        (role === 'admin' && !['completed', 'cancelled'].includes(ticket.status)) ||
+        (role === 'requester' && profile?.id === ticket.requester_id && ticket.status === 'submitted');
+
+    const handleCancel = () => {
+        if (!confirm('Cancel this ticket?')) return;
+        updateTicket.mutate({ id: ticket.id, status: 'cancelled' });
+    };
+
+    const handleSaveProgress = () => {
+        updateProgress.mutate({
+            id: ticket.id,
+            diagnosis: diagnosis || undefined,
+            actions_taken: actionsTaken || undefined,
+            spare_parts: sparePartsText ? parseSpareParts(sparePartsText) : undefined,
+        });
+        setShowProgressDialog(false);
+    };
+
+    const cancelButton = canCancel ? (
+        <Button onClick={handleCancel} size="sm" variant="outline" className="text-destructive border-destructive/30">
+            Cancel Ticket
+        </Button>
+    ) : null;
 
     const handleApprove = () => {
         approveTicket.mutate(
@@ -101,7 +138,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     if (role === 'admin') {
         if (ticket.status === 'submitted') {
             return (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Button onClick={handleApprove} size="sm" variant="default">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve
@@ -110,6 +147,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                         <XCircle className="h-4 w-4 mr-2" />
                         Reject
                     </Button>
+                    {cancelButton}
 
                     <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                         <DialogContent>
@@ -144,11 +182,12 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
 
         if (ticket.status === 'approved') {
             return (
-                <div>
+                <div className="flex flex-wrap gap-2">
                     <Button onClick={() => setShowAssignDialog(true)} size="sm">
                         <UserPlus className="h-4 w-4 mr-2" />
                         Assign Technician
                     </Button>
+                    {cancelButton}
 
                     <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
                         <DialogContent>
@@ -237,17 +276,55 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
         if (ticket.status === 'in_progress' || ticket.status === 'reopened') {
             const handleCompleteSubmit = () => {
                 if (!actionsTaken.trim()) return;
-                completeTicket.mutate({ id: ticket.id, actions_taken: actionsTaken });
+                completeTicket.mutate({
+                    id: ticket.id,
+                    actions_taken: actionsTaken,
+                    spare_parts: sparePartsText ? parseSpareParts(sparePartsText) : undefined,
+                    actual_duration: actualDuration ? Number(actualDuration) : undefined,
+                });
                 setShowCompleteDialog(false);
                 setActionsTaken('');
+                setSparePartsText('');
+                setActualDuration('');
             };
 
             return (
-                <div>
+                <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => setShowProgressDialog(true)} size="sm" variant="outline">
+                        <Wrench className="h-4 w-4 mr-2" />
+                        Update Progress
+                    </Button>
                     <Button onClick={() => setShowCompleteDialog(true)} size="sm" variant="default">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         {ticket.status === 'reopened' ? 'Resubmit Ticket' : 'Complete Ticket'}
                     </Button>
+
+                    <Dialog open={showProgressDialog} onOpenChange={setShowProgressDialog}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Update Progress</DialogTitle>
+                                <DialogDescription>Save diagnosis and work in progress</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                                <div>
+                                    <Label>Diagnosis</Label>
+                                    <Textarea value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} rows={2} placeholder="Issue diagnosis..." />
+                                </div>
+                                <div>
+                                    <Label>Work done so far</Label>
+                                    <Textarea value={actionsTaken} onChange={(e) => setActionsTaken(e.target.value)} rows={2} />
+                                </div>
+                                <div>
+                                    <Label>Spare parts (one per line)</Label>
+                                    <Textarea value={sparePartsText} onChange={(e) => setSparePartsText(e.target.value)} rows={2} placeholder="RAM 8GB&#10;Thermal paste" />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowProgressDialog(false)}>Cancel</Button>
+                                <Button onClick={handleSaveProgress}>Save Progress</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
                         <DialogContent>
@@ -255,8 +332,8 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                 <DialogTitle>{ticket.status === 'reopened' ? 'Resubmit Ticket' : 'Complete Ticket'}</DialogTitle>
                                 <DialogDescription>
                                     {ticket.status === 'reopened'
-                                        ? 'Address the admin\'s feedback and describe the corrections you made.'
-                                        : 'Describe the actions you took to complete this ticket.'}
+                                        ? 'Address feedback and describe corrections made.'
+                                        : 'Describe the actions taken to complete this ticket.'}
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4">
@@ -266,15 +343,21 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                         id="actions"
                                         value={actionsTaken}
                                         onChange={(e) => setActionsTaken(e.target.value)}
-                                        placeholder="Describe what you did to complete this ticket..."
+                                        placeholder="Describe what you did..."
                                         rows={4}
                                     />
                                 </div>
+                                <div>
+                                    <Label>Spare parts used (one per line)</Label>
+                                    <Textarea value={sparePartsText} onChange={(e) => setSparePartsText(e.target.value)} rows={2} />
+                                </div>
+                                <div>
+                                    <Label>Actual duration (minutes)</Label>
+                                    <Input type="number" min="0" value={actualDuration} onChange={(e) => setActualDuration(e.target.value)} />
+                                </div>
                             </div>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>
-                                    Cancel
-                                </Button>
+                                <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>Cancel</Button>
                                 <Button onClick={handleCompleteSubmit}>
                                     {ticket.status === 'reopened' ? 'Resubmit for Review' : 'Mark as Complete'}
                                 </Button>

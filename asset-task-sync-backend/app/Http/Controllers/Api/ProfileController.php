@@ -45,13 +45,30 @@ class ProfileController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $validated = $request->validate([
+        $rules = [
             'name' => 'sometimes|string|max:255',
             'avatar_url' => 'nullable|string',
             'department' => 'nullable|string',
-        ]);
+        ];
+
+        if (auth()->user()->hasRole('admin')) {
+            $rules['email'] = 'sometimes|string|email|max:255|unique:users,email,' . $profile->user_id;
+        }
+
+        $validated = $request->validate($rules);
 
         $profile->update($validated);
+
+        $userUpdates = [];
+        if (isset($validated['name'])) {
+            $userUpdates['name'] = $validated['name'];
+        }
+        if (isset($validated['email'])) {
+            $userUpdates['email'] = $validated['email'];
+        }
+        if (!empty($userUpdates)) {
+            $profile->user->update($userUpdates);
+        }
 
         ActivityLogger::log('updated', 'Profile', $profile->id, "Updated profile for user: {$profile->name}");
 

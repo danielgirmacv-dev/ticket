@@ -15,6 +15,7 @@ import Requests from "./pages/Requests";
 import Schedules from "./pages/Schedules";
 import Reports from "./pages/Reports";
 import Notifications from "./pages/Notifications";
+import ActivityLogs from "./pages/ActivityLogs";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,11 @@ const App = () => (
             <Route path="/users" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <Users />
+              </ProtectedRoute>
+            } />
+            <Route path="/activity-logs" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <ActivityLogs />
               </ProtectedRoute>
             } />
             <Route path="/calendar" element={

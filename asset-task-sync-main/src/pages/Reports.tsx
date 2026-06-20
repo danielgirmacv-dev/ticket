@@ -14,6 +14,8 @@ import {
     downloadAssetReportCsv,
     ReportFilters
 } from '@/hooks/useReports';
+import { useAssets } from '@/hooks/useAssets';
+import { useUsers } from '@/hooks/useUsers';
 import { FileDown, Printer, TrendingUp, Package, Wrench, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -26,7 +28,14 @@ const Reports = () => {
         status: 'all',
         type: 'all',
         priority: 'all',
+        asset_id: 'all',
+        assigned_technician_id: 'all',
+        location: '',
     });
+
+    const { data: assets } = useAssets();
+    const { data: users } = useUsers();
+    const technicians = users?.filter(u => u.role === 'technician') || [];
 
     const { data: ticketData, isLoading: isLoadingTickets } = useTicketReport(filters);
     const { data: assetData, isLoading: isLoadingAssets } = useAssetReport(filters);
@@ -128,6 +137,45 @@ const Reports = () => {
                                         <SelectItem value="critical">Critical</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div>
+                                <Label>Asset</Label>
+                                <Select value={filters.asset_id || 'all'} onValueChange={(val) => handleFilterChange('asset_id', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All assets" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Assets</SelectItem>
+                                        {assets?.map((asset) => (
+                                            <SelectItem key={asset.id} value={asset.id}>{asset.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Technician</Label>
+                                <Select value={filters.assigned_technician_id || 'all'} onValueChange={(val) => handleFilterChange('assigned_technician_id', val)}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="All technicians" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Technicians</SelectItem>
+                                        {technicians.map((tech) => (
+                                            <SelectItem key={tech.id} value={tech.id}>{tech.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label>Location</Label>
+                                <Input
+                                    placeholder="Filter by location"
+                                    value={filters.location || ''}
+                                    onChange={(e) => handleFilterChange('location', e.target.value)}
+                                />
                             </div>
                         </div>
 

@@ -14,16 +14,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Bell, Mail, Shield, Palette, Globe, Database, Save, Link, Copy, MessageCircle, ExternalLink, Check } from 'lucide-react';
+import { Bell, Mail, Shield, Palette, Database, Link, Copy, MessageCircle, ExternalLink, Check, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import laravelClient from '@/integrations/laravel/client';
 import { useAuth } from '@/hooks/useAuth';
 
 const Settings = () => {
   const { toast } = useToast();
-  const { role } = useAuth();
+  const { role, profile, user } = useAuth();
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
+
+  // Profile state
+  const [profileName, setProfileName] = useState('');
+  const [profileDepartment, setProfileDepartment] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Password update state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -39,11 +44,27 @@ const Settings = () => {
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [showTelegramInstructions, setShowTelegramInstructions] = useState(false);
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
-    });
+  const handleProfileSave = async () => {
+    if (!profile) return;
+    setIsSavingProfile(true);
+    try {
+      await laravelClient.put(`/profiles/${profile.id}`, {
+        name: profileName,
+        department: profileDepartment,
+      });
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been saved successfully.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to update profile.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   const handlePasswordUpdate = async () => {
@@ -183,6 +204,13 @@ const Settings = () => {
     fetchTelegramStatus();
   }, []);
 
+  useEffect(() => {
+    if (profile) {
+      setProfileName(profile.name || '');
+      setProfileDepartment(profile.department || '');
+    }
+  }, [profile]);
+
   return (
     <DashboardLayout
       title="Settings"
@@ -215,20 +243,60 @@ const Settings = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  My Profile
+                </CardTitle>
+                <CardDescription>
+                  Update your personal information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="profileName">Full Name</Label>
+                  <Input
+                    id="profileName"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="profileEmail">Email</Label>
+                  <Input id="profileEmail" type="email" value={user?.email || ''} disabled />
+                  <p className="text-xs text-muted-foreground">Contact an admin to change your email address.</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="profileDepartment">Department</Label>
+                  <Input
+                    id="profileDepartment"
+                    value={profileDepartment}
+                    onChange={(e) => setProfileDepartment(e.target.value)}
+                    placeholder="e.g., IT, Facilities"
+                  />
+                </div>
+                <Button variant="accent" onClick={handleProfileSave} disabled={isSavingProfile}>
+                  {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Appearance</CardTitle>
                 <CardDescription>
                   Customize the look and feel of the application
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Theme, language, and timezone preferences are coming soon.</p>
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label>Theme</Label>
                     <p className="text-sm text-muted-foreground">
                       Choose your preferred color theme
                     </p>
                   </div>
-                  <Select defaultValue="light">
+                  <Select defaultValue="light" disabled>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -240,14 +308,14 @@ const Settings = () => {
                   </Select>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label>Language</Label>
                     <p className="text-sm text-muted-foreground">
                       Select your preferred language
                     </p>
                   </div>
-                  <Select defaultValue="en">
+                  <Select defaultValue="en" disabled>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -260,14 +328,14 @@ const Settings = () => {
                   </Select>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label>Timezone</Label>
                     <p className="text-sm text-muted-foreground">
                       Set your local timezone
                     </p>
                   </div>
-                  <Select defaultValue="utc">
+                  <Select defaultValue="utc" disabled>
                     <SelectTrigger className="w-[220px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -282,24 +350,26 @@ const Settings = () => {
               </CardContent>
             </Card>
 
+            {role === 'admin' && (
             <Card>
               <CardHeader>
                 <CardTitle>Organization</CardTitle>
                 <CardDescription>
-                  Your organization settings
+                  Organization-wide settings (coming soon)
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 opacity-50">
                 <div className="grid gap-2">
                   <Label htmlFor="orgName">Organization Name</Label>
-                  <Input id="orgName" defaultValue="Acme Corporation" />
+                  <Input id="orgName" defaultValue="Acme Corporation" disabled />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="orgEmail">Support Email</Label>
-                  <Input id="orgEmail" type="email" defaultValue="it-support@acme.com" />
+                  <Input id="orgEmail" type="email" defaultValue="it-support@acme.com" disabled />
                 </div>
               </CardContent>
             </Card>
+            )}
           </div>
         </TabsContent>
 
@@ -314,7 +384,8 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Email and push notification preferences are coming soon. Use Telegram below for instant alerts.</p>
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
@@ -327,10 +398,11 @@ const Settings = () => {
                   <Switch
                     checked={emailNotifications}
                     onCheckedChange={setEmailNotifications}
+                    disabled
                   />
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label className="flex items-center gap-2">
                       <Bell className="h-4 w-4" />
@@ -343,6 +415,7 @@ const Settings = () => {
                   <Switch
                     checked={pushNotifications}
                     onCheckedChange={setPushNotifications}
+                    disabled
                   />
                 </div>
               </CardContent>
@@ -514,14 +587,15 @@ const Settings = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">Two-factor authentication is not yet available.</p>
+                <div className="flex items-center justify-between opacity-50">
                   <div className="space-y-0.5">
                     <Label>Enable 2FA</Label>
                     <p className="text-sm text-muted-foreground">
                       Require a verification code when signing in
                     </p>
                   </div>
-                  <Switch />
+                  <Switch disabled />
                 </div>
               </CardContent>
             </Card>
@@ -540,14 +614,15 @@ const Settings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">System maintenance settings are coming soon.</p>
+                  <div className="flex items-center justify-between opacity-50">
                     <div className="space-y-0.5">
                       <Label>Default Reminder Time</Label>
                       <p className="text-sm text-muted-foreground">
                         How early to send ticket reminders
                       </p>
                     </div>
-                    <Select defaultValue="24">
+                    <Select defaultValue="24" disabled>
                       <SelectTrigger className="w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
@@ -560,14 +635,14 @@ const Settings = () => {
                     </Select>
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between opacity-50">
                     <div className="space-y-0.5">
                       <Label>Auto-archive Completed Tickets</Label>
                       <p className="text-sm text-muted-foreground">
                         Automatically archive tickets after completion
                       </p>
                     </div>
-                    <Select defaultValue="30">
+                    <Select defaultValue="30" disabled>
                       <SelectTrigger className="w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
@@ -590,21 +665,15 @@ const Settings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button variant="outline">Export All Data</Button>
-                  <Button variant="destructive">Clear Activity Logs</Button>
+                  <p className="text-sm text-muted-foreground">Data export and log management are coming soon.</p>
+                  <Button variant="outline" disabled>Export All Data</Button>
+                  <Button variant="destructive" disabled>Clear Activity Logs</Button>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
         )}
       </Tabs>
-
-      <div className="flex justify-end mt-6">
-        <Button variant="accent" onClick={handleSave} className="gap-2">
-          <Save className="h-4 w-4" />
-          Save Changes
-        </Button>
-      </div>
     </DashboardLayout>
   );
 };

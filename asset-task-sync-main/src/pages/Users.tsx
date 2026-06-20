@@ -104,11 +104,15 @@ const Users = () => {
       // Update user role
       await handleRoleUpdate(editingUser.id, editFormData.role);
 
-      // Update department if changed
-      if (editFormData.department !== editingUser.department) {
-        await laravelClient.put(`/profiles/${editingUser.id}`, {
-          department: editFormData.department
-        });
+      // Update profile fields
+      const profileUpdates: Record<string, string> = {};
+      if (editFormData.name !== editingUser.name) profileUpdates.name = editFormData.name;
+      if (editFormData.email !== editingUser.email) profileUpdates.email = editFormData.email;
+      if (editFormData.department !== (editingUser.department || '')) {
+        profileUpdates.department = editFormData.department;
+      }
+      if (Object.keys(profileUpdates).length > 0) {
+        await laravelClient.put(`/profiles/${editingUser.id}`, profileUpdates);
       }
 
       toast.success('User updated successfully');

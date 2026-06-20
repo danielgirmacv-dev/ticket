@@ -12,7 +12,7 @@ class ActivityLogController extends Controller
     {
         $logs = ActivityLog::with('user')
             ->latest()
-            ->limit(20)
+            ->limit($request->integer('limit', 100))
             ->get();
 
         return response()->json($logs);

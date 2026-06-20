@@ -24,10 +24,13 @@ import {
     Wrench,
     AlertTriangle,
     Trash2,
+    Pencil,
 } from 'lucide-react';
 import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
+import { EditTicketDialog } from '@/components/tickets/EditTicketDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeleteTicket } from '@/hooks/useTicketWorkflow';
+import { useUpdateTicket } from '@/hooks/useTickets';
 
 interface TicketDetailsDialogProps {
     ticket: MaintenanceTicket | null;
@@ -45,9 +48,11 @@ const priorityStyles = {
 };
 
 export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = [], onApprove }: TicketDetailsDialogProps) {
-    const { role } = useAuth();
+    const { role, profile } = useAuth();
     const deleteTicket = useDeleteTicket();
+    const updateTicket = useUpdateTicket();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [showEditDialog, setShowEditDialog] = useState(false);
 
     if (!ticket) return null;
 
@@ -79,15 +84,40 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 </div>
                             </div>
                             {role === 'admin' && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                    onClick={() => setShowDeleteDialog(true)}
-                                    title="Delete Ticket"
-                                >
-                                    <Trash2 className="h-5 w-5" />
-                                </Button>
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} title="Edit Ticket">
+                                        <Pencil className="h-5 w-5" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => setShowDeleteDialog(true)}
+                                        title="Delete Ticket"
+                                    >
+                                        <Trash2 className="h-5 w-5" />
+                                    </Button>
+                                </div>
+                            )}
+                            {role === 'requester' && profile?.id === ticket.requester_id && ticket.status === 'submitted' && (
+                                <div className="flex gap-1">
+                                    <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} title="Edit Ticket">
+                                        <Pencil className="h-5 w-5" />
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-destructive"
+                                        onClick={() => {
+                                            if (confirm('Cancel this ticket?')) {
+                                                updateTicket.mutate({ id: ticket.id, status: 'cancelled' });
+                                                onOpenChange(false);
+                                            }
+                                        }}
+                                    >
+                                        Cancel
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </DialogHeader>
@@ -269,6 +299,8 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <EditTicketDialog ticket={ticket} open={showEditDialog} onOpenChange={setShowEditDialog} />
         </>
     );
 }

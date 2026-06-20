@@ -12,11 +12,21 @@ export interface ReportFilters {
     location?: string;
 }
 
+function cleanFilters(filters: ReportFilters): Record<string, string> {
+    const params: Record<string, string> = {};
+    for (const [key, value] of Object.entries(filters)) {
+        if (value && value !== 'all') {
+            params[key] = value;
+        }
+    }
+    return params;
+}
+
 export function useTicketReport(filters: ReportFilters) {
     return useQuery({
         queryKey: ['reports', 'tickets', filters],
         queryFn: async () => {
-            const response = await laravelClient.get('/reports/tickets', { params: filters });
+            const response = await laravelClient.get('/reports/tickets', { params: cleanFilters(filters) });
             return response.data;
         },
     });
@@ -26,7 +36,7 @@ export function useAssetReport(filters: ReportFilters) {
     return useQuery({
         queryKey: ['reports', 'assets', filters],
         queryFn: async () => {
-            const response = await laravelClient.get('/reports/assets', { params: filters });
+            const response = await laravelClient.get('/reports/assets', { params: cleanFilters(filters) });
             return response.data;
         },
     });
@@ -36,7 +46,7 @@ export function usePerformanceReport(filters: ReportFilters) {
     return useQuery({
         queryKey: ['reports', 'performance', filters],
         queryFn: async () => {
-            const response = await laravelClient.get('/reports/performance', { params: filters });
+            const response = await laravelClient.get('/reports/performance', { params: cleanFilters(filters) });
             return response.data;
         },
     });
@@ -45,7 +55,7 @@ export function usePerformanceReport(filters: ReportFilters) {
 export async function downloadTicketReportCsv(filters: ReportFilters) {
     try {
         const response = await laravelClient.get('/reports/export/tickets', {
-            params: filters,
+            params: cleanFilters(filters),
             responseType: 'blob',
         });
 
@@ -67,7 +77,7 @@ export async function downloadTicketReportCsv(filters: ReportFilters) {
 export async function downloadAssetReportCsv(filters: ReportFilters) {
     try {
         const response = await laravelClient.get('/reports/export/assets', {
-            params: filters,
+            params: cleanFilters(filters),
             responseType: 'blob',
         });
 

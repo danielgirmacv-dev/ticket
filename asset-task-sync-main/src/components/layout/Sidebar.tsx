@@ -15,6 +15,7 @@ import {
   Calendar,
   Plus,
   FileText,
+  ScrollText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,8 +33,10 @@ const Sidebar = () => {
     { href: '/assets', icon: Monitor, label: 'Assets' },
     { href: '/tickets', icon: ClipboardList, label: 'Tickets' },
     { href: '/calendar', icon: Calendar, label: 'Calendar' },
+    { href: '/schedules', icon: Wrench, label: 'Schedules' },
     { href: '/reports', icon: FileText, label: 'Reports' },
     { href: '/users', icon: Users, label: 'Users' },
+    { href: '/activity-logs', icon: ScrollText, label: 'Activity' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 

@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useTickets, useCreateTicket } from '@/hooks/useTickets';
 import { useAssets } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
@@ -61,6 +62,8 @@ const Tickets = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [ticketToAssign, setTicketToAssign] = useState<MaintenanceTicket | null>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringInterval, setRecurringInterval] = useState<string>('monthly');
 
   const { data: tickets, isLoading: isLoadingTickets } = useTickets();
   const { data: assets } = useAssets();
@@ -78,10 +81,16 @@ const Tickets = () => {
     }
   }, [ticketId, tickets]);
 
-  const handleCreateTicket = (data: any) => {
-    createTicket.mutate(data, {
+  const handleCreateTicket = (data: Record<string, unknown>) => {
+    createTicket.mutate({
+      ...data,
+      is_recurring: isRecurring,
+      recurring_interval: isRecurring ? recurringInterval : null,
+    }, {
       onSuccess: () => {
         setIsDialogOpen(false);
+        setIsRecurring(false);
+        setRecurringInterval('monthly');
       },
     });
   };
@@ -341,6 +350,31 @@ const Tickets = () => {
                     <Input id="estimated_duration" name="estimated_duration" type="number" min="0" />
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div>
+                    <Label>Recurring ticket</Label>
+                    <p className="text-xs text-muted-foreground">Automatically schedule repeat maintenance</p>
+                  </div>
+                  <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                </div>
+                {isRecurring && (
+                  <div className="space-y-2">
+                    <Label>Recurring interval</Label>
+                    <Select value={recurringInterval} onValueChange={setRecurringInterval}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="yearly">Yearly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <DialogFooter>
                   <Button type="submit" disabled={createTicket.isPending}>

@@ -21,6 +21,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useAssets, useCreateAsset, useUpdateAsset, useDeleteAsset, useImportAssetsCsv } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { Asset } from '@/integrations/laravel/client';
@@ -63,6 +64,7 @@ const Assets = () => {
     serial_number: '',
     location: '',
     status: 'active',
+    notes: '',
   });
 
   const { data: assets, isLoading } = useAssets();
@@ -88,6 +90,7 @@ const Assets = () => {
       serial_number: '',
       location: '',
       status: 'active',
+      notes: '',
     });
   };
 
@@ -358,6 +361,16 @@ const Assets = () => {
                     placeholder="e.g., Building A - Floor 2"
                     value={newAsset.location}
                     onChange={(e) => setNewAsset({ ...newAsset, location: e.target.value })}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="notes">Notes (optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Additional details about this asset"
+                    value={newAsset.notes || ''}
+                    onChange={(e) => setNewAsset({ ...newAsset, notes: e.target.value })}
+                    rows={2}
                   />
                 </div>
                 <div className="grid gap-2">
