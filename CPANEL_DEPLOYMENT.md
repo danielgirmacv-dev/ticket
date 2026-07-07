@@ -43,12 +43,12 @@ Replace `api.yourdomain.com` with your real API subdomain.
 ```bash
 cd asset-task-sync-main
 npm install
-node node_modules/vite/bin/vite.js build
+npm run build
 ```
 
 This creates a `dist/` folder. Upload the contents of `dist/` to `public_html` on cPanel.
 
-> If `npm run dev` fails with a permission error locally, use `node node_modules/vite/bin/vite.js` instead.
+> If `npm run build` fails with a permission error locally, use `node node_modules/vite/bin/vite.js build` instead.
 
 ### 3. Prepare the Backend
 
@@ -120,7 +120,7 @@ Create `.env` in the Laravel root (copy from `.env.example`) and set production 
 ```env
 APP_NAME=IT_Maintenance_Scheduler
 APP_ENV=production
-APP_KEY=base64:...          # generate on server
+APP_KEY=
 APP_DEBUG=false
 APP_URL=https://api.yourdomain.com
 
@@ -149,6 +149,8 @@ MAIL_FROM_NAME="${APP_NAME}"
 
 See [EMAIL_SETUP.md](EMAIL_SETUP.md) for detailed mail configuration.
 
+Leave `APP_KEY` empty until you run `php artisan key:generate`; Laravel will fill it automatically.
+
 ### 4. Run Laravel Commands
 
 If your host provides **Terminal** or **SSH**:
@@ -157,7 +159,7 @@ If your host provides **Terminal** or **SSH**:
 cd ~/api.yourdomain.com
 
 php artisan key:generate
-php artisan migrate --seed
+php artisan migrate --seed --force
 php artisan storage:link
 php artisan config:cache
 php artisan route:cache
@@ -269,16 +271,21 @@ Use `https://` in:
 
 ## Part 6 — Cron Jobs (Optional)
 
-If you use scheduled maintenance or auto-close tickets, add a cron job in **cPanel → Cron Jobs**:
+If you use scheduled tasks such as auto-closing tickets, add a cron job in **cPanel → Cron Jobs**:
 
 ```bash
 * * * * * cd /home/youruser/api.yourdomain.com && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-This runs Laravel's scheduler, which includes:
+This runs Laravel's scheduler. In this project, the scheduler currently includes:
 
 - `tickets:auto-close` — auto-close tickets pending review for 3+ days
-- `maintenance:check-schedules` — create tickets from preventive maintenance schedules
+
+The command `maintenance:check-schedules` also exists for creating tickets from preventive maintenance schedules, but it is not scheduled by default in `asset-task-sync-backend/routes/console.php`. To run it automatically, add it to the scheduler there or create a separate cron job:
+
+```bash
+0 * * * * cd /home/youruser/api.yourdomain.com && php artisan maintenance:check-schedules >> /dev/null 2>&1
+```
 
 ---
 
@@ -307,7 +314,7 @@ This runs Laravel's scheduler, which includes:
 | **CORS error in browser** | Set `FRONTEND_URL=https://yourdomain.com` in `.env`, then `php artisan config:cache` |
 | **404 on `/tickets` or other routes** | Add SPA `.htaccess` in `public_html` (see Part 4) |
 | **Database connection failed** | Verify cPanel MySQL host (`localhost`), database name, username, and password |
-| **No Terminal / Composer on server** | Run `composer install --no-dev` locally and upload the `vendor/` folder |
+| **No Terminal / Composer on server** | Run `composer install --no-dev --optimize-autoloader` locally and upload the `vendor/` folder |
 | **API still calls localhost** | Update `client.ts`, rebuild (`npm run build` on cPanel Node or locally), copy `dist/` to `public_html` |
 | **Blank page on frontend** | Check browser console; ensure `assets/` folder was uploaded with `index.html` |
 | **Authorization / login fails** | Confirm `APP_URL` matches the API subdomain and SSL is active |

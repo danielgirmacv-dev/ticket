@@ -36,6 +36,7 @@ class CheckMaintenanceSchedules extends Command
 
         if ($dueSchedules->isEmpty()) {
             $this->info('No due schedules found.');
+
             return 0;
         }
 
@@ -44,8 +45,8 @@ class CheckMaintenanceSchedules extends Command
         foreach ($dueSchedules as $schedule) {
             // Create maintenance ticket
             $ticket = MaintenanceTicket::create([
-                'title' => $schedule->title . ' (Scheduled)',
-                'description' => $schedule->description . "\n\nAuto-generated from preventive maintenance schedule.",
+                'title' => $schedule->title.' (Scheduled)',
+                'description' => $schedule->description."\n\nAuto-generated from preventive maintenance schedule.",
                 'type' => $schedule->type,
                 'asset_id' => $schedule->asset_id,
                 'status' => 'submitted',
@@ -66,6 +67,7 @@ class CheckMaintenanceSchedules extends Command
         }
 
         $this->info("Successfully created {$ticketsCreated} maintenance ticket(s).");
+
         return 0;
     }
 

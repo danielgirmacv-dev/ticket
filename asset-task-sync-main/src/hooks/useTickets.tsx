@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient, { MaintenanceTicket } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export function useTickets() {
     return useQuery({
@@ -24,8 +25,8 @@ export function useCreateTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket created successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to create ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to create ticket'));
         }
     });
 }
@@ -42,8 +43,8 @@ export function useUpdateTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to update ticket'));
         }
     });
 }
@@ -59,8 +60,8 @@ export function useDeleteTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to delete ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to delete ticket'));
         }
     });
 }

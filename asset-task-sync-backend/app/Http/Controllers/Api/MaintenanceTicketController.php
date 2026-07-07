@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\MaintenanceTicket;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use App\Services\ActivityLogger;
 
 class MaintenanceTicketController extends Controller
 {
@@ -88,7 +88,7 @@ class MaintenanceTicketController extends Controller
         ]);
 
         // Auto-set requester_id to authenticated user's profile if not provided
-        if (!isset($validated['requester_id'])) {
+        if (! isset($validated['requester_id'])) {
             $validated['requester_id'] = auth()->user()->profile->id;
         }
 
@@ -100,7 +100,7 @@ class MaintenanceTicketController extends Controller
 
             if ($existingPendingTicket) {
                 return response()->json([
-                    'message' => 'You already have a pending request. Please wait for it to be completed before submitting a new one.'
+                    'message' => 'You already have a pending request. Please wait for it to be completed before submitting a new one.',
                 ], 400);
             }
         }
@@ -125,7 +125,7 @@ class MaintenanceTicketController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to notify admins of new ticket: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to notify admins of new ticket: '.$e->getMessage());
         }
 
         return response()->json($ticket->load('asset', 'requester', 'assignedTechnician'), 201);
@@ -137,6 +137,7 @@ class MaintenanceTicketController extends Controller
     public function show(MaintenanceTicket $maintenanceTicket)
     {
         Gate::authorize('view', $maintenanceTicket);
+
         return response()->json($maintenanceTicket->load('asset', 'requester', 'assignedTechnician'));
     }
 
@@ -198,7 +199,7 @@ class MaintenanceTicketController extends Controller
             ]);
         } catch (\Exception $e) {
             // Log error but don't fail the request
-            \Illuminate\Support\Facades\Log::error('Failed to create notification: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to create notification: '.$e->getMessage());
         }
     }
 
@@ -288,7 +289,7 @@ class MaintenanceTicketController extends Controller
 
         $ticket = MaintenanceTicket::findOrFail($id);
 
-        if (!in_array($ticket->status, ['submitted', 'approved'])) {
+        if (! in_array($ticket->status, ['submitted', 'approved'])) {
             return response()->json(['message' => 'Ticket cannot be assigned in current status'], 400);
         }
 
@@ -371,7 +372,7 @@ class MaintenanceTicketController extends Controller
         $ticket = MaintenanceTicket::findOrFail($id);
         Gate::authorize('update', $ticket);
 
-        if (!in_array($ticket->status, ['in_progress', 'reopened'])) {
+        if (! in_array($ticket->status, ['in_progress', 'reopened'])) {
             return response()->json(['message' => 'Ticket must be in progress or reopened to complete'], 400);
         }
 
@@ -414,7 +415,7 @@ class MaintenanceTicketController extends Controller
         $ticket = MaintenanceTicket::findOrFail($id);
 
         // Allow Admin OR Requester of the ticket
-        if (!auth()->user()->hasRole('admin') && $ticket->requester_id !== auth()->user()->profile->id) {
+        if (! auth()->user()->hasRole('admin') && $ticket->requester_id !== auth()->user()->profile->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -443,7 +444,7 @@ class MaintenanceTicketController extends Controller
         } else {
             $ticket->update([
                 'status' => 'reopened',
-                'notes' => $ticket->notes . "\n\nReview Notes: " . ($validated['notes'] ?? 'Needs more work'),
+                'notes' => $ticket->notes."\n\nReview Notes: ".($validated['notes'] ?? 'Needs more work'),
             ]);
             ActivityLogger::log('reopened', 'Ticket', $ticket->id, "Reopened ticket: {$ticket->title}");
 

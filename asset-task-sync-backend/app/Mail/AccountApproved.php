@@ -15,6 +15,7 @@ class AccountApproved extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public $user;
+
     public $loginUrl;
 
     /**
@@ -23,7 +24,7 @@ class AccountApproved extends Mailable implements ShouldQueue
     public function __construct(User $user)
     {
         $this->user = $user;
-        $this->loginUrl = env('APP_URL', 'http://localhost:5173') . '/auth';
+        $this->loginUrl = env('APP_URL', 'http://localhost:5173').'/auth';
     }
 
     /**

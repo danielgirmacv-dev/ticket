@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient, { Location } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export function useLocations() {
     return useQuery({
@@ -24,8 +25,8 @@ export function useCreateLocation() {
             queryClient.invalidateQueries({ queryKey: ['locations'] });
             toast.success('Location created successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to create location');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to create location'));
         }
     });
 }
@@ -42,8 +43,8 @@ export function useUpdateLocation() {
             queryClient.invalidateQueries({ queryKey: ['locations'] });
             toast.success('Location updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update location');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to update location'));
         }
     });
 }
@@ -59,8 +60,8 @@ export function useDeleteLocation() {
             queryClient.invalidateQueries({ queryKey: ['locations'] });
             toast.success('Location deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to delete location');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to delete location'));
         }
     });
 }
@@ -91,9 +92,8 @@ export function useImportLocationsCsv() {
                 toast.success(data.message);
             }
         },
-        onError: (error: any) => {
-            const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to import CSV';
-            toast.error(errorMessage);
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to import CSV'));
         }
     });
 }

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8001/api';
+const API_URL = 'http://localhost:8000/api';
 
 const laravelClient = axios.create({
   baseURL: API_URL,
@@ -66,8 +66,11 @@ export interface Profile {
   user_id: number;
   name: string;
   email: string;
-  avatar_url?: string;
-  department?: string;
+  avatar_url?: string | null;
+  department?: string | null;
+  location_id?: string | null;
+  location?: Location | null;
+  user?: User;
 }
 
 export interface Asset {
@@ -79,7 +82,7 @@ export interface Asset {
   warranty_expiry?: string;
   location: string;
   status: 'active' | 'maintenance' | 'retired' | 'disposed';
-  assigned_to?: string;
+  assigned_to?: string | null;
   notes?: string;
   assigned_user?: Profile;
   created_at: string;
@@ -101,7 +104,7 @@ export interface MaintenanceTicket {
   estimated_duration?: number;
   actual_duration?: number;
   is_recurring: boolean;
-  recurring_interval?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  recurring_interval?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | null;
   notes?: string;
   rejection_reason?: string;
   diagnosis?: string;

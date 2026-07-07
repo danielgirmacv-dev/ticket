@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ const Notifications = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         setIsLoading(true);
         try {
             const params = filter === 'unread' ? { is_read: false } : {};
@@ -27,11 +27,11 @@ const Notifications = () => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [filter]);
 
     useEffect(() => {
         fetchNotifications();
-    }, [filter]);
+    }, [fetchNotifications]);
 
     const handleNotificationClick = async (notification: Notification) => {
         try {

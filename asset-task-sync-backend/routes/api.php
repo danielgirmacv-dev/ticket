@@ -3,14 +3,13 @@
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\MaintenanceTicketController;
+use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MaintenanceScheduleController;
+use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\LocationController;
-use App\Http\Controllers\Api\DepartmentController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -90,4 +89,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/export/tickets', [ReportController::class, 'exportTicketsCsv']);
     Route::get('/reports/export/assets', [ReportController::class, 'exportAssetsCsv']);
 });
-

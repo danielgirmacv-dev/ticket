@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import laravelClient, { Profile } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export function useProfilesByLocation(locationId?: string) {
   return useQuery({
@@ -10,8 +11,8 @@ export function useProfilesByLocation(locationId?: string) {
       return response.data;
     },
     enabled: !!locationId,
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to load profiles for location');
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to load profiles for location'));
     }
   });
 }

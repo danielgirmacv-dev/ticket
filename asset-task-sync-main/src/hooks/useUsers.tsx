@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import laravelClient, { Profile } from '@/integrations/laravel/client';
+import laravelClient, { Location, Profile } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 export type AppRole = 'admin' | 'technician' | 'requester';
 
@@ -12,7 +13,7 @@ export interface UserWithRole {
   avatar_url: string | null;
   department: string | null;
   location_id?: string | null;
-  location?: any;
+  location?: Location | null;
   created_at: string;
   role: AppRole;
   status?: 'pending' | 'active' | 'rejected';
@@ -25,7 +26,7 @@ export function useUsers() {
       const response = await laravelClient.get('/profiles');
       const profiles = response.data;
 
-      return profiles.map((profile: any) => {
+      return profiles.map((profile: Profile) => {
         const role = profile.user?.roles?.[0]?.name as AppRole || 'requester';
         return {
           id: profile.id,
@@ -74,11 +75,8 @@ export function useCreateUser() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('User created successfully');
     },
-    onError: (error: any) => {
-      const message = error.response?.data?.message
-        || error.response?.data?.errors?.email?.[0]
-        || 'Failed to create user';
-      toast.error(message);
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to create user'));
     }
   });
 }
@@ -101,9 +99,8 @@ export function useUpdateUserRole() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('User role updated');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update user role');
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update user role'));
     }
   });
 }
-

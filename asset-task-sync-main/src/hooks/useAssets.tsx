@@ -1,6 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient, { Asset } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
+
+export interface CsvImportError {
+    row: number;
+    errors: Record<string, string[] | string>;
+}
+
+export interface CsvImportResult {
+    message: string;
+    success_count: number;
+    error_count: number;
+    errors?: CsvImportError[];
+}
 
 export function useAssets() {
     return useQuery({
@@ -24,8 +37,8 @@ export function useCreateAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset created successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to create asset');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to create asset'));
         }
     });
 }
@@ -42,8 +55,8 @@ export function useUpdateAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update asset');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to update asset'));
         }
     });
 }
@@ -59,8 +72,8 @@ export function useDeleteAsset() {
             queryClient.invalidateQueries({ queryKey: ['assets'] });
             toast.success('Asset deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to delete asset');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to delete asset'));
         }
     });
 }
@@ -69,7 +82,7 @@ export function useImportAssetsCsv() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (file: File) => {
+        mutationFn: async (file: File): Promise<CsvImportResult> => {
             const formData = new FormData();
             formData.append('file', file);
 
@@ -91,9 +104,8 @@ export function useImportAssetsCsv() {
                 toast.success(data.message);
             }
         },
-        onError: (error: any) => {
-            const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to import CSV';
-            toast.error(errorMessage);
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to import CSV'));
         }
     });
 }

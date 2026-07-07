@@ -4,20 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
-use Illuminate\Http\Request;
 use App\Services\ActivityLogger;
+use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
     public function index()
     {
         $departments = Department::orderBy('name')->get();
+
         return response()->json($departments);
     }
 
     public function store(Request $request)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -40,12 +41,12 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255|unique:departments,name,' . $department->id,
+            'name' => 'sometimes|string|max:255|unique:departments,name,'.$department->id,
             'description' => 'nullable|string',
         ]);
 
@@ -58,7 +59,7 @@ class DepartmentController extends Controller
 
     public function destroy(Request $request, Department $department)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -74,7 +75,7 @@ class DepartmentController extends Controller
      */
     public function importCsv(Request $request)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -90,10 +91,11 @@ class DepartmentController extends Controller
         $requiredHeaders = ['name'];
         $missingHeaders = array_diff($requiredHeaders, $header ?: []);
 
-        if (!empty($missingHeaders)) {
+        if (! empty($missingHeaders)) {
             fclose($handle);
+
             return response()->json([
-                'error' => 'Missing required CSV headers: ' . implode(', ', $missingHeaders)
+                'error' => 'Missing required CSV headers: '.implode(', ', $missingHeaders),
             ], 422);
         }
 
@@ -115,7 +117,7 @@ class DepartmentController extends Controller
                     ])->validate();
 
                     Department::updateOrCreate([
-                        'name' => $validated['name']
+                        'name' => $validated['name'],
                     ], [
                         'description' => $validated['description'] ?? null,
                     ]);
@@ -126,26 +128,27 @@ class DepartmentController extends Controller
                     $errors[] = [
                         'row' => $row,
                         'data' => $rowData,
-                        'errors' => $e->errors()
+                        'errors' => $e->errors(),
                     ];
                 } catch (\Exception $e) {
                     $errors[] = [
                         'row' => $row,
                         'data' => $rowData,
-                        'errors' => ['general' => [$e->getMessage()]]
+                        'errors' => ['general' => [$e->getMessage()]],
                     ];
                 }
             }
 
             fclose($handle);
 
-            if (!empty($errors) && $successCount === 0) {
+            if (! empty($errors) && $successCount === 0) {
                 \DB::rollBack();
+
                 return response()->json([
                     'message' => 'CSV import failed. No departments were imported.',
                     'success_count' => 0,
                     'error_count' => count($errors),
-                    'errors' => $errors
+                    'errors' => $errors,
                 ], 422);
             }
 
@@ -154,10 +157,10 @@ class DepartmentController extends Controller
             ActivityLogger::log('imported', 'Department', null, "Imported {$successCount} departments from CSV");
 
             return response()->json([
-                'message' => "Successfully imported {$successCount} departments" . (count($errors) > 0 ? " with " . count($errors) . " errors" : ""),
+                'message' => "Successfully imported {$successCount} departments".(count($errors) > 0 ? ' with '.count($errors).' errors' : ''),
                 'success_count' => $successCount,
                 'error_count' => count($errors),
-                'errors' => $errors
+                'errors' => $errors,
             ], 200);
 
         } catch (\Exception $e) {
@@ -165,7 +168,7 @@ class DepartmentController extends Controller
             fclose($handle);
 
             return response()->json([
-                'error' => 'Failed to process CSV file: ' . $e->getMessage()
+                'error' => 'Failed to process CSV file: '.$e->getMessage(),
             ], 500);
         }
     }

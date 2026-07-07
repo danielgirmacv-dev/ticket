@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import laravelClient, { User, Profile } from '@/integrations/laravel/client';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 type AppRole = 'admin' | 'technician' | 'requester';
 
@@ -80,10 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(userRole);
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error signing in:', error);
       return {
-        error: new Error(error.response?.data?.message || 'Failed to sign in')
+        error: new Error(getApiErrorMessage(error, 'Failed to sign in'))
       };
     }
   };
@@ -124,10 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(userRole);
 
       return { error: null, isPending: false };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error signing up:', error);
       return {
-        error: new Error(error.response?.data?.message || 'Failed to sign up'),
+        error: new Error(getApiErrorMessage(error, 'Failed to sign up')),
         isPending: false
       };
     }
@@ -160,4 +161,3 @@ export function useAuth() {
   }
   return context;
 }
-

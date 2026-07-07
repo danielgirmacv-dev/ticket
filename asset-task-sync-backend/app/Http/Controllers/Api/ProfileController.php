@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
-use Illuminate\Http\Request;
 use App\Services\ActivityLogger;
+use Illuminate\Http\Request;
 
 class ProfileController extends Controller
 {
@@ -22,7 +22,7 @@ class ProfileController extends Controller
                 $query->select('id', 'name', 'email', 'status', 'created_at', 'updated_at');
             },
             'user.roles',
-            'location'
+            'location',
         ])->get();
 
         return response()->json($profiles);
@@ -42,7 +42,7 @@ class ProfileController extends Controller
     public function update(Request $request, Profile $profile)
     {
         // Admins can update any profile, regular users can only update their own
-        if (!auth()->user()->hasRole('admin') && $profile->user_id !== auth()->id()) {
+        if (! auth()->user()->hasRole('admin') && $profile->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -54,7 +54,7 @@ class ProfileController extends Controller
         ];
 
         if (auth()->user()->hasRole('admin')) {
-            $rules['email'] = 'sometimes|string|email|max:255|unique:users,email,' . $profile->user_id;
+            $rules['email'] = 'sometimes|string|email|max:255|unique:users,email,'.$profile->user_id;
         }
 
         $validated = $request->validate($rules);
@@ -68,7 +68,7 @@ class ProfileController extends Controller
         if (isset($validated['email'])) {
             $userUpdates['email'] = $validated['email'];
         }
-        if (!empty($userUpdates)) {
+        if (! empty($userUpdates)) {
             $profile->user->update($userUpdates);
         }
 
@@ -83,7 +83,7 @@ class ProfileController extends Controller
     public function updateRole(Request $request, Profile $profile)
     {
         // Only admin can update roles
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -104,7 +104,7 @@ class ProfileController extends Controller
     public function destroy(Profile $profile)
     {
         // Only admin can delete users
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

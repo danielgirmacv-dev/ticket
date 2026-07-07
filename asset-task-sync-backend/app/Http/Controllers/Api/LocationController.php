@@ -4,20 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
-use Illuminate\Http\Request;
 use App\Services\ActivityLogger;
+use Illuminate\Http\Request;
 
 class LocationController extends Controller
 {
     public function index()
     {
         $locations = Location::orderBy('name')->get();
+
         return response()->json($locations);
     }
 
     public function store(Request $request)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -53,12 +54,12 @@ class LocationController extends Controller
 
     public function update(Request $request, Location $location)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255|unique:locations,name,' . $location->id,
+            'name' => 'sometimes|string|max:255|unique:locations,name,'.$location->id,
             'address' => 'nullable|string|max:255',
             'description' => 'nullable|string',
         ]);
@@ -72,7 +73,7 @@ class LocationController extends Controller
 
     public function destroy(Request $request, Location $location)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -88,7 +89,7 @@ class LocationController extends Controller
      */
     public function importCsv(Request $request)
     {
-        if (!$request->user()->hasRole('admin')) {
+        if (! $request->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -104,10 +105,11 @@ class LocationController extends Controller
         $requiredHeaders = ['name'];
         $missingHeaders = array_diff($requiredHeaders, $header ?: []);
 
-        if (!empty($missingHeaders)) {
+        if (! empty($missingHeaders)) {
             fclose($handle);
+
             return response()->json([
-                'error' => 'Missing required CSV headers: ' . implode(', ', $missingHeaders)
+                'error' => 'Missing required CSV headers: '.implode(', ', $missingHeaders),
             ], 422);
         }
 
@@ -131,7 +133,7 @@ class LocationController extends Controller
 
                     // Create or update by name
                     Location::updateOrCreate([
-                        'name' => $validated['name']
+                        'name' => $validated['name'],
                     ], [
                         'address' => $validated['address'] ?? null,
                         'description' => $validated['description'] ?? null,
@@ -143,26 +145,27 @@ class LocationController extends Controller
                     $errors[] = [
                         'row' => $row,
                         'data' => $rowData,
-                        'errors' => $e->errors()
+                        'errors' => $e->errors(),
                     ];
                 } catch (\Exception $e) {
                     $errors[] = [
                         'row' => $row,
                         'data' => $rowData,
-                        'errors' => ['general' => [$e->getMessage()]]
+                        'errors' => ['general' => [$e->getMessage()]],
                     ];
                 }
             }
 
             fclose($handle);
 
-            if (!empty($errors) && $successCount === 0) {
+            if (! empty($errors) && $successCount === 0) {
                 \DB::rollBack();
+
                 return response()->json([
                     'message' => 'CSV import failed. No locations were imported.',
                     'success_count' => 0,
                     'error_count' => count($errors),
-                    'errors' => $errors
+                    'errors' => $errors,
                 ], 422);
             }
 
@@ -171,10 +174,10 @@ class LocationController extends Controller
             ActivityLogger::log('imported', 'Location', null, "Imported {$successCount} locations from CSV");
 
             return response()->json([
-                'message' => "Successfully imported {$successCount} locations" . (count($errors) > 0 ? " with " . count($errors) . " errors" : ""),
+                'message' => "Successfully imported {$successCount} locations".(count($errors) > 0 ? ' with '.count($errors).' errors' : ''),
                 'success_count' => $successCount,
                 'error_count' => count($errors),
-                'errors' => $errors
+                'errors' => $errors,
             ], 200);
 
         } catch (\Exception $e) {
@@ -182,7 +185,7 @@ class LocationController extends Controller
             fclose($handle);
 
             return response()->json([
-                'error' => 'Failed to process CSV file: ' . $e->getMessage()
+                'error' => 'Failed to process CSV file: '.$e->getMessage(),
             ], 500);
         }
     }

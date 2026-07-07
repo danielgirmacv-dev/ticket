@@ -7,8 +7,8 @@ const TopTechnicians = () => {
     const { data, isLoading } = usePerformanceReport({});
 
     // Sort technicians by completed tasks descending and take top 5
-    const topTechnicians = data?.technician_stats
-        ?.sort((a: any, b: any) => Number(b.completed_count) - Number(a.completed_count))
+    const topTechnicians = [...(data?.technician_stats || [])]
+        .sort((a, b) => Number(b.completed_count) - Number(a.completed_count))
         .slice(0, 5) || [];
 
     if (isLoading) {
@@ -36,7 +36,7 @@ const TopTechnicians = () => {
                     {topTechnicians.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
                     ) : (
-                        topTechnicians.map((tech: any, index: number) => (
+                        topTechnicians.map((tech, index) => (
                             <div key={tech.assigned_technician_id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="relative">

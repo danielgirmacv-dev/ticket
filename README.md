@@ -2,9 +2,12 @@
 
 A comprehensive IT asset management and maintenance scheduling system built with Laravel and React.
 
+> [!TIP]
+> **New to the system?** Check out the [System Overview](SYSTEM_DOC.md) for a detailed explanation of architecture, roles, and workflows.
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4)
-![Laravel](https://img.shields.io/badge/Laravel-10.x-FF2D20)
+![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4)
+![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20)
 ![React](https://img.shields.io/badge/React-18.x-61DAFB)
 
 ## 📋 Features
@@ -22,8 +25,8 @@ A comprehensive IT asset management and maintenance scheduling system built with
 ## 🛠️ Tech Stack
 
 ### Backend
-- **PHP 8.1+**
-- **Laravel 10.x**
+- **PHP 8.2+**
+- **Laravel 12.x**
 - **MySQL 8.0+**
 - **Laravel Sanctum** (Authentication)
 - **Spatie Laravel Permission** (Role management)
@@ -41,7 +44,7 @@ A comprehensive IT asset management and maintenance scheduling system built with
 
 Before you begin, ensure you have the following installed:
 
-- **PHP** >= 8.1
+- **PHP** >= 8.2
 - **Composer** >= 2.0
 - **Node.js** >= 18.0
 - **npm** >= 9.0
@@ -138,10 +141,10 @@ You need **two terminal windows**:
 
 ```bash
 cd asset-task-sync-backend
-php artisan serve
+php artisan serve --port=8001
 ```
 
-Backend will run at: http://localhost:8000
+Backend will run at: http://localhost:8001.
 
 **Terminal 2 - Frontend:**
 
@@ -205,7 +208,7 @@ asset-task-sync-main/
 - `profiles` - User profile information
 - `roles` - User roles (admin, technician, requester)
 - `assets` - IT assets (computers, printers, etc.)
-- `maintenance_tasks` - Maintenance requests and tasks
+- `maintenance_tickets` - Maintenance requests and tasks
 - `maintenance_schedules` - Recurring maintenance schedules
 - `notifications` - User notifications
 - `activity_logs` - System activity logs
@@ -267,7 +270,7 @@ Update `asset-task-sync-backend/config/cors.php` to allow your frontend URL:
 Update `asset-task-sync-main/src/integrations/laravel/client.ts`:
 
 ```typescript
-const API_URL = 'http://localhost:8000/api';
+const API_URL = 'http://localhost:8001/api';
 ```
 
 ## 🧪 Testing

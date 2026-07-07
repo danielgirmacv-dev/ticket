@@ -2,15 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
-use App\Models\User;
 
 class TelegramService
 {
     private $botToken;
+
     private $baseUrl;
 
     public function __construct()
@@ -24,7 +25,7 @@ class TelegramService
      */
     public function sendMessage($chatId, $message)
     {
-        if (!$this->botToken || !$chatId) {
+        if (! $this->botToken || ! $chatId) {
             return false;
         }
 
@@ -32,18 +33,21 @@ class TelegramService
             $response = Http::post("{$this->baseUrl}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
-                'parse_mode' => 'Markdown'
+                'parse_mode' => 'Markdown',
             ]);
 
             if ($response->successful()) {
                 Log::info("Telegram message sent successfully to chat_id: {$chatId}");
+
                 return true;
             } else {
-                Log::warning("Telegram send failed: " . $response->body());
+                Log::warning('Telegram send failed: '.$response->body());
+
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error('Telegram send exception: ' . $e->getMessage());
+            Log::error('Telegram send exception: '.$e->getMessage());
+
             return false;
         }
     }
@@ -60,12 +64,13 @@ class TelegramService
         $message .= "Your account has been approved by the administrator!\n";
         $message .= "You can now log in and submit maintenance requests.\n\n";
         $message .= "🔗 Login: {$appUrl}/auth\n\n";
-        $message .= "Have a great day!";
+        $message .= 'Have a great day!';
 
         $telegramChatId = $user->profile->telegram_chat_id ?? null;
 
-        if (!$telegramChatId) {
+        if (! $telegramChatId) {
             Log::info("User {$user->id} has no Telegram chat_id linked");
+
             return false;
         }
 
@@ -92,7 +97,7 @@ class TelegramService
         return [
             'token' => $token,
             'deep_link' => $deepLink,
-            'expires_at' => now()->addMinutes(15)->toIso8601String()
+            'expires_at' => now()->addMinutes(15)->toIso8601String(),
         ];
     }
 
@@ -104,29 +109,31 @@ class TelegramService
         $cacheKey = "telegram_link_token:{$token}";
         $userId = Cache::get($cacheKey);
 
-        if (!$userId) {
+        if (! $userId) {
             Log::warning("Invalid or expired Telegram link token: {$token}");
+
             return [
                 'success' => false,
-                'message' => 'Invalid or expired link token. Please generate a new link from the app.'
+                'message' => 'Invalid or expired link token. Please generate a new link from the app.',
             ];
         }
 
         // Find user and update their profile
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             Log::error("User not found for Telegram link: {$userId}");
             Cache::forget($cacheKey);
+
             return [
                 'success' => false,
-                'message' => 'User account not found.'
+                'message' => 'User account not found.',
             ];
         }
 
         // Update profile with chat_id and username
         $user->profile->update([
             'telegram_chat_id' => $chatId,
-            'telegram_username' => $username
+            'telegram_username' => $username,
         ]);
 
         // Delete the used token
@@ -137,7 +144,7 @@ class TelegramService
         return [
             'success' => true,
             'message' => "✅ Your Telegram account has been linked successfully!\n\nYou will now receive notifications from the Asset & Ticket Management System.",
-            'user' => $user
+            'user' => $user,
         ];
     }
 
@@ -147,16 +154,17 @@ class TelegramService
     public function unlinkAccount($userId)
     {
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             return false;
         }
 
         $user->profile->update([
             'telegram_chat_id' => null,
-            'telegram_username' => null
+            'telegram_username' => null,
         ]);
 
         Log::info("Telegram account unlinked for user {$userId}");
+
         return true;
     }
 }

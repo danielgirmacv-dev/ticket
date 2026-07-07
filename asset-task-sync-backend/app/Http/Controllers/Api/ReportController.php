@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\MaintenanceTicket;
 use App\Models\Asset;
+use App\Models\MaintenanceTicket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -68,7 +68,7 @@ class ReportController extends Controller
         }
 
         if ($request->has('location')) {
-            $query->where('location', 'like', '%' . $request->location . '%');
+            $query->where('location', 'like', '%'.$request->location.'%');
         }
 
         $assets = $query->orderBy('created_at', 'desc')->get();
@@ -183,11 +183,11 @@ class ReportController extends Controller
         $tickets = $query->orderBy('scheduled_date', 'desc')->get();
 
         // Generate CSV
-        $filename = 'tickets_report_' . date('Y-m-d_His') . '.csv';
+        $filename = 'tickets_report_'.date('Y-m-d_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
         $callback = function () use ($tickets) {
@@ -205,7 +205,7 @@ class ReportController extends Controller
                 'Assigned To',
                 'Scheduled Date',
                 'Completed Date',
-                'Created At'
+                'Created At',
             ]);
 
             // CSV Data
@@ -250,11 +250,11 @@ class ReportController extends Controller
         $assets = $query->orderBy('created_at', 'desc')->get();
 
         // Generate CSV
-        $filename = 'assets_report_' . date('Y-m-d_His') . '.csv';
+        $filename = 'assets_report_'.date('Y-m-d_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ];
 
         $callback = function () use ($assets) {
@@ -271,7 +271,7 @@ class ReportController extends Controller
                 'Assigned To',
                 'Purchase Date',
                 'Warranty Expiry',
-                'Created At'
+                'Created At',
             ]);
 
             // CSV Data

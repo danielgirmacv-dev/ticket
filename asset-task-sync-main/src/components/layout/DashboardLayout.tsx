@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import ChatBot from '@/components/ChatBot';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
@@ -29,6 +30,9 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
           {children}
         </main>
       </div>
+
+      {/* AI Chatbot Widget */}
+      <ChatBot />
     </div>
   );
 };

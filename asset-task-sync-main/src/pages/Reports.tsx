@@ -241,7 +241,7 @@ const Reports = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {ticketData?.map((ticket: any) => (
+                                                {ticketData?.map((ticket) => (
                                                     <tr key={ticket.id} className="border-b hover:bg-muted/50">
                                                         <td className="p-2">{ticket.title}</td>
                                                         <td className="p-2 capitalize">{ticket.type}</td>
@@ -297,7 +297,7 @@ const Reports = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {assetData?.map((asset: any) => (
+                                                {assetData?.map((asset) => (
                                                     <tr key={asset.id} className="border-b hover:bg-muted/50">
                                                         <td className="p-2">{asset.name}</td>
                                                         <td className="p-2 capitalize">{asset.type.replace('_', ' ')}</td>
@@ -394,7 +394,7 @@ const Reports = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {performanceData?.technician_stats?.map((tech: any) => (
+                                                    {performanceData?.technician_stats?.map((tech) => (
                                                         <tr key={tech.assigned_technician_id} className="border-b hover:bg-muted/50">
                                                             <td className="p-2 font-medium">{tech.assigned_technician?.name || 'Unknown'}</td>
                                                             <td className="p-2">{tech.total_assigned}</td>

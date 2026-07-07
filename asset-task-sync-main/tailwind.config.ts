@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -81,6 +82,9 @@ export default {
       boxShadow: {
         'glow': 'var(--shadow-glow)',
       },
+      transitionTimingFunction: {
+        'bounce-in-out': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -102,5 +106,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

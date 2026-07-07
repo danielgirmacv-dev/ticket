@@ -29,6 +29,7 @@ import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/api-error';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -117,7 +118,12 @@ const Users = () => {
       await handleRoleUpdate(editingUser.id, editFormData.role);
 
       // Update profile fields
-      const profileUpdates: Record<string, any> = {};
+      const profileUpdates: {
+        name?: string;
+        email?: string;
+        department?: string;
+        location_id?: string | null;
+      } = {};
       if (editFormData.name !== editingUser.name) profileUpdates.name = editFormData.name;
       if (editFormData.email !== editingUser.email) profileUpdates.email = editFormData.email;
       if (editFormData.department !== (editingUser.department || '')) {
@@ -170,9 +176,8 @@ const Users = () => {
       await laravelClient.delete(`/profiles/${userId}`);
       toast.success('User deleted successfully');
       window.location.reload(); // Refresh users list
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to delete user';
-      toast.error(errorMessage);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Failed to delete user'));
       console.error(error);
     }
   };
@@ -270,7 +275,7 @@ const Users = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Locations</SelectItem>
-              {locations?.map((loc: any) => (
+              {locations?.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
               ))}
             </SelectContent>
@@ -337,7 +342,7 @@ const Users = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {departments?.map((dept: any) => (
+                        {departments?.map((dept) => (
                           <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -355,7 +360,7 @@ const Users = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {locations?.map((loc: any) => (
+                      {locations?.map((loc) => (
                         <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -587,7 +592,7 @@ const Users = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {departments?.map((dept: any) => (
+                  {departments?.map((dept) => (
                     <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -604,7 +609,7 @@ const Users = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {locations?.map((loc: any) => (
+                  {locations?.map((loc) => (
                     <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                   ))}
                 </SelectContent>

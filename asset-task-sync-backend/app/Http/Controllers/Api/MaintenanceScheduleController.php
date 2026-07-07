@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MaintenanceSchedule;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class MaintenanceScheduleController extends Controller
 {
@@ -37,7 +36,7 @@ class MaintenanceScheduleController extends Controller
     public function store(Request $request)
     {
         // Only admins can create schedules
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -71,7 +70,7 @@ class MaintenanceScheduleController extends Controller
     public function update(Request $request, MaintenanceSchedule $maintenanceSchedule)
     {
         // Only admins can update schedules
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -96,7 +95,7 @@ class MaintenanceScheduleController extends Controller
     public function destroy(MaintenanceSchedule $maintenanceSchedule)
     {
         // Only admins can delete schedules
-        if (!auth()->user()->hasRole('admin')) {
+        if (! auth()->user()->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

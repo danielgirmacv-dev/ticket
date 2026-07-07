@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import laravelClient from '@/integrations/laravel/client';
+import laravelClient, { Asset, MaintenanceTicket, Profile } from '@/integrations/laravel/client';
 
 export interface ReportFilters {
     start_date?: string;
@@ -10,6 +10,30 @@ export interface ReportFilters {
     asset_id?: string;
     assigned_technician_id?: string;
     location?: string;
+}
+
+export interface TechnicianStats {
+    assigned_technician_id: string;
+    assigned_technician?: Profile;
+    total_assigned: number;
+    completed_count: number;
+    avg_rating?: number | string | null;
+    avg_completion_days?: number | string | null;
+}
+
+export interface PerformanceReport {
+    summary?: {
+        total_tickets: number;
+        completed_tickets: number;
+        in_progress_tickets: number;
+        overdue_tickets: number;
+        completion_rate: number;
+        avg_completion_days: number;
+    };
+    tickets_by_status?: Array<{ status: string; count: number }>;
+    tickets_by_priority?: Array<{ priority: string; count: number }>;
+    tickets_by_type?: Array<{ type: string; count: number }>;
+    technician_stats?: TechnicianStats[];
 }
 
 function cleanFilters(filters: ReportFilters): Record<string, string> {
@@ -23,7 +47,7 @@ function cleanFilters(filters: ReportFilters): Record<string, string> {
 }
 
 export function useTicketReport(filters: ReportFilters) {
-    return useQuery({
+    return useQuery<MaintenanceTicket[]>({
         queryKey: ['reports', 'tickets', filters],
         queryFn: async () => {
             const response = await laravelClient.get('/reports/tickets', { params: cleanFilters(filters) });
@@ -33,7 +57,7 @@ export function useTicketReport(filters: ReportFilters) {
 }
 
 export function useAssetReport(filters: ReportFilters) {
-    return useQuery({
+    return useQuery<Asset[]>({
         queryKey: ['reports', 'assets', filters],
         queryFn: async () => {
             const response = await laravelClient.get('/reports/assets', { params: cleanFilters(filters) });
@@ -43,7 +67,7 @@ export function useAssetReport(filters: ReportFilters) {
 }
 
 export function usePerformanceReport(filters: ReportFilters) {
-    return useQuery({
+    return useQuery<PerformanceReport>({
         queryKey: ['reports', 'performance', filters],
         queryFn: async () => {
             const response = await laravelClient.get('/reports/performance', { params: cleanFilters(filters) });

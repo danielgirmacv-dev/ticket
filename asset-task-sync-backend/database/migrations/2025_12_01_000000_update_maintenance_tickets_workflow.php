@@ -2,17 +2,20 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Run the migrations.
      */
     public function up(): void
     {
         // First, modify the status enum to include both old and new values
-        DB::statement("ALTER TABLE maintenance_tickets MODIFY COLUMN status ENUM('pending', 'submitted', 'approved', 'rejected', 'assigned', 'in_progress', 'completed_pending_review', 'completed', 'reopened', 'cancelled') DEFAULT 'submitted'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE maintenance_tickets MODIFY COLUMN status ENUM('pending', 'submitted', 'approved', 'rejected', 'assigned', 'in_progress', 'completed_pending_review', 'completed', 'reopened', 'cancelled') DEFAULT 'submitted'");
+        }
 
         // Then update existing 'pending' status to 'submitted'
         DB::table('maintenance_tickets')
@@ -66,7 +69,9 @@ return new class extends Migration {
         });
 
         // Revert status enum to original values
-        DB::statement("ALTER TABLE maintenance_tickets MODIFY COLUMN status ENUM('pending', 'in_progress', 'completed', 'cancelled') DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE maintenance_tickets MODIFY COLUMN status ENUM('pending', 'in_progress', 'completed', 'cancelled') DEFAULT 'pending'");
+        }
 
         // Revert 'submitted' back to 'pending'
         DB::table('maintenance_tickets')

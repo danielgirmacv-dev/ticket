@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use App\Services\ActivityLogger;
 
 class AssetController extends Controller
 {
@@ -75,6 +75,7 @@ class AssetController extends Controller
     public function show(Asset $asset)
     {
         Gate::authorize('view', $asset);
+
         return response()->json($asset->load('assignedUser', 'maintenanceTickets'));
     }
 
@@ -88,7 +89,7 @@ class AssetController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'type' => 'sometimes|in:computer,printer,server,network_device,other',
-            'serial_number' => 'sometimes|string|unique:assets,serial_number,' . $asset->id,
+            'serial_number' => 'sometimes|string|unique:assets,serial_number,'.$asset->id,
             'purchase_date' => 'sometimes|date',
             'warranty_expiry' => 'nullable|date',
             'location' => 'sometimes|string',
@@ -138,10 +139,11 @@ class AssetController extends Controller
         $requiredHeaders = ['name', 'type', 'serial_number', 'purchase_date', 'location', 'status'];
         $missingHeaders = array_diff($requiredHeaders, $header);
 
-        if (!empty($missingHeaders)) {
+        if (! empty($missingHeaders)) {
             fclose($handle);
+
             return response()->json([
-                'error' => 'Missing required CSV headers: ' . implode(', ', $missingHeaders)
+                'error' => 'Missing required CSV headers: '.implode(', ', $missingHeaders),
             ], 422);
         }
 
@@ -179,13 +181,13 @@ class AssetController extends Controller
                     $errors[] = [
                         'row' => $row,
                         'data' => $assetData,
-                        'errors' => $e->errors()
+                        'errors' => $e->errors(),
                     ];
                 } catch (\Exception $e) {
                     $errors[] = [
                         'row' => $row,
                         'data' => $assetData,
-                        'errors' => ['general' => [$e->getMessage()]]
+                        'errors' => ['general' => [$e->getMessage()]],
                     ];
                 }
             }
@@ -193,13 +195,14 @@ class AssetController extends Controller
             fclose($handle);
 
             // If there are errors, rollback and return them
-            if (!empty($errors) && $successCount === 0) {
+            if (! empty($errors) && $successCount === 0) {
                 \DB::rollBack();
+
                 return response()->json([
                     'message' => 'CSV import failed. No assets were imported.',
                     'success_count' => 0,
                     'error_count' => count($errors),
-                    'errors' => $errors
+                    'errors' => $errors,
                 ], 422);
             }
 
@@ -208,11 +211,11 @@ class AssetController extends Controller
             ActivityLogger::log('imported', 'Asset', null, "Imported {$successCount} assets from CSV");
 
             return response()->json([
-                'message' => "Successfully imported {$successCount} assets" .
-                    (count($errors) > 0 ? " with " . count($errors) . " errors" : ""),
+                'message' => "Successfully imported {$successCount} assets".
+                    (count($errors) > 0 ? ' with '.count($errors).' errors' : ''),
                 'success_count' => $successCount,
                 'error_count' => count($errors),
-                'errors' => $errors
+                'errors' => $errors,
             ], 200);
 
         } catch (\Exception $e) {
@@ -220,7 +223,7 @@ class AssetController extends Controller
             fclose($handle);
 
             return response()->json([
-                'error' => 'Failed to process CSV file: ' . $e->getMessage()
+                'error' => 'Failed to process CSV file: '.$e->getMessage(),
             ], 500);
         }
     }

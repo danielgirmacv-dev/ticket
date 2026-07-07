@@ -229,7 +229,7 @@ export default function Schedules() {
                                         <Label>Type *</Label>
                                         <Select
                                             value={formData.type}
-                                            onValueChange={(val: any) => setFormData({ ...formData, type: val })}
+                                            onValueChange={(val) => setFormData({ ...formData, type: val as MaintenanceSchedule['type'] })}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
@@ -248,7 +248,7 @@ export default function Schedules() {
                                         <Label>Frequency *</Label>
                                         <Select
                                             value={formData.frequency}
-                                            onValueChange={(val: any) => setFormData({ ...formData, frequency: val })}
+                                            onValueChange={(val) => setFormData({ ...formData, frequency: val as MaintenanceSchedule['frequency'] })}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
@@ -318,7 +318,7 @@ export default function Schedules() {
                                     </div>
                                     <div className="grid gap-2">
                                         <Label>Frequency</Label>
-                                        <Select value={editForm.frequency} onValueChange={(v: any) => setEditForm({ ...editForm, frequency: v })}>
+                                        <Select value={editForm.frequency} onValueChange={(v) => setEditForm({ ...editForm, frequency: v as MaintenanceSchedule['frequency'] })}>
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="daily">Daily</SelectItem>

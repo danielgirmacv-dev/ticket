@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\MaintenanceTicket;
 use App\Services\ActivityLogger;
-use Illuminate\Console\Command;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
 
 class AutoCloseTicketsCommand extends Command
 {
@@ -39,6 +39,7 @@ class AutoCloseTicketsCommand extends Command
 
         if ($ticketsToClose->isEmpty()) {
             $this->info('No tickets found to auto-close.');
+
             return 0;
         }
 
@@ -46,7 +47,7 @@ class AutoCloseTicketsCommand extends Command
         foreach ($ticketsToClose as $ticket) {
             $ticket->update([
                 'status' => 'completed',
-                'notes' => ($ticket->notes ?? '') . "\n\n[Auto-closed after 3 days without requester verification]",
+                'notes' => ($ticket->notes ?? '')."\n\n[Auto-closed after 3 days without requester verification]",
             ]);
 
             ActivityLogger::log(
@@ -61,6 +62,7 @@ class AutoCloseTicketsCommand extends Command
         }
 
         $this->info("Successfully auto-closed {$count} ticket(s).");
+
         return 0;
     }
 }

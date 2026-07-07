@@ -58,7 +58,7 @@ class AuthController extends Controller
             }
         } catch (\Exception $e) {
             // Log error but don't fail registration
-            \Illuminate\Support\Facades\Log::error('Failed to notify admins of new user: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to notify admins of new user: '.$e->getMessage());
         }
 
         // Don't auto-login pending users
@@ -68,7 +68,7 @@ class AuthController extends Controller
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
-            ]
+            ],
         ], 201);
     }
 
@@ -84,7 +84,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
@@ -146,13 +146,13 @@ class AuthController extends Controller
         $user = $request->user();
 
         // Verify current password
-        if (!Hash::check($validated['current_password'], $user->password)) {
+        if (! Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['The current password is incorrect.'],
             ]);
         }
 
-        // Update password - Laravel 11 will auto-hash due to 'hashed' cast
+        // Update password - Laravel auto-hashes due to the 'hashed' cast.
         $user->password = $validated['new_password'];
         $user->save();
 
@@ -168,7 +168,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (!$admin->hasRole('admin')) {
+        if (! $admin->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -211,7 +211,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (!$admin->hasRole('admin')) {
+        if (! $admin->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -236,19 +236,19 @@ class AuthController extends Controller
 
             // Send Telegram notification
             if ($user->profile->telegram_username) {
-                $telegram = new \App\Services\TelegramService();
+                $telegram = new \App\Services\TelegramService;
                 $telegram->sendApprovalNotification($user);
             }
 
             // Send email notification (queued)
             \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\AccountApproved($user));
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to notify user of approval: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to notify user of approval: '.$e->getMessage());
         }
 
         return response()->json([
             'message' => 'User approved successfully',
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -259,7 +259,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (!$admin->hasRole('admin')) {
+        if (! $admin->hasRole('admin')) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -281,12 +281,12 @@ class AuthController extends Controller
                 'is_read' => false,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to notify user of rejection: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Failed to notify user of rejection: '.$e->getMessage());
         }
 
         return response()->json([
             'message' => 'User rejected successfully',
-            'user' => $user
+            'user' => $user,
         ]);
     }
 }

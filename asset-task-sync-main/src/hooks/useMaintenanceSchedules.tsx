@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient from '@/integrations/laravel/client';
 import { MaintenanceSchedule } from '@/types/schedule';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 // Fetch all schedules
 export function useMaintenanceSchedules(assetId?: string) {
@@ -28,8 +29,8 @@ export function useCreateSchedule() {
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
             toast.success('Schedule created successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to create schedule');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to create schedule'));
         },
     });
 }
@@ -47,8 +48,8 @@ export function useUpdateSchedule() {
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
             toast.success('Schedule updated successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update schedule');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to update schedule'));
         },
     });
 }
@@ -65,8 +66,8 @@ export function useDeleteSchedule() {
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
             toast.success('Schedule deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to delete schedule');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to delete schedule'));
         },
     });
 }

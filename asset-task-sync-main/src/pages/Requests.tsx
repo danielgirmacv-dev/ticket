@@ -46,14 +46,14 @@ const Requests = () => {
   const [location, setLocation] = useState('');
   const [preferredDate, setPreferredDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringInterval, setRecurringInterval] = useState('monthly');
+  const [recurringInterval, setRecurringInterval] = useState<NonNullable<MaintenanceTicket['recurring_interval']>>('monthly');
 
   // Pre-fill location from requester profile
   useEffect(() => {
     if (profile?.location?.name && !location) {
       setLocation(profile.location.name);
     }
-  }, [profile]);
+  }, [location, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +133,7 @@ const Requests = () => {
                 <Select
                   required
                   value={formData.type}
-                  onValueChange={(val: any) => setFormData({ ...formData, type: val })}
+                  onValueChange={(val) => setFormData({ ...formData, type: val as MaintenanceTicket['type'] })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -152,7 +152,7 @@ const Requests = () => {
                 <Select
                   required
                   value={formData.priority}
-                  onValueChange={(val: any) => setFormData({ ...formData, priority: val })}
+                  onValueChange={(val) => setFormData({ ...formData, priority: val as MaintenanceTicket['priority'] })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -232,7 +232,7 @@ const Requests = () => {
             {isRecurring && (
               <div className="space-y-2">
                 <Label>Recurring interval</Label>
-                <Select value={recurringInterval} onValueChange={(val: any) => setRecurringInterval(val)}>
+                <Select value={recurringInterval} onValueChange={(val) => setRecurringInterval(val as NonNullable<MaintenanceTicket['recurring_interval']>)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

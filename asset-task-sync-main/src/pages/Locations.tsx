@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, useImportLocationsCsv } from '@/hooks/useLocations';
+import { Location } from '@/integrations/laravel/client';
 import { Loader2, Plus, Upload, Edit, Trash2, Users } from 'lucide-react';
 import { useProfilesByLocation } from '@/hooks/useProfilesByLocation';
 import { toast } from 'sonner';
@@ -19,9 +20,9 @@ const Locations = () => {
   const importCsv = useImportLocationsCsv();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<Location | null>(null);
   const [form, setForm] = useState({ name: '', address: '', description: '' });
-  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [isViewUsersOpen, setIsViewUsersOpen] = useState(false);
 
   const { data: profiles, isLoading: isProfilesLoading } = useProfilesByLocation(selectedLocation?.id);
@@ -41,7 +42,7 @@ const Locations = () => {
     }
   };
 
-  const handleEdit = (loc: any) => {
+  const handleEdit = (loc: Location) => {
     setEditing(loc);
     setForm({ name: loc.name, address: loc.address || '', description: loc.description || '' });
     setIsDialogOpen(true);
@@ -56,7 +57,7 @@ const Locations = () => {
     if (!file) return;
     try {
       await importCsv.mutateAsync(file);
-    } catch (e: any) {
+    } catch {
       // handled by hook
     }
   };
@@ -139,7 +140,7 @@ const Locations = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {locations?.map((loc: any) => (
+                  {locations?.map((loc) => (
                     <tr key={loc.id}>
                       <td>{loc.name}</td>
                       <td className="text-muted-foreground">{loc.address || '-'}</td>
@@ -182,10 +183,10 @@ const Locations = () => {
               <div>
                 {profiles?.length ? (
                   <ul className="list-disc pl-6">
-                    {profiles.map((p: any) => (
+                    {profiles.map((p) => (
                       <li key={p.id} className="py-1">
                         <div className="font-medium">{p.name}</div>
-                        <div className="text-sm text-muted-foreground">{p.email} {p.user?.roles?.length ? ` — ${p.user.roles.map((r:any)=>r.name).join(', ')}`: ''}</div>
+                        <div className="text-sm text-muted-foreground">{p.email} {p.user?.roles?.length ? ` — ${p.user.roles.map((r) => r.name).join(', ')}`: ''}</div>
                       </li>
                     ))}
                   </ul>

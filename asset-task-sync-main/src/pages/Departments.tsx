@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useImportDepartmentsCsv } from '@/hooks/useDepartments';
+import { Department } from '@/integrations/laravel/client';
 import { Loader2, Plus, Upload, Edit, Trash2 } from 'lucide-react';
 
 const Departments = () => {
@@ -17,7 +18,7 @@ const Departments = () => {
   const importCsv = useImportDepartmentsCsv();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<Department | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
 
   const handleSave = async () => {
@@ -35,7 +36,7 @@ const Departments = () => {
     }
   };
 
-  const handleEdit = (d: any) => {
+  const handleEdit = (d: Department) => {
     setEditing(d);
     setForm({ name: d.name, description: d.description || '' });
     setIsDialogOpen(true);
@@ -50,7 +51,7 @@ const Departments = () => {
     if (!file) return;
     try {
       await importCsv.mutateAsync(file);
-    } catch (e: any) {
+    } catch {
       // handled by hook
     }
   };
@@ -128,7 +129,7 @@ const Departments = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {departments?.map((d: any) => (
+                  {departments?.map((d) => (
                     <tr key={d.id}>
                       <td>{d.name}</td>
                       <td className="text-muted-foreground">{d.description || '-'}</td>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 interface ApproveTicketData {
     id: string;
@@ -57,8 +58,8 @@ export function useApproveTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket approved successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to approve ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to approve ticket'));
         },
     });
 }
@@ -78,8 +79,8 @@ export function useRejectTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket rejected');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to reject ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to reject ticket'));
         },
     });
 }
@@ -99,8 +100,8 @@ export function useAssignTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Technician assigned successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to assign technician');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to assign technician'));
         },
     });
 }
@@ -118,8 +119,8 @@ export function useStartTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket started');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to start ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to start ticket'));
         },
     });
 }
@@ -138,8 +139,8 @@ export function useUpdateProgress() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Progress updated');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update progress');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to update progress'));
         },
     });
 }
@@ -158,8 +159,8 @@ export function useCompleteTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket marked as completed');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to complete ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to complete ticket'));
         },
     });
 }
@@ -178,8 +179,8 @@ export function useReviewCompletion() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success(variables.approved ? 'Ticket approved' : 'Ticket reopened for revision');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to review ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to review ticket'));
         },
     });
 }
@@ -198,8 +199,8 @@ export function useSubmitFeedback() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Thank you for your feedback!');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to submit feedback');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to submit feedback'));
         },
     });
 }
@@ -216,8 +217,8 @@ export function useDeleteTicket() {
             queryClient.invalidateQueries({ queryKey: ['tickets'] });
             toast.success('Ticket deleted successfully');
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to delete ticket');
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to delete ticket'));
         },
     });
 }

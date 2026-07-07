@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Wrench, Shield, Users, Check } from 'lucide-react';
+import { Loader2, Wrench, Shield, Users, Check, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import {
   Dialog,
@@ -36,6 +36,9 @@ export default function Auth() {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupTelegram, setSignupTelegram] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -171,15 +174,29 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showLoginPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      >
+                        {showLoginPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -246,27 +263,55 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showSignupPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      >
+                        {showSignupPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                      required
-                      disabled={isLoading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-confirm-password"
+                        type={showSignupConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={signupConfirmPassword}
+                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      >
+                        {showSignupConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter>

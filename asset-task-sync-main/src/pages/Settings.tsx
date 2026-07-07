@@ -18,6 +18,7 @@ import { Bell, Mail, Shield, Palette, Database, Link, Copy, MessageCircle, Exter
 import { useToast } from '@/hooks/use-toast';
 import laravelClient from '@/integrations/laravel/client';
 import { useAuth } from '@/hooks/useAuth';
+import { getApiErrorMessage } from '@/lib/api-error';
 
 const Settings = () => {
   const { toast } = useToast();
@@ -56,10 +57,10 @@ const Settings = () => {
         title: 'Profile updated',
         description: 'Your profile has been saved successfully.',
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to update profile.',
+        description: getApiErrorMessage(error, 'Failed to update profile.'),
         variant: 'destructive',
       });
     } finally {
@@ -114,14 +115,10 @@ const Settings = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message ||
-        error.response?.data?.errors?.current_password?.[0] ||
-        "Failed to update password. Please check your current password.";
-
+    } catch (error) {
       toast({
         title: "Error",
-        description: errorMessage,
+        description: getApiErrorMessage(error, "Failed to update password. Please check your current password."),
         variant: "destructive",
       });
     } finally {

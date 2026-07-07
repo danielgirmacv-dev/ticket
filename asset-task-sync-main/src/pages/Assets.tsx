@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useAssets, useCreateAsset, useUpdateAsset, useDeleteAsset, useImportAssetsCsv } from '@/hooks/useAssets';
+import { CsvImportResult, useAssets, useCreateAsset, useUpdateAsset, useDeleteAsset, useImportAssetsCsv } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { Asset } from '@/integrations/laravel/client';
 import { Plus, Search, Filter, Monitor, Printer, Server, Network, MoreVertical, Edit, Trash2, Loader2, Upload, Download } from 'lucide-react';
@@ -79,7 +79,7 @@ const Assets = () => {
   const [assignedTo, setAssignedTo] = useState<string>('none');
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<any>(null);
+  const [importResult, setImportResult] = useState<CsvImportResult | null>(null);
 
   const handleCreateAsset = async () => {
     await createAsset.mutateAsync(newAsset);
@@ -260,9 +260,9 @@ const Assets = () => {
                       <details className="mt-2">
                         <summary className="cursor-pointer text-sm font-medium">View Errors</summary>
                         <div className="mt-2 text-xs space-y-1 max-h-40 overflow-y-auto">
-                          {importResult.errors.slice(0, 5).map((err: any, idx: number) => (
+                          {importResult.errors.slice(0, 5).map((err, idx) => (
                             <div key={idx} className="p-2 bg-background rounded">
-                              <p>Row {err.row}: {Object.values(err.errors).flat().join(', ')}</p>
+                              <p>Row {err.row}: {Object.values(err.errors).flatMap((value) => Array.isArray(value) ? value : [value]).join(', ')}</p>
                             </div>
                           ))}
                           {importResult.errors.length > 5 && (
@@ -330,7 +330,7 @@ const Assets = () => {
                     <Label htmlFor="type">Type</Label>
                     <Select
                       value={newAsset.type}
-                      onValueChange={(val: any) => setNewAsset({ ...newAsset, type: val })}
+                      onValueChange={(val) => setNewAsset({ ...newAsset, type: val as Asset['type'] })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
@@ -377,7 +377,7 @@ const Assets = () => {
                   <Label>Status</Label>
                   <Select
                     value={newAsset.status}
-                    onValueChange={(val: any) => setNewAsset({ ...newAsset, status: val })}
+                    onValueChange={(val) => setNewAsset({ ...newAsset, status: val as Asset['status'] })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />

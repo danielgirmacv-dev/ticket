@@ -28,7 +28,7 @@ class TelegramWebhookController extends Controller
         // Extract message data
         $message = $update['message'] ?? null;
 
-        if (!$message) {
+        if (! $message) {
             return response()->json(['ok' => true]);
         }
 
@@ -77,7 +77,7 @@ class TelegramWebhookController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $linkData
+            'data' => $linkData,
         ]);
     }
 
@@ -93,13 +93,13 @@ class TelegramWebhookController extends Controller
         if ($success) {
             return response()->json([
                 'success' => true,
-                'message' => 'Telegram account unlinked successfully'
+                'message' => 'Telegram account unlinked successfully',
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Failed to unlink Telegram account'
+            'message' => 'Failed to unlink Telegram account',
         ], 500);
     }
 
@@ -113,9 +113,9 @@ class TelegramWebhookController extends Controller
 
         return response()->json([
             'success' => true,
-            'linked' => !is_null($profile->telegram_chat_id),
+            'linked' => ! is_null($profile->telegram_chat_id),
             'username' => $profile->telegram_username,
-            'chat_id' => $profile->telegram_chat_id
+            'chat_id' => $profile->telegram_chat_id,
         ]);
     }
 }
