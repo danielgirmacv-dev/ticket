@@ -15,17 +15,20 @@ class MaintenanceTicket extends Model
         'title',
         'description',
         'type',
+        'support_category',
         'status',
         'priority',
         'asset_id',
         'requester_id',
         'assigned_technician_id',
+        'assigned_manager_id',
         'scheduled_date',
         'completed_date',
         'estimated_duration',
         'actual_duration',
         'is_recurring',
         'recurring_interval',
+        'recurring_ends_at',
         'notes',
         'rejection_reason',
         'diagnosis',
@@ -45,12 +48,21 @@ class MaintenanceTicket extends Model
         'scheduled_date' => 'datetime',
         'completed_date' => 'datetime',
         'is_recurring' => 'boolean',
+        'recurring_ends_at' => 'date',
         'spare_parts' => 'array',
         'images' => 'array',
         'approved_at' => 'datetime',
         'started_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];
+
+    /**
+     * Get the manager assigned to this ticket.
+     */
+    public function assignedManager(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'assigned_manager_id');
+    }
 
     /**
      * Get the asset that this ticket belongs to.

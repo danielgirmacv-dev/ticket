@@ -49,7 +49,7 @@ class MaintenanceTicketPolicy
         // But wait, requesters might need to cancel?
 
         // Let's check if the user is the requester
-        if ($maintenanceTicket->requested_by === $user->profile->id) {
+        if ($maintenanceTicket->requester_id === $user->profile->id) {
             // Maybe allow them to update if status is pending?
             return $maintenanceTicket->status === 'pending';
         }
@@ -70,6 +70,6 @@ class MaintenanceTicketPolicy
      */
     public function delete(User $user, MaintenanceTicket $maintenanceTicket): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasAnyRole(['admin', 'super_admin']);
     }
 }

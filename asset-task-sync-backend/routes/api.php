@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MaintenanceScheduleController;
 use App\Http\Controllers\Api\MaintenanceTicketController;
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('departments', DepartmentController::class);
     Route::post('/departments/import-csv', [DepartmentController::class, 'importCsv']);
+
+    // FAQs
+    Route::post('/chat/assist', [FaqController::class, 'assist']);
+    Route::apiResource('faqs', FaqController::class);
 
     // Maintenance Tickets
     Route::apiResource('maintenance-tickets', MaintenanceTicketController::class);

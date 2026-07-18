@@ -44,6 +44,6 @@ class AssetPolicy
      */
     public function delete(User $user, Asset $asset): bool
     {
-        return $user->hasRole('admin');
+        return $user->hasAnyRole(['admin', 'super_admin']);
     }
 }

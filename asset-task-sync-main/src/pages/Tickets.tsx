@@ -47,10 +47,17 @@ const statusStyles = {
 };
 
 const priorityStyles = {
-  low: 'priority-low',
-  medium: 'priority-medium',
-  high: 'priority-high',
-  critical: 'bg-destructive text-destructive-foreground',
+  low:      'bg-slate-100  text-slate-700  dark:bg-slate-800  dark:text-slate-300  border border-slate-300  dark:border-slate-600',
+  medium:   'bg-blue-100   text-blue-700   dark:bg-blue-900/40 dark:text-blue-300   border border-blue-300   dark:border-blue-700',
+  high:     'bg-amber-100  text-amber-800  dark:bg-amber-900/40 dark:text-amber-300  border border-amber-300  dark:border-amber-700',
+  critical: 'bg-rose-100   text-rose-700   dark:bg-rose-900/40  dark:text-rose-300   border border-rose-300   dark:border-rose-700',
+};
+
+const priorityCardBorder = {
+  low:      'border-l-4 border-l-slate-400 dark:border-l-slate-600',
+  medium:   'border-l-4 border-l-blue-400  dark:border-l-blue-600',
+  high:     'border-l-4 border-l-amber-400 dark:border-l-amber-500',
+  critical: 'border-l-4 border-l-rose-500  dark:border-l-rose-600',
 };
 
 const Tickets = () => {
@@ -119,7 +126,10 @@ const Tickets = () => {
 
   const TicketCard = ({ ticket, index }: { ticket: MaintenanceTicket; index: number }) => (
     <Card
-      className="group hover:shadow-lg transition-all duration-300 cursor-pointer animate-slide-up"
+      className={cn(
+        'group hover:shadow-lg transition-all duration-300 cursor-pointer animate-slide-up hover:-translate-y-0.5',
+        priorityCardBorder[ticket.priority]
+      )}
       style={{ animationDelay: `${index * 50}ms` }}
       onClick={() => {
         setSelectedTicket(ticket);
@@ -258,7 +268,7 @@ const Tickets = () => {
               <SelectItem value="critical">Critical</SelectItem>
             </SelectContent>
           </Select>
-          {role !== 'requester' && (
+          {(role === 'admin' || role === 'super_admin') && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">

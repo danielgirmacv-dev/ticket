@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { useUsers, useCreateUser, useUpdateUserRole, AppRole, UserWithRole } from '@/hooks/useUsers';
 import { useLocations } from '@/hooks/useLocations';
 import { useDepartments } from '@/hooks/useDepartments';
+import { useAuth } from '@/hooks/useAuth';
 import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
@@ -39,12 +40,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const roleStyles = {
+  super_admin: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', icon: Shield },
   admin: { bg: 'bg-destructive/10', text: 'text-destructive', icon: Shield },
   technician: { bg: 'bg-info/10', text: 'text-info', icon: Wrench },
   requester: { bg: 'bg-success/10', text: 'text-success', icon: UserIcon },
 };
 
+const roleLabel = (role: AppRole): string => {
+  switch (role) {
+    case 'super_admin': return 'Super Admin';
+    case 'admin': return 'Manager';
+    case 'technician': return 'Technician';
+    case 'requester': return 'Requester';
+    default: return role;
+  }
+};
+
+const ALL_ASSIGNABLE_ROLES: AppRole[] = ['super_admin', 'admin', 'technician', 'requester'];
+const MANAGER_ASSIGNABLE_ROLES: AppRole[] = ['technician', 'requester'];
+
 const Users = () => {
+  const { role: currentRole } = useAuth();
+  const isSuperAdmin = currentRole === 'super_admin';
+  const assignableRoles = isSuperAdmin ? ALL_ASSIGNABLE_ROLES : MANAGER_ASSIGNABLE_ROLES;
+
+  const canManageUser = (user: UserWithRole) =>
+    isSuperAdmin || (user.role !== 'admin' && user.role !== 'super_admin');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -194,6 +215,7 @@ const Users = () => {
   }) || [];
 
   const usersByRole = {
+    super_admin: users?.filter(u => u.role === 'super_admin').length || 0,
     admin: users?.filter(u => u.role === 'admin').length || 0,
     technician: users?.filter(u => u.role === 'technician').length || 0,
     requester: users?.filter(u => u.role === 'requester').length || 0,
@@ -215,19 +237,27 @@ const Users = () => {
       subtitle="Manage users and their roles"
     >
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {Object.entries(usersByRole).map(([role, count]) => {
           const style = roleStyles[role as AppRole];
           const Icon = style.icon;
+          const isSelected = roleFilter === role;
           return (
-            <Card key={role} className="relative overflow-hidden">
+            <Card 
+              key={role} 
+              className={cn(
+                'relative overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50',
+                isSelected ? 'ring-2 ring-primary border-transparent bg-muted/30' : 'hover:bg-muted/10'
+              )}
+              onClick={() => setRoleFilter(isSelected ? 'all' : role)}
+            >
               <CardContent className="flex items-center gap-4 p-6">
-                <div className={cn('flex h-12 w-12 items-center justify-center rounded-lg', style.bg)}>
+                <div className={cn('flex h-12 w-12 items-center justify-center rounded-lg transition-transform duration-200', style.bg, isSelected && 'scale-110')}>
                   <Icon className={cn('h-6 w-6', style.text)} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{count}</p>
-                  <p className="text-sm text-muted-foreground capitalize">{role}s</p>
+                  <p className="text-sm text-muted-foreground">{roleLabel(role as AppRole)}s</p>
                 </div>
               </CardContent>
             </Card>
@@ -253,7 +283,8 @@ const Users = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="super_admin">Super Admin</SelectItem>
+              <SelectItem value="admin">Manager</SelectItem>
               <SelectItem value="technician">Technician</SelectItem>
               <SelectItem value="requester">Requester</SelectItem>
             </SelectContent>
@@ -325,9 +356,11 @@ const Users = () => {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="technician">Technician</SelectItem>
-                        <SelectItem value="requester">Requester</SelectItem>
+                        {assignableRoles.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {roleLabel(role)}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -434,25 +467,28 @@ const Users = () => {
                         </div>
                       </td>
                       <td>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Badge className={cn('gap-1.5 cursor-pointer hover:opacity-80', roleStyle.bg, roleStyle.text)}>
-                              <RoleIcon className="h-3 w-3" />
-                              <span className="capitalize">{user.role}</span>
-                            </Badge>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleRoleUpdate(user.id, 'admin')}>
-                              Admin
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRoleUpdate(user.id, 'technician')}>
-                              Technician
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleRoleUpdate(user.id, 'requester')}>
-                              Requester
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {canManageUser(user) ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Badge className={cn('gap-1.5 cursor-pointer hover:opacity-80', roleStyle.bg, roleStyle.text)}>
+                                <RoleIcon className="h-3 w-3" />
+                                <span className="capitalize">{roleLabel(user.role)}</span>
+                              </Badge>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              {assignableRoles.map((role) => (
+                                <DropdownMenuItem key={role} onClick={() => handleRoleUpdate(user.id, role)}>
+                                  {roleLabel(role)}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <Badge className={cn('gap-1.5', roleStyle.bg, roleStyle.text)}>
+                            <RoleIcon className="h-3 w-3" />
+                            <span className="capitalize">{roleLabel(user.role)}</span>
+                          </Badge>
+                        )}
                       </td>
                       <td>
                         {user.status === 'pending' && (
@@ -490,35 +526,42 @@ const Users = () => {
                         {format(new Date(user.created_at), 'MMM d, yyyy')}
                       </td>
                       <td className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {user.status === 'pending' && (
-                              <>
-                                <DropdownMenuItem onClick={() => handleApproveUser(user.user_id.toString())} className="text-success">
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  Approve User
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleRejectUser(user.user_id.toString())} className="text-destructive">
-                                  <XCircle className="h-4 w-4 mr-2" />
-                                  Reject User
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {canManageUser(user) ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {user.status === 'pending' && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleApproveUser(user.user_id.toString())} className="text-success">
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Approve User
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleRejectUser(user.user_id.toString())} className="text-destructive">
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                    Reject User
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 px-2 py-1 rounded-md border border-dashed border-muted-foreground/20">
+                            <Shield className="h-3 w-3" />
+                            Protected
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -570,16 +613,24 @@ const Users = () => {
               <Select
                 value={editFormData.role}
                 onValueChange={(val: AppRole) => setEditFormData({ ...editFormData, role: val })}
+                disabled={!editingUser || !canManageUser(editingUser)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="technician">Technician</SelectItem>
-                  <SelectItem value="requester">Requester</SelectItem>
+                  {(editingUser && canManageUser(editingUser) ? assignableRoles : ALL_ASSIGNABLE_ROLES).map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {roleLabel(role)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {editingUser && !canManageUser(editingUser) && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only super admins can change manager or super admin roles.
+                </p>
+              )}
             </div>
             <div>
               <Label>Department</Label>

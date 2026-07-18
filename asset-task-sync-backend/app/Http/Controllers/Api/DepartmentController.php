@@ -18,7 +18,7 @@ class DepartmentController extends Controller
 
     public function store(Request $request)
     {
-        if (! $request->user()->hasRole('admin')) {
+        if (! $request->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -41,7 +41,7 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department)
     {
-        if (! $request->user()->hasRole('admin')) {
+        if (! $request->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -59,7 +59,7 @@ class DepartmentController extends Controller
 
     public function destroy(Request $request, Department $department)
     {
-        if (! $request->user()->hasRole('admin')) {
+        if (! $request->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -75,7 +75,7 @@ class DepartmentController extends Controller
      */
     public function importCsv(Request $request)
     {
-        if (! $request->user()->hasRole('admin')) {
+        if (! $request->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

@@ -92,7 +92,8 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
 
   const getRoleLabel = (role: string | null) => {
     switch (role) {
-      case 'admin': return 'Administrator';
+      case 'super_admin': return 'Super Admin';
+      case 'admin': return 'Manager';
       case 'technician': return 'Technician';
       case 'requester': return 'Requester';
       default: return 'User';

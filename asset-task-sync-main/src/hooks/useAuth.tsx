@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import laravelClient, { User, Profile } from '@/integrations/laravel/client';
 import { getApiErrorMessage } from '@/lib/api-error';
 
-type AppRole = 'admin' | 'technician' | 'requester';
+type AppRole = 'super_admin' | 'admin' | 'technician' | 'requester';
 
 interface AuthContextType {
   user: User | null;

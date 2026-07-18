@@ -18,6 +18,8 @@ import {
   ScrollText,
   MapPin,
   Briefcase,
+  HelpCircle,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,10 +41,13 @@ const Sidebar = () => {
     { href: '/reports', icon: FileText, label: 'Reports' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
     { href: '/departments', icon: Briefcase, label: 'Departments' },
+    { href: '/faqs', icon: BookOpen, label: 'FAQ' },
     { href: '/users', icon: Users, label: 'Users' },
     { href: '/activity-logs', icon: ScrollText, label: 'Activity' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
+
+  const superAdminLinks = adminLinks;
 
   const technicianLinks: { href: string; icon: typeof LayoutDashboard; label: string; badge?: number }[] = [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -50,20 +55,24 @@ const Sidebar = () => {
     { href: '/assets', icon: Monitor, label: 'Assets' },
     { href: '/calendar', icon: Calendar, label: 'Schedule' },
     { href: '/reports', icon: FileText, label: 'Reports' },
+    { href: '/help', icon: HelpCircle, label: 'Help' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 
   const requesterLinks: { href: string; icon: typeof LayoutDashboard; label: string; badge?: number }[] = [
     { href: '/requests', icon: Plus, label: 'New Request' },
     { href: '/tickets', icon: ClipboardList, label: 'My Requests' },
+    { href: '/help', icon: HelpCircle, label: 'Help' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 
-  const links = role === 'admin'
-    ? adminLinks
-    : role === 'technician'
-      ? technicianLinks
-      : requesterLinks;
+  const links = role === 'super_admin'
+    ? superAdminLinks
+    : role === 'admin'
+      ? adminLinks
+      : role === 'technician'
+        ? technicianLinks
+        : requesterLinks;
 
   const handleLogout = async () => {
     await signOut();

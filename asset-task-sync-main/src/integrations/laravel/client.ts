@@ -96,7 +96,7 @@ export interface MaintenanceTicket {
   type: 'maintenance' | 'repair' | 'installation' | 'inspection' | 'other';
   status: 'submitted' | 'approved' | 'rejected' | 'assigned' | 'in_progress' | 'completed_pending_review' | 'completed' | 'reopened' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  asset_id: string;
+  asset_id?: string | null;
   requester_id?: string;
   assigned_technician_id?: string;
   scheduled_date: string;
@@ -105,6 +105,7 @@ export interface MaintenanceTicket {
   actual_duration?: number;
   is_recurring: boolean;
   recurring_interval?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | null;
+  recurring_ends_at?: string | null;
   notes?: string;
   rejection_reason?: string;
   diagnosis?: string;
@@ -140,6 +141,17 @@ export interface Department {
   id: string;
   name: string;
   description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Faq {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  is_published: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

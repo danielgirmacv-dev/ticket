@@ -43,12 +43,12 @@ class AuthController extends Controller
         // Assign default role
         $user->assignRole('requester');
 
-        // Notify Admins
+        // Notify Admins (managers) and Super Admins
         try {
-            $admins = User::role('admin')->get();
-            foreach ($admins as $admin) {
+            $managers = User::role('admin')->get()->merge(User::role('super_admin')->get());
+            foreach ($managers as $manager) {
                 \App\Models\Notification::create([
-                    'user_id' => $admin->id,
+                    'user_id' => $manager->id,
                     'title' => 'New User Registration (Pending Approval)',
                     'message' => "A new user {$user->name} ({$user->email}) has registered and is awaiting approval.",
                     'type' => 'info',
@@ -168,7 +168,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (! $admin->hasRole('admin')) {
+        if (! $admin->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -176,10 +176,17 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,technician,requester',
+            'role' => 'required|in:super_admin,admin,technician,requester',
             'department' => 'nullable|string|max:255',
             'location_id' => 'nullable|exists:locations,id',
         ]);
+
+        // Managers cannot create other managers or super admins
+        if (! $admin->hasRole('super_admin') && in_array($validated['role'], ['admin', 'super_admin'], true)) {
+            return response()->json([
+                'message' => 'Only super admins can create manager or super admin accounts.',
+            ], 403);
+        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -211,7 +218,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (! $admin->hasRole('admin')) {
+        if (! $admin->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -259,7 +266,7 @@ class AuthController extends Controller
     {
         $admin = $request->user();
 
-        if (! $admin->hasRole('admin')) {
+        if (! $admin->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

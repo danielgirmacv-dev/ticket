@@ -17,8 +17,15 @@ export function useCreateTicket() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (data: Partial<MaintenanceTicket>) => {
-            const response = await laravelClient.post('/maintenance-tickets', data);
+        mutationFn: async (data: Partial<MaintenanceTicket> | FormData) => {
+            const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+            const response = await laravelClient.post(
+                '/maintenance-tickets',
+                data,
+                isFormData
+                    ? { headers: { 'Content-Type': 'multipart/form-data' } }
+                    : undefined
+            );
             return response.data;
         },
         onSuccess: () => {

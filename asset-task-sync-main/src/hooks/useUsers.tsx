@@ -3,7 +3,7 @@ import laravelClient, { Location, Profile } from '@/integrations/laravel/client'
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 
-export type AppRole = 'admin' | 'technician' | 'requester';
+export type AppRole = 'super_admin' | 'admin' | 'technician' | 'requester';
 
 export interface UserWithRole {
   id: string; // Profile ID

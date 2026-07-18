@@ -83,7 +83,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                     )}
                                 </div>
                             </div>
-                            {role === 'admin' && (
+                            {['admin', 'super_admin'].includes(role ?? '') && (
                                 <div className="flex gap-1">
                                     <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} title="Edit Ticket">
                                         <Pencil className="h-5 w-5" />

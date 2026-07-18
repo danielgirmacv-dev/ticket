@@ -66,7 +66,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     const updateTicket = useUpdateTicket();
 
     const canCancel =
-        (role === 'admin' && !['completed', 'cancelled'].includes(ticket.status)) ||
+        (['admin', 'super_admin'].includes(role ?? '') && !['completed', 'cancelled'].includes(ticket.status)) ||
         (role === 'requester' && profile?.id === ticket.requester_id && ticket.status === 'submitted');
 
     const handleCancel = () => {
@@ -136,7 +136,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     };
 
     // Admin actions
-    if (role === 'admin') {
+    if (['admin', 'super_admin'].includes(role ?? '')) {
         if (ticket.status === 'submitted') {
             return (
                 <div className="flex flex-wrap gap-2">

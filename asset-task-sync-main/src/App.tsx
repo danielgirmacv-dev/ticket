@@ -20,6 +20,8 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Locations from "./pages/Locations";
 import Departments from "./pages/Departments";
+import Help from "./pages/Help";
+import Faqs from "./pages/Faqs";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,16 @@ const App = () => (
             <Route path="/departments" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <Departments />
+              </ProtectedRoute>
+            } />
+            <Route path="/faqs" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <Faqs />
+              </ProtectedRoute>
+            } />
+            <Route path="/help" element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             } />
             <Route path="/activity-logs" element={

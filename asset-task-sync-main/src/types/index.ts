@@ -1,5 +1,5 @@
 // User roles enum
-export type UserRole = 'admin' | 'technician' | 'requester';
+export type UserRole = 'super_admin' | 'admin' | 'technician' | 'requester';
 
 // User interface
 export interface User {

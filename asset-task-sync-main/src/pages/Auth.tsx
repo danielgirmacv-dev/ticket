@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -40,11 +40,172 @@ export default function Auth() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   useEffect(() => {
     if (user && !authLoading) {
       navigate('/');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    interface Particle {
+      x: number;
+      y: number;
+      size: number;
+      speedX: number;
+      speedY: number;
+      opacity: number;
+      type: 'circle' | 'cross';
+      angle: number;
+      spinSpeed: number;
+      baseOpacity: number;
+      pulseSpeed: number;
+      pulseTime: number;
+      update: (mouseX: number, mouseY: number) => void;
+      draw: (context: CanvasRenderingContext2D) => void;
+    }
+
+    const particles: Particle[] = [];
+    const particleCount = Math.min(150, Math.floor((width * height) / 9000));
+
+    const createParticle = (initYAtTop = false): Particle => {
+      const baseOpacity = Math.random() * 0.45 + 0.15;
+      const maxDepth = height * 0.35;
+      // Quadratic/exponential distribution to group particles heavily at the very top of the page
+      const yVal = initYAtTop 
+        ? 0 
+        : Math.pow(Math.random(), 2.4) * maxDepth;
+      
+      return {
+        x: Math.random() * width,
+        y: yVal,
+        size: Math.random() * 3.5 + 2.5, // Increased size for better visibility
+        speedX: (Math.random() - 0.5) * 0.4 - 0.22, // Faster elegant drift to the left
+        speedY: (Math.random() - 0.5) * 0.2, // Faster vertical waving
+        baseOpacity,
+        opacity: baseOpacity,
+        type: Math.random() > 0.4 ? 'cross' : 'circle', // High ratio of crosses as in the image
+        angle: Math.random() * Math.PI * 2,
+        spinSpeed: (Math.random() - 0.5) * 0.025, // Faster rotation for the crosses
+        pulseSpeed: Math.random() * 0.015 + 0.003,
+        pulseTime: Math.random() * 100,
+        update(mouseX: number, mouseY: number) {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          this.angle += this.spinSpeed;
+          this.pulseTime += this.pulseSpeed;
+
+          // Wrap horizontally
+          if (this.x < -10) this.x = width + 10;
+          if (this.x > width + 10) this.x = -10;
+
+          // Respawn at the top if it drifts too low or high
+          if (this.y > maxDepth || this.y < -10) {
+            this.y = 0;
+            this.x = Math.random() * width;
+            this.speedX = (Math.random() - 0.5) * 0.4 - 0.22;
+            this.speedY = Math.random() * 0.15;
+          }
+
+          // Calculate vertical gradient fade (density fades to 0 towards the bottom threshold)
+          const depthFade = Math.max(0, 1 - (this.y / maxDepth));
+          this.opacity = (this.baseOpacity + Math.sin(this.pulseTime) * 0.06) * depthFade;
+
+          // Gentle mouse push
+          const dx = mouseX - this.x;
+          const dy = mouseY - this.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            const force = (100 - dist) / 100;
+            this.x -= (dx / dist) * force * 0.3;
+            this.y -= (dy / dist) * force * 0.3;
+          }
+        },
+        draw(context: CanvasRenderingContext2D) {
+          if (this.opacity <= 0.01) return;
+          context.save();
+          context.globalAlpha = this.opacity;
+          
+          // Teal-green/mint color from your reference image
+          const colorString = 'rgba(45, 212, 191, 0.75)'; 
+          
+          if (this.type === 'circle') {
+            context.fillStyle = colorString;
+            context.beginPath();
+            context.arc(this.x, this.y, this.size * 0.7, 0, Math.PI * 2);
+            context.fill();
+          } else {
+            // Draw a tiny rotating "+" cross shape
+            context.translate(this.x, this.y);
+            context.rotate(this.angle);
+            context.strokeStyle = colorString;
+            context.lineWidth = 1.3; // Increased stroke width for larger crosses
+            context.beginPath();
+            context.moveTo(-this.size, 0);
+            context.lineTo(this.size, 0);
+            context.moveTo(0, -this.size);
+            context.lineTo(0, this.size);
+            context.stroke();
+          }
+          context.restore();
+        }
+      };
+    };
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(createParticle());
+    }
+
+    let mouseX = -1000;
+    let mouseY = -1000;
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    };
+    const handleMouseLeave = () => {
+      mouseX = -1000;
+      mouseY = -1000;
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    const handleResize = () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', handleResize);
+
+    const animate = () => {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach((p) => {
+        p.update(mouseX, mouseY);
+        p.draw(ctx);
+      });
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animate();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,44 +285,61 @@ export default function Auth() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
+      {/* Dynamic Interactive Particle Canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+
+      {/* Subtle Ambient Radial Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-accent mb-4 overflow-hidden p-1">
-            <img src="/src/assets/eecc.png" alt="EEEC Logo" className="h-full w-full object-contain bg-white rounded-xl" />
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md mb-3 p-2 shadow-xl shadow-teal-950/20">
+            <img src="/src/assets/eecc.png" alt="EEEC Logo" className="h-full w-full object-contain filter brightness-110" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
             EEC
           </h1>
-          <p className="text-muted-foreground mt-1">IT Maintenance Scheduler</p>
+          <p className="text-teal-200/60 text-sm mt-1">IT Maintenance Scheduler</p>
         </div>
 
-        <Card className="border-border/50 shadow-xl backdrop-blur-sm bg-card/95">
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
+          <Tabs defaultValue="login" className="w-full p-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 border border-slate-200/40 rounded-xl">
+              <TabsTrigger 
+                value="login"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signup"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+              >
+                Sign Up
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <CardHeader className="pt-0">
-                  <CardTitle>Welcome Back</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-slate-900 font-bold text-xl">Welcome Back</CardTitle>
+                  <CardDescription className="text-slate-500 text-sm">
                     Sign in to access your dashboard
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -170,10 +348,11 @@ export default function Auth() {
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -183,12 +362,12 @@ export default function Auth() {
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
                         disabled={isLoading}
-                        className="pr-10"
+                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
                       />
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showLoginPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -199,8 +378,12 @@ export default function Auth() {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                <CardFooter className="pt-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -217,14 +400,14 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignup}>
                 <CardHeader className="pt-0">
-                  <CardTitle>Create Account</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-slate-900 font-bold text-xl">Create Account</CardTitle>
+                  <CardDescription className="text-slate-500 text-sm">
                     Register to submit maintenance requests
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Full Name</Label>
                     <Input
                       id="signup-name"
                       type="text"
@@ -233,10 +416,11 @@ export default function Auth() {
                       onChange={(e) => setSignupName(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -245,10 +429,13 @@ export default function Auth() {
                       onChange={(e) => setSignupEmail(e.target.value)}
                       required
                       disabled={isLoading}
+                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-telegram">Telegram Username (Optional)</Label>
+                    <Label htmlFor="signup-telegram" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
+                      Telegram Username <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
+                    </Label>
                     <Input
                       id="signup-telegram"
                       type="text"
@@ -256,13 +443,14 @@ export default function Auth() {
                       value={signupTelegram}
                       onChange={(e) => setSignupTelegram(e.target.value)}
                       disabled={isLoading}
+                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] text-slate-400">
                       Receive instant approval notifications
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
@@ -272,12 +460,12 @@ export default function Auth() {
                         onChange={(e) => setSignupPassword(e.target.value)}
                         required
                         disabled={isLoading}
-                        className="pr-10"
+                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showSignupPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -288,7 +476,7 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                    <Label htmlFor="signup-confirm-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Confirm Password</Label>
                     <div className="relative">
                       <Input
                         id="signup-confirm-password"
@@ -298,12 +486,12 @@ export default function Auth() {
                         onChange={(e) => setSignupConfirmPassword(e.target.value)}
                         required
                         disabled={isLoading}
-                        className="pr-10"
+                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
                       />
                       <button
                         type="button"
                         onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showSignupConfirmPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -314,8 +502,12 @@ export default function Auth() {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                <CardFooter className="pt-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    disabled={isLoading}
+                  >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -333,35 +525,48 @@ export default function Auth() {
 
         {/* Features */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div className="p-4 rounded-lg bg-card/50 border border-border/30">
-            <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <p className="text-xs text-muted-foreground">Secure Access</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
+            <Shield className="h-5 w-5 mx-auto mb-2 text-teal-400 animate-pulse" />
+            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Secure Access</p>
           </div>
-          <div className="p-4 rounded-lg bg-card/50 border border-border/30">
-            <Wrench className="h-6 w-6 mx-auto mb-2 text-accent" />
-            <p className="text-xs text-muted-foreground">Track Tickets</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
+            <Wrench className="h-5 w-5 mx-auto mb-2 text-emerald-400 animate-pulse" />
+            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Track Tickets</p>
           </div>
-          <div className="p-4 rounded-lg bg-card/50 border border-border/30">
-            <Users className="h-6 w-6 mx-auto mb-2 text-success" />
-            <p className="text-xs text-muted-foreground">Team Collab</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
+            <Users className="h-5 w-5 mx-auto mb-2 text-cyan-400 animate-pulse" />
+            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Team Collab</p>
           </div>
         </div>
       </div>
 
+      {/* Watermark Logo (Bottom-Right) - Logo Icon Only in Crisp White */}
+      <div className="absolute bottom-8 right-8 z-0 pointer-events-none select-none flex items-center">
+        <svg className="w-12 h-12 text-white opacity-85" viewBox="0 0 100 100" fill="currentColor">
+          <rect x="42" y="0" width="16" height="96" rx="8" />
+          <rect x="42" y="0" width="58" height="16" rx="8" />
+          <rect x="42" y="32" width="58" height="16" rx="8" />
+          <rect x="42" y="64" width="58" height="16" rx="8" />
+          <rect x="0" y="16" width="58" height="16" rx="8" />
+          <rect x="0" y="48" width="58" height="16" rx="8" />
+          <rect x="0" y="80" width="58" height="16" rx="8" />
+        </svg>
+      </div>
+
       {/* Success Dialog Modal */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md text-center p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl animate-scale-up">
+        <DialogContent className="sm:max-w-md text-center p-8 border border-slate-100 bg-white shadow-2xl rounded-2xl animate-scale-up text-slate-800">
           <DialogHeader className="flex flex-col items-center justify-center space-y-4">
-            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-success/10 text-success">
-              <span className="absolute inset-0 rounded-full bg-success/20 animate-ping opacity-75" />
-              <svg className="w-12 h-12 text-success relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-600">
+              <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-75" />
+              <svg className="w-12 h-12 text-emerald-600 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-checkmark-draw" />
               </svg>
             </div>
-            <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
               Registration Successful!
             </DialogTitle>
-            <DialogDescription className="text-muted-foreground text-sm max-w-sm">
+            <DialogDescription className="text-slate-500 text-sm max-w-sm">
               {successMessage}
             </DialogDescription>
           </DialogHeader>
@@ -370,7 +575,7 @@ export default function Auth() {
               onClick={() => {
                 setShowSuccessDialog(false);
               }}
-              className="w-full max-w-xs bg-gradient-to-r from-success to-emerald-600 hover:from-success/90 hover:to-emerald-600/90 text-white font-semibold py-6 rounded-xl shadow-lg shadow-success/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full max-w-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
             >
               Close
             </Button>

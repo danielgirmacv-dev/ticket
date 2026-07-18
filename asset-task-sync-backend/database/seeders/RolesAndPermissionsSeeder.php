@@ -10,29 +10,35 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     * Uses firstOrCreate so this is safe to run multiple times.
      */
     public function run(): void
     {
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // create permissions
-        Permission::create(['name' => 'manage assets']);
-        Permission::create(['name' => 'view assets']);
-        Permission::create(['name' => 'manage tickets']);
-        Permission::create(['name' => 'view tickets']);
-        Permission::create(['name' => 'manage users']);
+        // Create permissions (idempotent - safe to re-run)
+        Permission::firstOrCreate(['name' => 'manage assets']);
+        Permission::firstOrCreate(['name' => 'view assets']);
+        Permission::firstOrCreate(['name' => 'manage tickets']);
+        Permission::firstOrCreate(['name' => 'view tickets']);
+        Permission::firstOrCreate(['name' => 'manage users']);
 
-        // create roles and assign created permissions
+        $allPermissions = Permission::all();
 
-        // this can be done as separate statements
-        $role = Role::create(['name' => 'requester']);
-        $role->givePermissionTo(['view assets', 'view tickets']);
+        // Create roles and sync permissions (idempotent)
+        $requester = Role::firstOrCreate(['name' => 'requester']);
+        $requester->syncPermissions(['view assets', 'view tickets']);
 
-        $role = Role::create(['name' => 'technician']);
-        $role->givePermissionTo(['view assets', 'manage tickets', 'view tickets']);
+        $technician = Role::firstOrCreate(['name' => 'technician']);
+        $technician->syncPermissions(['view assets', 'manage tickets', 'view tickets']);
 
-        $role = Role::create(['name' => 'admin']);
-        $role->givePermissionTo(Permission::all());
+        // admin = Manager role: reviews/approves requester tickets, assigns technicians
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->syncPermissions($allPermissions);
+
+        // super_admin = highest authority: manages managers, full system access
+        $superAdmin = Role::firstOrCreate(['name' => 'super_admin']);
+        $superAdmin->syncPermissions($allPermissions);
     }
 }

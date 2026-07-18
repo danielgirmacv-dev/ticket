@@ -41,8 +41,8 @@ class ProfileController extends Controller
      */
     public function update(Request $request, Profile $profile)
     {
-        // Admins can update any profile, regular users can only update their own
-        if (! auth()->user()->hasRole('admin') && $profile->user_id !== auth()->id()) {
+        // Admins/super_admins can update any profile, regular users can only update their own
+        if (! auth()->user()->hasAnyRole(['admin', 'super_admin']) && $profile->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -53,7 +53,7 @@ class ProfileController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ];
 
-        if (auth()->user()->hasRole('admin')) {
+        if (auth()->user()->hasAnyRole(['admin', 'super_admin'])) {
             $rules['email'] = 'sometimes|string|email|max:255|unique:users,email,'.$profile->user_id;
         }
 
@@ -82,13 +82,24 @@ class ProfileController extends Controller
      */
     public function updateRole(Request $request, Profile $profile)
     {
-        // Only admin can update roles
-        if (! auth()->user()->hasRole('admin')) {
+        // Only admin/super_admin can update roles
+        if (! auth()->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // Only super admins can assign manager/super_admin or modify those accounts
+        if (! auth()->user()->hasRole('super_admin')) {
+            $requestedRole = $request->input('role');
+            if (in_array($requestedRole, ['super_admin', 'admin'], true)) {
+                return response()->json(['message' => 'Only super admins can assign the manager or super admin role'], 403);
+            }
+            if ($profile->user->hasAnyRole(['admin', 'super_admin'])) {
+                return response()->json(['message' => 'Cannot modify a manager or super admin account'], 403);
+            }
+        }
+
         $validated = $request->validate([
-            'role' => 'required|in:admin,technician,requester',
+            'role' => 'required|in:super_admin,admin,technician,requester',
         ]);
 
         $profile->user->syncRoles([$validated['role']]);
@@ -103,12 +114,25 @@ class ProfileController extends Controller
      */
     public function destroy(Profile $profile)
     {
-        // Only admin can delete users
-        if (! auth()->user()->hasRole('admin')) {
+        // Only admin/super_admin can delete users
+        if (! auth()->user()->hasAnyRole(['admin', 'super_admin'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Prevent deleting the last admin
+        // Managers cannot delete manager or super admin accounts
+        if (! auth()->user()->hasRole('super_admin') && $profile->user->hasAnyRole(['admin', 'super_admin'])) {
+            return response()->json(['message' => 'Only super admins can delete manager or super admin accounts'], 403);
+        }
+
+        // Prevent deleting the last super admin
+        if ($profile->user->hasRole('super_admin')) {
+            $superAdminCount = \App\Models\User::role('super_admin')->count();
+            if ($superAdminCount <= 1) {
+                return response()->json(['message' => 'Cannot delete the last super admin user'], 400);
+            }
+        }
+
+        // Prevent deleting the last manager
         if ($profile->user->hasRole('admin')) {
             $adminCount = \App\Models\User::role('admin')->count();
             if ($adminCount <= 1) {

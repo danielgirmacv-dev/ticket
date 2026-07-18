@@ -347,7 +347,7 @@ const Settings = () => {
               </CardContent>
             </Card>
 
-            {role === 'admin' && (
+            {(role === 'admin' || role === 'super_admin') && (
             <Card>
               <CardHeader>
                 <CardTitle>Organization</CardTitle>
