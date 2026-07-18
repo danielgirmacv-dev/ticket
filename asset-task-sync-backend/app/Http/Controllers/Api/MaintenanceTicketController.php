@@ -154,6 +154,7 @@ class MaintenanceTicketController extends Controller
         }
 
         $ticket = MaintenanceTicket::create($validated);
+        $ticket->load('requester');
 
         ActivityLogger::log('created', 'Ticket', $ticket->id, "Created ticket: {$ticket->title}");
 
