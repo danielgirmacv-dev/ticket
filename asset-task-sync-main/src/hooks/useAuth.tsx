@@ -9,8 +9,8 @@ interface AuthContextType {
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string, telegram?: string) => Promise<{ error: Error | null; isPending?: boolean; message?: string }>;
+  signIn: (email: string, password: string, turnstileToken?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string, telegram?: string, turnstileToken?: string) => Promise<{ error: Error | null; isPending?: boolean; message?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -57,15 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, turnstileToken?: string) => {
     try {
       // Token-based auth doesn't need CSRF cookie
 
+      const payload: Record<string, string> = { email, password };
+      if (turnstileToken) {
+        payload.turnstile_token = turnstileToken;
+      }
 
-      const response = await laravelClient.post('/login', {
-        email,
-        password,
-      });
+      const response = await laravelClient.post('/login', payload);
 
       const { token, user: userData } = response.data;
 
@@ -89,17 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, telegram?: string) => {
+  const signUp = async (email: string, password: string, name: string, telegram?: string, turnstileToken?: string) => {
     try {
-
-
-      const response = await laravelClient.post('/register', {
+      const payload: Record<string, string> = {
         name,
         email,
         password,
         password_confirmation: password,
-        telegram_username: telegram,
-      });
+      };
+      if (telegram) {
+        payload.telegram_username = telegram;
+      }
+      if (turnstileToken) {
+        payload.turnstile_token = turnstileToken;
+      }
+
+      const response = await laravelClient.post('/register', payload);
 
       // Check if user is pending approval (no token returned)
       if (response.data.status === 'pending') {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -16,10 +16,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { TurnstileWidget } from '@/components/auth/TurnstileWidget';
+import laravelClient from '@/integrations/laravel/client';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters');
+
+interface TurnstileConfig {
+  enabled: boolean;
+  site_key: string | null;
+}
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -39,8 +46,44 @@ export default function Auth() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
+  const [activeTab, setActiveTab] = useState('login');
+  const [turnstileConfig, setTurnstileConfig] = useState<TurnstileConfig>({ enabled: false, site_key: null });
+  const [loginTurnstileToken, setLoginTurnstileToken] = useState<string | null>(null);
+  const [signupTurnstileToken, setSignupTurnstileToken] = useState<string | null>(null);
+  const [loginTurnstileResetKey, setLoginTurnstileResetKey] = useState(0);
+  const [signupTurnstileResetKey, setSignupTurnstileResetKey] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const turnstileSiteKey =
+    turnstileConfig.site_key || import.meta.env.VITE_TURNSTILE_SITE_KEY || null;
+  const turnstileEnabled = turnstileConfig.enabled && !!turnstileSiteKey;
+
+  const resetLoginTurnstile = useCallback(() => {
+    setLoginTurnstileToken(null);
+    setLoginTurnstileResetKey((key) => key + 1);
+  }, []);
+
+  const resetSignupTurnstile = useCallback(() => {
+    setSignupTurnstileToken(null);
+    setSignupTurnstileResetKey((key) => key + 1);
+  }, []);
+
+  useEffect(() => {
+    laravelClient
+      .get('/turnstile/config')
+      .then((response) => {
+        setTurnstileConfig({
+          enabled: Boolean(response.data.enabled),
+          site_key: response.data.site_key ?? null,
+        });
+      })
+      .catch(() => {
+        const fallbackKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+        if (fallbackKey) {
+          setTurnstileConfig({ enabled: true, site_key: fallbackKey });
+        }
+      });
+  }, []);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -220,11 +263,17 @@ export default function Auth() {
       }
     }
 
+    if (turnstileEnabled && !loginTurnstileToken) {
+      toast.error('Please complete the security verification');
+      return;
+    }
+
     setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = await signIn(loginEmail, loginPassword, loginTurnstileToken ?? undefined);
     setIsLoading(false);
 
     if (error) {
+      resetLoginTurnstile();
       if (error.message.includes('Invalid login credentials')) {
         toast.error('Invalid email or password');
       } else if (error.message.includes('Email not confirmed')) {
@@ -257,11 +306,23 @@ export default function Auth() {
       return;
     }
 
+    if (turnstileEnabled && !signupTurnstileToken) {
+      toast.error('Please complete the security verification');
+      return;
+    }
+
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, signupName, signupTelegram);
+    const result = await signUp(
+      signupEmail,
+      signupPassword,
+      signupName,
+      signupTelegram,
+      signupTurnstileToken ?? undefined,
+    );
     setIsLoading(false);
 
     if (result.error) {
+      resetSignupTurnstile();
       if (result.error.message.includes('User already registered')) {
         toast.error('An account with this email already exists');
       } else {
@@ -277,6 +338,7 @@ export default function Auth() {
       setSignupPassword('');
       setSignupConfirmPassword('');
       setSignupTelegram('');
+      resetSignupTurnstile();
     } else {
       setSuccessMessage('Account created successfully!');
       setShowSuccessDialog(true);
@@ -313,7 +375,15 @@ export default function Auth() {
         </div>
 
         <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
-          <Tabs defaultValue="login" className="w-full p-2">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              setActiveTab(value);
+              resetLoginTurnstile();
+              resetSignupTurnstile();
+            }}
+            className="w-full p-2"
+          >
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 border border-slate-200/40 rounded-xl">
               <TabsTrigger 
                 value="login"
@@ -377,12 +447,21 @@ export default function Auth() {
                       </button>
                     </div>
                   </div>
+                  {turnstileEnabled && turnstileSiteKey && (
+                    <TurnstileWidget
+                      siteKey={turnstileSiteKey}
+                      resetKey={loginTurnstileResetKey}
+                      onVerify={setLoginTurnstileToken}
+                      onExpire={resetLoginTurnstile}
+                      onError={resetLoginTurnstile}
+                    />
+                  )}
                 </CardContent>
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
-                    disabled={isLoading}
+                    disabled={isLoading || (turnstileEnabled && !loginTurnstileToken)}
                   >
                     {isLoading ? (
                       <>
@@ -501,12 +580,21 @@ export default function Auth() {
                       </button>
                     </div>
                   </div>
+                  {turnstileEnabled && turnstileSiteKey && (
+                    <TurnstileWidget
+                      siteKey={turnstileSiteKey}
+                      resetKey={signupTurnstileResetKey}
+                      onVerify={setSignupTurnstileToken}
+                      onExpire={resetSignupTurnstile}
+                      onError={resetSignupTurnstile}
+                    />
+                  )}
                 </CardContent>
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
                     className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
-                    disabled={isLoading}
+                    disabled={isLoading || (turnstileEnabled && !signupTurnstileToken)}
                   >
                     {isLoading ? (
                       <>
