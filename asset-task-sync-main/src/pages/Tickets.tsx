@@ -136,7 +136,7 @@ const Tickets = () => {
         setIsDetailsOpen(true);
       }}
     >
-      <CardContent className="p-5">
+      <CardContent className="p-3 sm:p-5">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
@@ -245,17 +245,17 @@ const Tickets = () => {
 
   return (
     <DashboardLayout title="Ticket Management" subtitle="View and manage maintenance tickets" >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div className="relative w-full md:w-96">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-6">
+        <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search tickets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 w-full"
           />
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Priority" />
@@ -276,7 +276,7 @@ const Tickets = () => {
                   Issue Ticket
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create Issue Ticket</DialogTitle>
                 <DialogDescription>
@@ -296,7 +296,7 @@ const Tickets = () => {
                   estimated_duration: Number(formData.get('estimated_duration')),
                 });
               }} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">Title</Label>
                     <Input id="title" name="title" required />
@@ -323,7 +323,7 @@ const Tickets = () => {
                   <Textarea id="description" name="description" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="asset_id">Asset</Label>
                     <Select name="asset_id" required>
@@ -355,7 +355,7 @@ const Tickets = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="scheduled_date">Scheduled Date</Label>
                     <Input id="scheduled_date" name="scheduled_date" type="datetime-local" required />
@@ -405,8 +405,9 @@ const Tickets = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue={searchParams.get('status') === 'submitted' ? 'pending' : searchParams.get('status') || 'all'} className="w-full" >
-        <TabsList className="mb-6">
+      <Tabs defaultValue={searchParams.get('status') === 'submitted' ? 'pending' : searchParams.get('status') || 'all'} className="w-full">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="mb-4 inline-flex min-w-max">
           <TabsTrigger value="all" className="gap-2">
             All
             <Badge variant="secondary" className="ml-1 text-xs bg-slate-100 dark:bg-slate-800">
@@ -437,7 +438,8 @@ const Tickets = () => {
               {ticketsByStatus.completed.length}
             </Badge>
           </TabsTrigger>
-        </TabsList>
+          </TabsList>
+        </div>
 
         {Object.keys(ticketsByStatus).map((status) => (
           <TabsContent key={status} value={status}>

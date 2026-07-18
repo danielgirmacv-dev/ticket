@@ -151,7 +151,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     {cancelButton}
 
                     <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Reject Ticket</DialogTitle>
                                 <DialogDescription>Please provide a reason for rejecting this ticket.</DialogDescription>
@@ -167,7 +167,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
                                     Cancel
                                 </Button>
@@ -191,7 +191,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     {cancelButton}
 
                     <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Assign Technician</DialogTitle>
                                 <DialogDescription>Select a technician to assign to this ticket.</DialogDescription>
@@ -208,7 +208,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
                                     Cancel
                                 </Button>
@@ -229,7 +229,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     </Button>
 
                     <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Review Completed Ticket</DialogTitle>
                                 <DialogDescription>Approve the completion or request revisions.</DialogDescription>
@@ -245,7 +245,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="destructive" onClick={() => handleReview(false)}>
                                     Request Revision
                                 </Button>
@@ -296,7 +296,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     </Button>
 
                     <Dialog open={showProgressDialog} onOpenChange={setShowProgressDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Update Progress</DialogTitle>
                                 <DialogDescription>Save diagnosis and work in progress</DialogDescription>
@@ -315,7 +315,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     <Textarea value={sparePartsText} onChange={(e) => setSparePartsText(e.target.value)} rows={2} placeholder="RAM 8GB&#10;Thermal paste" />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="outline" onClick={() => setShowProgressDialog(false)}>Cancel</Button>
                                 <Button onClick={handleSaveProgress}>Save Progress</Button>
                             </DialogFooter>
@@ -323,7 +323,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     </Dialog>
 
                     <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>{ticket.status === 'reopened' ? 'Resubmit Ticket' : 'Complete Ticket'}</DialogTitle>
                                 <DialogDescription>
@@ -352,7 +352,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     <Input type="number" min="0" value={actualDuration} onChange={(e) => setActualDuration(e.target.value)} />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>Cancel</Button>
                                 <Button onClick={handleCompleteSubmit}>
                                     {ticket.status === 'reopened' ? 'Resubmit for Review' : 'Mark as Complete'}
@@ -376,7 +376,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     </Button>
 
                     <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Verify Ticket Completion</DialogTitle>
                                 <DialogDescription>Confirm the work is done to your satisfaction.</DialogDescription>
@@ -392,7 +392,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="destructive" onClick={() => handleReview(false)}>
                                     Not Done / Reopen
                                 </Button>
@@ -413,7 +413,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                     </Button>
 
                     <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
-                        <DialogContent>
+                        <DialogContent className="w-[95vw] sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Provide Feedback</DialogTitle>
                                 <DialogDescription>Rate the quality of work and provide comments.</DialogDescription>
@@ -444,7 +444,7 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
                                     />
                                 </div>
                             </div>
-                            <DialogFooter>
+                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                                 <Button variant="outline" onClick={() => setShowFeedbackDialog(false)}>
                                     Cancel
                                 </Button>

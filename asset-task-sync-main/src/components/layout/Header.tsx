@@ -101,20 +101,20 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 sm:px-6">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden"
+          className="lg:hidden flex-shrink-0"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-xl font-semibold text-foreground truncate">{title}</h2>
           {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">{subtitle}</p>
           )}
         </div>
       </div>
@@ -151,7 +151,7 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm">
             <DropdownMenuLabel className="font-semibold">
               Notifications
             </DropdownMenuLabel>
@@ -196,14 +196,14 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-3 h-auto py-2 px-3">
-              <Avatar className="h-8 w-8">
+            <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2 sm:px-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   {getInitials(profile?.name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="hidden md:block text-left">
-                <p className="text-sm font-medium">{profile?.name || 'User'}</p>
+              <div className="hidden md:block text-left max-w-[120px]">
+                <p className="text-sm font-medium truncate">{profile?.name || 'User'}</p>
                 <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
               </div>
             </Button>

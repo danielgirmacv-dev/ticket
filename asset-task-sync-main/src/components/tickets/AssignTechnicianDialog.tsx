@@ -54,7 +54,7 @@ export function AssignTechnicianDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Assign Technician</DialogTitle>
                     <DialogDescription>
@@ -73,7 +73,7 @@ export function AssignTechnicianDialog({
                         />
                     </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>

@@ -120,8 +120,13 @@ const ChatBot = () => {
     <>
       <div
         className={cn(
-          'fixed bottom-6 right-6 z-50 flex flex-col transition-all duration-500 ease-bounce-in-out',
-          isOpen ? 'w-[400px] h-[560px] max-h-[80vh]' : 'w-auto h-auto'
+          'fixed z-50 flex flex-col transition-all duration-500 ease-bounce-in-out',
+          isOpen
+            ? cn(
+                'bottom-4 right-4 left-4 w-[calc(100vw-2rem)] sm:bottom-6 sm:right-6 sm:left-auto sm:w-[400px]',
+                isMinimized ? 'h-[60px]' : 'h-[80vh] max-h-[600px] sm:h-[560px] sm:max-h-[80vh]'
+              )
+            : 'bottom-6 right-6 w-auto h-auto'
         )}
       >
         {isOpen && (

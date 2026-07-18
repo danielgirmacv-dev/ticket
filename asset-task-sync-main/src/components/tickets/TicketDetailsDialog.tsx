@@ -25,6 +25,9 @@ import {
     AlertTriangle,
     Trash2,
     Pencil,
+    Paperclip,
+    FileText,
+    ExternalLink,
 } from 'lucide-react';
 import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
 import { EditTicketDialog } from '@/components/tickets/EditTicketDialog';
@@ -45,6 +48,18 @@ const priorityStyles = {
     medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
     high: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
     critical: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+};
+
+const categoryLabels = {
+    it_support: 'IT Support',
+    sap: 'SAP System',
+    general: 'General Support',
+};
+
+const categoryStyles = {
+    it_support: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    sap: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+    general: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300 border-slate-200 dark:border-slate-800',
 };
 
 export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = [], onApprove }: TicketDetailsDialogProps) {
@@ -68,15 +83,18 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[95vw] sm:w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <DialogTitle className="text-xl font-bold">{ticket.title}</DialogTitle>
-                                <div className="flex items-center gap-2 mt-2">
+                        <div className="flex flex-col-reverse sm:flex-row sm:items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                                <DialogTitle className="text-lg sm:text-xl font-bold break-words">{ticket.title}</DialogTitle>
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
                                     <TicketStatusBadge status={ticket.status} />
                                     <Badge className={priorityStyles[ticket.priority]} variant="outline">
                                         {ticket.priority} Priority
+                                    </Badge>
+                                    <Badge className={categoryStyles[ticket.support_category || 'general']} variant="outline">
+                                        {categoryLabels[ticket.support_category || 'general']}
                                     </Badge>
                                     {ticket.is_recurring && (
                                         <Badge variant="outline">Recurring: {ticket.recurring_interval}</Badge>
@@ -84,7 +102,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 </div>
                             </div>
                             {['admin', 'super_admin'].includes(role ?? '') && (
-                                <div className="flex gap-1">
+                                <div className="flex gap-2 self-end sm:self-start flex-shrink-0">
                                     <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} title="Edit Ticket">
                                         <Pencil className="h-5 w-5" />
                                     </Button>
@@ -100,7 +118,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 </div>
                             )}
                             {role === 'requester' && profile?.id === ticket.requester_id && ticket.status === 'submitted' && (
-                                <div className="flex gap-1">
+                                <div className="flex gap-2 self-end sm:self-start flex-shrink-0">
                                     <Button variant="ghost" size="icon" onClick={() => setShowEditDialog(true)} title="Edit Ticket">
                                         <Pencil className="h-5 w-5" />
                                     </Button>
@@ -128,6 +146,73 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                             <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
                             <p className="text-sm">{ticket.description || 'No description provided.'}</p>
                         </div>
+
+                        {/* Attachments */}
+                        {ticket.images?.attachments && ticket.images.attachments.length > 0 && (
+                            <div>
+                                <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                                    <Paperclip className="h-4 w-4" /> Attachments ({ticket.images.attachments.length})
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {ticket.images.attachments.map((file, idx) => {
+                                        const isImage = file.mime.startsWith('image/');
+                                        const fileSize = file.size 
+                                            ? `${(file.size / 1024).toFixed(1)} KB` 
+                                            : '';
+                                        return (
+                                            <div 
+                                                key={idx} 
+                                                className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    {isImage ? (
+                                                        <div className="h-10 w-10 rounded border overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
+                                                            <img 
+                                                                src={file.url} 
+                                                                alt={file.name} 
+                                                                className="h-full w-full object-cover"
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLElement).style.display = 'none';
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded border bg-muted flex items-center justify-center flex-shrink-0">
+                                                            <FileText className="h-5 w-5 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                    <div className="overflow-hidden">
+                                                        <p className="text-sm font-medium truncate pr-2" title={file.name}>
+                                                            {file.name}
+                                                        </p>
+                                                        {fileSize && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {fileSize}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    asChild 
+                                                    className="flex-shrink-0 hover:bg-muted"
+                                                >
+                                                    <a 
+                                                        href={file.url} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        title="Open / Download"
+                                                    >
+                                                        <ExternalLink className="h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Asset Info */}
                         {ticket.asset && (
@@ -168,13 +253,24 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3">
                                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                                            {ticket.requester?.name.charAt(0)}
+                                            {ticket.requester?.name ? ticket.requester.name.charAt(0) : 'R'}
                                         </div>
                                         <div>
                                             <span className="text-xs text-muted-foreground block">Requester</span>
-                                            <span className="text-sm font-medium">{ticket.requester?.name}</span>
+                                            <span className="text-sm font-medium">{ticket.requester?.name || 'Unknown'}</span>
                                         </div>
                                     </div>
+                                    {ticket.assigned_manager && (
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 flex items-center justify-center text-xs font-medium">
+                                                {ticket.assigned_manager.name.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-muted-foreground block">Routed Manager</span>
+                                                <span className="text-sm font-medium">{ticket.assigned_manager.name}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                     {ticket.assigned_technician && (
                                         <div className="flex items-center gap-3">
                                             <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">

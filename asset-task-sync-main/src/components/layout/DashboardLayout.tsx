@@ -14,11 +14,19 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar />
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar backdrop overlay for mobile */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <div className={cn(
-        'transition-all duration-300 ease-in-out',
+        'flex-1 transition-all duration-300 ease-in-out min-w-0',
         'lg:ml-64'
       )}>
         <Header 
@@ -26,7 +34,7 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
           subtitle={subtitle}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         />
-        <main className="p-6">
+        <main className="p-4 sm:p-6 max-w-full">
           {children}
         </main>
       </div>

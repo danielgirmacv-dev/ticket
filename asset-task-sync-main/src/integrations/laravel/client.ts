@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const laravelClient = axios.create({
   baseURL: API_URL,
@@ -111,7 +111,11 @@ export interface MaintenanceTicket {
   diagnosis?: string;
   actions_taken?: string;
   spare_parts?: Array<{ name: string; quantity: number; cost?: number }>;
-  images?: { before?: string[]; after?: string[] };
+  images?: { 
+    before?: string[]; 
+    after?: string[]; 
+    attachments?: Array<{ name: string; url: string; mime: string; size: number }>;
+  };
   feedback_rating?: number;
   feedback_comment?: string;
   approved_by?: string;
@@ -119,6 +123,9 @@ export interface MaintenanceTicket {
   approved_at?: string;
   started_at?: string;
   reviewed_at?: string;
+  support_category?: 'it_support' | 'sap' | 'general';
+  assigned_manager_id?: string;
+  assigned_manager?: Profile;
   asset?: Asset;
   requester?: Profile;
   assigned_technician?: Profile;

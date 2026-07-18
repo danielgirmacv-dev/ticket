@@ -26,7 +26,12 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -75,6 +80,7 @@ const Sidebar = () => {
         : requesterLinks;
 
   const handleLogout = async () => {
+    onClose?.();
     await signOut();
     toast.success('Logged out successfully');
     navigate('/auth');
@@ -84,6 +90,7 @@ const Sidebar = () => {
     <aside
       className={cn(
         'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out flex flex-col',
+        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         collapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -115,6 +122,7 @@ const Sidebar = () => {
             <Link
               key={link.href}
               to={link.href}
+              onClick={onClose}
               className={cn(
                 'sidebar-link',
                 isActive && 'active'

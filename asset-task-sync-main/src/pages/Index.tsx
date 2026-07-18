@@ -59,7 +59,7 @@ const Index = () => {
       subtitle="Welcome back. Here's what's happening today."
     >
       {/* Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <Link to="/assets">
           <StatCard
             title="Total Assets"
@@ -111,7 +111,7 @@ const Index = () => {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <TicketStatusChart />
         <AssetTypeChart />
         <TopTechnicians />
@@ -119,7 +119,7 @@ const Index = () => {
       </div>
 
       {/* Content Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
           <TicketsOverview />
         </div>

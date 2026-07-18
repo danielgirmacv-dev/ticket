@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +57,7 @@ const Requests = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showHelpBanner, setShowHelpBanner] = useState(true);
   const [submittedTicket, setSubmittedTicket] = useState<MaintenanceTicket | null>(null);
 
   const { data: assets, isLoading: isLoadingAssets } = useAssets();
@@ -265,15 +267,25 @@ const Requests = () => {
           <CardDescription>
             Submit a request for IT support. Our team will review it and respond based on priority.
           </CardDescription>
-          <div className="mt-4 rounded-lg border border-teal-500/20 bg-teal-50/50 dark:bg-teal-950/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <p className="text-sm text-teal-800 dark:text-teal-300 flex items-center gap-2">
-              <HelpCircle className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
-              Check the Help Center first — your question may already be answered.
-            </p>
-            <Button variant="outline" size="sm" asChild className="border-teal-500/30 text-teal-700 hover:bg-teal-500/10 dark:text-teal-300">
-              <Link to="/help">Browse FAQ</Link>
-            </Button>
-          </div>
+          {showHelpBanner && (
+            <div className="mt-4 rounded-lg border border-teal-500/20 bg-teal-50/50 dark:bg-teal-950/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 relative pr-10">
+              <p className="text-sm text-teal-800 dark:text-teal-300 flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
+                Check the Help Center first — your question may already be answered.
+              </p>
+              <Button variant="outline" size="sm" asChild className="border-teal-500/30 text-teal-700 hover:bg-teal-500/10 dark:text-teal-300 self-start sm:self-auto">
+                <Link to="/help">Browse FAQ</Link>
+              </Button>
+              <button
+                type="button"
+                className="absolute right-3 top-3.5 text-teal-600/60 hover:text-teal-600 dark:text-teal-400/60 dark:hover:text-teal-400"
+                onClick={() => setShowHelpBanner(false)}
+                title="Dismiss banner"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -535,11 +547,11 @@ const Requests = () => {
               </div>
             )}
 
-            <div className="flex justify-end gap-4 pt-4">
-              <Button type="button" variant="outline" onClick={() => window.history.back()}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => window.history.back()}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-[#012229] to-[#075362] hover:opacity-90 text-white font-semibold shadow-md" disabled={createTicket.isPending}>
+              <Button type="submit" className="w-full sm:w-auto bg-gradient-to-r from-[#012229] to-[#075362] hover:opacity-90 text-white font-semibold shadow-md" disabled={createTicket.isPending}>
                 {createTicket.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -558,7 +570,7 @@ const Requests = () => {
       </Card>
 
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="sm:max-w-md text-center p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-md text-center p-6 sm:p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl">
           <DialogHeader className="flex flex-col items-center justify-center space-y-4">
             <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400">
               <span className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping opacity-75" />
