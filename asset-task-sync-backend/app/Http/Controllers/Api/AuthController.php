@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
+use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -12,10 +13,43 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Public Turnstile site key for the frontend (secret stays server-side).
+     */
+    public function turnstileConfig()
+    {
+        return response()->json([
+            'enabled' => TurnstileService::enabled(),
+            'site_key' => config('services.turnstile.site_key'),
+        ]);
+    }
+
+    /**
+     * Verify Cloudflare Turnstile token when configured.
+     */
+    protected function validateTurnstile(Request $request): void
+    {
+        if (! TurnstileService::enabled()) {
+            return;
+        }
+
+        $request->validate([
+            'turnstile_token' => 'required|string',
+        ]);
+
+        if (! TurnstileService::verify($request->input('turnstile_token'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'turnstile_token' => ['Security verification failed. Please complete the challenge and try again.'],
+            ]);
+        }
+    }
+
+    /**
      * Register a new user.
      */
     public function register(Request $request)
     {
+        $this->validateTurnstile($request);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -77,6 +111,8 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        $this->validateTurnstile($request);
+
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',

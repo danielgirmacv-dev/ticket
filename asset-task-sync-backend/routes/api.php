@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public routes
+Route::get('/turnstile/config', [AuthController::class, 'turnstileConfig']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
