@@ -353,3 +353,165 @@ The **subdomain approach is strongly recommended** because it avoids complex rew
 ---
 
 **Built with Laravel and React**
+Important idea first
+This React app is static after build. Node.js on cPanel is used to run:
+
+npm install
+npm run build
+You do not need Node running 24/7. After build, Apache serves the files from your frontend subdomain folder.
+
+Your layout (subdomains)
+Part	Subdomain	What lives there
+Frontend
+app.yourdomain.com
+Built files from dist/
+Backend
+api.yourdomain.com
+Laravel → document root = public/
+Part 1 — Upload / clone project on cPanel
+In Terminal:
+
+cd ~
+git clone https://github.com/YOUR_USERNAME/asset-task-sync.git
+cd asset-task-sync
+Or upload both folders with File Manager:
+
+~/asset-task-sync/
+├── asset-task-sync-backend/
+└── asset-task-sync-main/
+Part 2 — Backend (API subdomain) — no Node needed
+cPanel → Domains → Create Subdomain
+
+Name: api
+
+Document root:
+
+/home/youruser/asset-task-sync/asset-task-sync-backend/public
+Create MySQL database + user in cPanel.
+
+Create .env in asset-task-sync-backend/:
+
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://api.yourdomain.com
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_DATABASE=youruser_asset_sync
+DB_USERNAME=youruser_dbuser
+DB_PASSWORD=your_password
+FRONTEND_URL=https://app.yourdomain.com
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=database
+Run in Terminal:
+cd ~/asset-task-sync/asset-task-sync-backend
+composer install --optimize-autoloader --no-dev
+php artisan key:generate
+php artisan migrate --seed --force
+php artisan storage:link
+php artisan config:cache
+php artisan route:cache
+chmod -R 775 storage bootstrap/cache
+Set PHP 8.2+ for the API subdomain.
+Part 3 — Frontend using Setup Node.js App
+Step 1: Create the Node.js app
+cPanel → Software → Setup Node.js App → Create Application
+
+Field	Value
+Node.js version
+18 or 20
+Application mode
+Production
+Application root
+/home/youruser/asset-task-sync/asset-task-sync-main
+Application URL
+Can be app.yourdomain.com or any temp URL (used mainly for build)
+Startup file
+app.js (not used for Vite static build)
+Save the app. cPanel shows an “Enter to the virtual environment” command — copy it.
+
+Step 2: Set production API URL
+Create this file on the server:
+
+asset-task-sync-main/.env.production
+
+VITE_API_URL=https://api.yourdomain.com/api
+Replace with your real API subdomain.
+
+Step 3: Install and build (in Terminal)
+# Paste cPanel's virtualenv command first, e.g.:
+source /home/youruser/nodevenv/asset-task-sync-main/20/bin/activate
+cd ~/asset-task-sync/asset-task-sync-main
+npm install
+npm run build
+If build fails:
+
+node node_modules/vite/bin/vite.js build
+That creates dist/ with index.html and assets/.
+
+Step 4: Create frontend subdomain
+cPanel → Domains → Create Subdomain
+
+Name: app
+
+Document root:
+
+/home/youruser/app.yourdomain.com
+Step 5: Copy build output to frontend subdomain
+cp -r ~/asset-task-sync/asset-task-sync-main/dist/* ~/app.yourdomain.com/
+Or in File Manager: copy everything inside dist/ → app.yourdomain.com/.
+
+Step 6: Add .htaccess for React routes
+In app.yourdomain.com/.htaccess:
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+Step 7: SSL
+Enable SSL for:
+
+app.yourdomain.com
+api.yourdomain.com
+Part 4 — Test
+Open https://app.yourdomain.com → login page
+Open https://api.yourdomain.com → Laravel responds
+Login: superadmin@example.com / password (change after first login)
+DevTools → Network → requests go to https://api.yourdomain.com/api/...
+When you update code later
+cd ~/asset-task-sync
+git pull
+# Backend (if PHP changed)
+cd asset-task-sync-backend
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+# Frontend (if React changed)
+source /home/youruser/nodevenv/asset-task-sync-main/20/bin/activate
+cd ~/asset-task-sync/asset-task-sync-main
+npm install
+npm run build
+cp -r dist/* ~/app.yourdomain.com/
+Common mistakes
+Mistake	Fix
+API doc root not public/
+Point subdomain to .../backend/public
+Still calling localhost
+Set VITE_API_URL in .env.production, rebuild, recopy dist/
+CORS errors
+FRONTEND_URL=https://app.yourdomain.com + php artisan config:cache
+404 on /tickets refresh
+Add SPA .htaccess on frontend
+Node app “running” but blank site
+Site is static files in app.yourdomain.com, not the Node app URL
+Summary
+API subdomain → Laravel public/ + .env + migrate
+Setup Node.js App → only to npm install + npm run build
+Copy dist/ → app.yourdomain.com
+Node can stop after build — Apache serves the frontend
+If you share your exact subdomain names (e.g. app.eec.org and api.eec.org), I can fill in the exact paths and .env values for your cPanel username.

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { eeccLogo } from '@/lib/branding';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -99,7 +100,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         {!collapsed && (
           <div className="flex items-center gap-3 animate-fade-in">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white overflow-hidden">
-              <img src="/src/assets/eecc.png" alt="EEEC Logo" className="h-full w-full object-cover" />
+              <img src={eeccLogo} alt="EEEC Logo" className="h-full w-full object-cover" />
             </div>
             <div>
               <h1 className="text-lg font-bold text-sidebar-foreground">EEC</h1>
@@ -109,7 +110,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         )}
         {collapsed && (
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white mx-auto overflow-hidden">
-            <img src="/src/assets/eecc.png" alt="EEEC Logo" className="h-full w-full object-cover" />
+            <img src={eeccLogo} alt="EEEC Logo" className="h-full w-full object-cover" />
           </div>
         )}
       </div>
