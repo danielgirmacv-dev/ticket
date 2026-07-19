@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget';
 import laravelClient from '@/integrations/laravel/client';
+import { eeccLogo } from '@/lib/branding';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -56,7 +57,7 @@ export default function Auth() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const turnstileSiteKey =
     turnstileConfig.site_key || import.meta.env.VITE_TURNSTILE_SITE_KEY || null;
-  const turnstileEnabled = turnstileConfig.enabled && !!turnstileSiteKey;
+  const turnstileEnabled = !!turnstileSiteKey && (turnstileConfig.enabled || !!import.meta.env.VITE_TURNSTILE_SITE_KEY);
 
   const resetLoginTurnstile = useCallback(() => {
     setLoginTurnstileToken(null);
@@ -365,8 +366,8 @@ export default function Auth() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md mb-3 p-2 shadow-xl shadow-teal-950/20">
-            <img src="/src/assets/eecc.png" alt="EEEC Logo" className="h-full w-full object-contain filter brightness-110" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-white/10 mb-3 p-2 shadow-xl shadow-teal-950/20">
+            <img src={eeccLogo} alt="EEEC Logo" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
             EEC
