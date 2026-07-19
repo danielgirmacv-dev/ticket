@@ -42,7 +42,13 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
-            if (id.includes("react-dom") || id.includes("react-router")) {
+            if (
+              id.includes("node_modules/react/") ||
+              id.includes("node_modules/react-dom/") ||
+              id.includes("node_modules/react-router/") ||
+              id.includes("node_modules/react-router-dom/") ||
+              id.includes("node_modules/scheduler/")
+            ) {
               return "react-vendor";
             }
             if (id.includes("@radix-ui")) {
