@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { TurnstileWidget } from '@/components/auth/TurnstileWidget';
 import laravelClient from '@/integrations/laravel/client';
-import { eeccLogo } from '@/lib/branding';
+import { eeccLogo, brand, brandButtonClass } from '@/lib/branding';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -117,64 +117,77 @@ export default function Auth() {
       baseOpacity: number;
       pulseSpeed: number;
       pulseTime: number;
+      colorInner: string;
+      colorOuter: string;
       update: (mouseX: number, mouseY: number) => void;
       draw: (context: CanvasRenderingContext2D) => void;
     }
 
     const particles: Particle[] = [];
-    const particleCount = Math.min(150, Math.floor((width * height) / 9000));
+    const particleCount = Math.min(320, Math.floor((width * height) / 4800));
 
-    const createParticle = (initYAtTop = false): Particle => {
-      const baseOpacity = Math.random() * 0.45 + 0.15;
-      const maxDepth = height * 0.35;
-      // Quadratic/exponential distribution to group particles heavily at the very top of the page
-      const yVal = initYAtTop 
-        ? 0 
-        : Math.pow(Math.random(), 2.4) * maxDepth;
+    const colorPairs = [
+      { inner: 'rgba(26, 177, 199, 1)', outer: 'rgba(46, 196, 218, 0.9)' },
+      { inner: 'rgba(20, 163, 184, 1)', outer: 'rgba(26, 177, 199, 0.85)' },
+      { inner: 'rgba(46, 196, 218, 1)', outer: 'rgba(26, 177, 199, 0.8)' },
+      { inner: 'rgba(26, 177, 199, 1)', outer: 'rgba(34, 211, 238, 0.75)' },
+      { inner: 'rgba(16, 152, 173, 1)', outer: 'rgba(46, 196, 218, 0.85)' },
+      { inner: 'rgba(34, 211, 238, 1)', outer: 'rgba(26, 177, 199, 0.8)' },
+    ];
+
+    const createParticle = (): Particle => {
+      const baseOpacity = Math.random() * 0.3 + 0.55;
+      const pair = colorPairs[Math.floor(Math.random() * colorPairs.length)];
       
       return {
         x: Math.random() * width,
-        y: yVal,
-        size: Math.random() * 3.5 + 2.5, // Increased size for better visibility
-        speedX: (Math.random() - 0.5) * 0.4 - 0.22, // Faster elegant drift to the left
-        speedY: (Math.random() - 0.5) * 0.2, // Faster vertical waving
+        y: Math.random() * height,
+        size: Math.random() * 3.5 + 2,
+        speedX: (Math.random() - 0.5) * 0.35 - 0.12,
+        speedY: (Math.random() - 0.5) * 0.2,
         baseOpacity,
         opacity: baseOpacity,
-        type: Math.random() > 0.4 ? 'cross' : 'circle', // High ratio of crosses as in the image
+        type: Math.random() > 0.15 ? 'circle' : 'cross',
         angle: Math.random() * Math.PI * 2,
-        spinSpeed: (Math.random() - 0.5) * 0.025, // Faster rotation for the crosses
-        pulseSpeed: Math.random() * 0.015 + 0.003,
+        spinSpeed: (Math.random() - 0.5) * 0.02,
+        pulseSpeed: Math.random() * 0.012 + 0.003,
         pulseTime: Math.random() * 100,
+        colorInner: pair.inner,
+        colorOuter: pair.outer,
         update(mouseX: number, mouseY: number) {
           this.x += this.speedX;
           this.y += this.speedY;
           this.angle += this.spinSpeed;
           this.pulseTime += this.pulseSpeed;
 
-          // Wrap horizontally
-          if (this.x < -10) this.x = width + 10;
-          if (this.x > width + 10) this.x = -10;
+          // Wrap horizontally & vertically
+          if (this.x < -20) this.x = width + 20;
+          if (this.x > width + 20) this.x = -20;
+          if (this.y < -20) this.y = height + 20;
+          if (this.y > height + 20) this.y = -20;
 
-          // Respawn at the top if it drifts too low or high
-          if (this.y > maxDepth || this.y < -10) {
-            this.y = 0;
-            this.x = Math.random() * width;
-            this.speedX = (Math.random() - 0.5) * 0.4 - 0.22;
-            this.speedY = Math.random() * 0.15;
-          }
+          // Gentle pulse opacity
+          this.opacity = this.baseOpacity + Math.sin(this.pulseTime) * 0.12;
 
-          // Calculate vertical gradient fade (density fades to 0 towards the bottom threshold)
-          const depthFade = Math.max(0, 1 - (this.y / maxDepth));
-          this.opacity = (this.baseOpacity + Math.sin(this.pulseTime) * 0.06) * depthFade;
+          // Attraction and mouse dragging
+          if (mouseX !== -1000 && mouseY !== -1000) {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 220) {
+              const force = (220 - dist) / 220;
+              
+              // Pull towards the cursor
+              this.x += (dx / dist) * force * 1.5;
+              this.y += (dy / dist) * force * 1.5;
 
-          // Gentle mouse push
-          const dx = mouseX - this.x;
-          const dy = mouseY - this.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            const force = (100 - dist) / 100;
-            this.x -= (dx / dist) * force * 0.3;
-            this.y -= (dy / dist) * force * 0.3;
+              // Drag particles along with mouse velocity
+              if (isMouseMoving) {
+                this.x += mouseVX * force * 14;
+                this.y += mouseVY * force * 14;
+              }
+            }
           }
         },
         draw(context: CanvasRenderingContext2D) {
@@ -182,20 +195,32 @@ export default function Auth() {
           context.save();
           context.globalAlpha = this.opacity;
           
-          // Teal-green/mint color from your reference image
-          const colorString = 'rgba(45, 212, 191, 0.75)'; 
-          
           if (this.type === 'circle') {
-            context.fillStyle = colorString;
+            const radius = this.size;
+            const gradient = context.createRadialGradient(
+              this.x, this.y, 0,
+              this.x, this.y, radius,
+            );
+            gradient.addColorStop(0, this.colorInner);
+            gradient.addColorStop(0.55, this.colorOuter);
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            context.fillStyle = gradient;
             context.beginPath();
-            context.arc(this.x, this.y, this.size * 0.7, 0, Math.PI * 2);
+            context.arc(this.x, this.y, radius, 0, Math.PI * 2);
+            context.fill();
+
+            // Bright core for extra visibility
+            context.globalAlpha = this.opacity * 0.9;
+            context.fillStyle = this.colorInner;
+            context.beginPath();
+            context.arc(this.x, this.y, radius * 0.35, 0, Math.PI * 2);
             context.fill();
           } else {
-            // Draw a tiny rotating "+" cross shape
             context.translate(this.x, this.y);
             context.rotate(this.angle);
-            context.strokeStyle = colorString;
-            context.lineWidth = 1.3; // Increased stroke width for larger crosses
+            context.strokeStyle = this.colorInner;
+            context.lineWidth = 1.8;
             context.beginPath();
             context.moveTo(-this.size, 0);
             context.lineTo(this.size, 0);
@@ -214,13 +239,45 @@ export default function Auth() {
 
     let mouseX = -1000;
     let mouseY = -1000;
+    let lastMouseX = -1000;
+    let lastMouseY = -1000;
+    let mouseVX = 0;
+    let mouseVY = 0;
+    let isMouseMoving = false;
+    let lastMoveTime = Date.now();
+
     const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now();
+      const dt = Math.max(1, now - lastMoveTime);
+      
+      if (lastMouseX !== -1000) {
+        mouseVX = (e.clientX - lastMouseX) / dt;
+        mouseVY = (e.clientY - lastMouseY) / dt;
+        
+        // Clamp velocity to prevent wild behavior
+        const speed = Math.sqrt(mouseVX * mouseVX + mouseVY * mouseVY);
+        if (speed > 8) {
+          mouseVX = (mouseVX / speed) * 8;
+          mouseVY = (mouseVY / speed) * 8;
+        }
+      }
+      
       mouseX = e.clientX;
       mouseY = e.clientY;
+      lastMouseX = mouseX;
+      lastMouseY = mouseY;
+      lastMoveTime = now;
+      isMouseMoving = true;
     };
+
     const handleMouseLeave = () => {
       mouseX = -1000;
       mouseY = -1000;
+      lastMouseX = -1000;
+      lastMouseY = -1000;
+      mouseVX = 0;
+      mouseVY = 0;
+      isMouseMoving = false;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -234,6 +291,16 @@ export default function Auth() {
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
+
+      // Decelerate mouse velocity slightly
+      mouseVX *= 0.95;
+      mouseVY *= 0.95;
+      if (Math.abs(mouseVX) < 0.01 && Math.abs(mouseVY) < 0.01) {
+        isMouseMoving = false;
+        mouseVX = 0;
+        mouseVY = 0;
+      }
+
       particles.forEach((p) => {
         p.update(mouseX, mouseY);
         p.draw(ctx);
@@ -348,34 +415,40 @@ export default function Auth() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1AB1C7]/30 via-cyan-200/60 to-[#1AB1C7]/20">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1AB1C7]" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
-      {/* Dynamic Interactive Particle Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
+      {/* Dark base */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1f24] via-[#0d2830] to-[#061318]" />
 
-      {/* Subtle Ambient Radial Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
+      {/* Bottom teal spotlight glow */}
+      <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[90%] h-[55%] rounded-full bg-[#1AB1C7]/25 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-5%] left-1/2 -translate-x-1/2 w-[50%] h-[35%] rounded-full bg-[#1AB1C7]/35 blur-[80px] pointer-events-none" />
+
+      {/* Subtle top corner accent */}
+      <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-[#1AB1C7]/10 blur-[100px] pointer-events-none" />
+
+      {/* Dynamic dot canvas */}
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-30" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-white/10 mb-3 p-2 shadow-xl shadow-teal-950/20">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white mb-3 p-2 shadow-xl shadow-[#1AB1C7]/30">
             <img src={eeccLogo} alt="EEEC Logo" className="h-full w-full object-contain" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+          <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow">
             EEC
           </h1>
-          <p className="text-teal-200/60 text-sm mt-1">IT Maintenance Scheduler</p>
+          <p className="text-[#1AB1C7] text-sm mt-1 font-medium">IT Maintenance Scheduler</p>
         </div>
 
-        <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
+        <Card className="border border-white/10 shadow-2xl shadow-black/40 bg-white/8 backdrop-blur-2xl rounded-2xl overflow-hidden transition-all duration-300" style={{background: 'rgba(10,31,36,0.72)'}}>
           <Tabs
             value={activeTab}
             onValueChange={(value) => {
@@ -385,16 +458,16 @@ export default function Auth() {
             }}
             className="w-full p-2"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 border border-slate-200/40 rounded-xl">
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/5 p-1 border border-white/10 rounded-xl">
               <TabsTrigger 
                 value="login"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+                className="data-[state=active]:bg-[#1AB1C7] data-[state=active]:text-white text-white/60 hover:text-white rounded-lg transition-all duration-200"
               >
                 Sign In
               </TabsTrigger>
               <TabsTrigger 
                 value="signup"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+                className="data-[state=active]:bg-[#1AB1C7] data-[state=active]:text-white text-white/60 hover:text-white rounded-lg transition-all duration-200"
               >
                 Sign Up
               </TabsTrigger>
@@ -403,14 +476,14 @@ export default function Auth() {
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <CardHeader className="pt-0">
-                  <CardTitle className="text-slate-900 font-bold text-xl">Welcome Back</CardTitle>
-                  <CardDescription className="text-slate-500 text-sm">
+                  <CardTitle className="text-white font-bold text-xl">Welcome Back</CardTitle>
+                  <CardDescription className="text-white/50 text-sm">
                     Sign in to access your dashboard
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Email</Label>
+                    <Label htmlFor="login-email" className="text-white/70 font-medium text-xs tracking-wider uppercase">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -419,11 +492,11 @@ export default function Auth() {
                       onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                      className="bg-white/8 border-white/15 focus-visible:border-[#1AB1C7]/60 focus-visible:ring-[#1AB1C7]/20 text-white placeholder:text-white/30 rounded-xl h-11 transition-all duration-200" style={{background:'rgba(255,255,255,0.07)'}}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
+                    <Label htmlFor="login-password" className="text-white/70 font-medium text-xs tracking-wider uppercase">Password</Label>
                     <div className="relative">
                       <Input
                         id="login-password"
@@ -433,12 +506,12 @@ export default function Auth() {
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
                         disabled={isLoading}
-                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
+                        className="bg-white/8 border-white/15 focus-visible:border-[#1AB1C7]/60 focus-visible:ring-[#1AB1C7]/20 text-white placeholder:text-white/30 rounded-xl h-11 pr-10 transition-all duration-200" style={{background:'rgba(255,255,255,0.07)'}}
                       />
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors focus:outline-none"
                       >
                         {showLoginPassword ? (
                           <EyeOff className="h-4 w-4" />
@@ -461,7 +534,7 @@ export default function Auth() {
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    className={brandButtonClass}
                     disabled={isLoading || (turnstileEnabled && !loginTurnstileToken)}
                   >
                     {isLoading ? (
@@ -480,8 +553,8 @@ export default function Auth() {
             <TabsContent value="signup">
               <form onSubmit={handleSignup}>
                 <CardHeader className="pt-0">
-                  <CardTitle className="text-slate-900 font-bold text-xl">Create Account</CardTitle>
-                  <CardDescription className="text-slate-500 text-sm">
+                  <CardTitle className="text-white font-bold text-xl">Create Account</CardTitle>
+                  <CardDescription className="text-white/50 text-sm">
                     Register to submit maintenance requests
                   </CardDescription>
                 </CardHeader>
@@ -594,7 +667,7 @@ export default function Auth() {
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    className={brandButtonClass}
                     disabled={isLoading || (turnstileEnabled && !signupTurnstileToken)}
                   >
                     {isLoading ? (
@@ -614,24 +687,24 @@ export default function Auth() {
 
         {/* Features */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Shield className="h-5 w-5 mx-auto mb-2 text-teal-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Secure Access</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:border-[#1AB1C7]/40 shadow-sm">
+            <Shield className="h-5 w-5 mx-auto mb-2 text-[#1AB1C7]" />
+            <p className="text-[10px] font-semibold tracking-wider text-white/60 uppercase">Secure Access</p>
           </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Wrench className="h-5 w-5 mx-auto mb-2 text-emerald-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Track Tickets</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:border-[#1AB1C7]/40 shadow-sm">
+            <Wrench className="h-5 w-5 mx-auto mb-2 text-[#1AB1C7]" />
+            <p className="text-[10px] font-semibold tracking-wider text-white/60 uppercase">Track Tickets</p>
           </div>
-          <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Users className="h-5 w-5 mx-auto mb-2 text-cyan-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Team Collab</p>
+          <div className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/10 hover:border-[#1AB1C7]/40 shadow-sm">
+            <Users className="h-5 w-5 mx-auto mb-2 text-[#1AB1C7]" />
+            <p className="text-[10px] font-semibold tracking-wider text-white/60 uppercase">Team Collab</p>
           </div>
         </div>
       </div>
 
-      {/* Watermark Logo (Bottom-Right) - Logo Icon Only in Crisp White */}
+      {/* Watermark Logo (Bottom-Right) - Logo Icon Only in Crisp Light Gray */}
       <div className="absolute bottom-8 right-8 z-0 pointer-events-none select-none flex items-center">
-        <svg className="w-12 h-12 text-white opacity-85" viewBox="0 0 100 100" fill="currentColor">
+        <svg className="w-12 h-12 text-[#1AB1C7]/30" viewBox="0 0 100 100" fill="currentColor">
           <rect x="42" y="0" width="16" height="96" rx="8" />
           <rect x="42" y="0" width="58" height="16" rx="8" />
           <rect x="42" y="32" width="58" height="16" rx="8" />
@@ -646,9 +719,9 @@ export default function Auth() {
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md text-center p-8 border border-slate-100 bg-white shadow-2xl rounded-2xl animate-scale-up text-slate-800">
           <DialogHeader className="flex flex-col items-center justify-center space-y-4">
-            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-600">
-              <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-75" />
-              <svg className="w-12 h-12 text-emerald-600 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-[#1AB1C7]/15 text-[#1AB1C7]">
+              <span className="absolute inset-0 rounded-full bg-[#1AB1C7]/25 animate-ping opacity-75" />
+              <svg className="w-12 h-12 text-[#1AB1C7] relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-checkmark-draw" />
               </svg>
             </div>
@@ -664,7 +737,7 @@ export default function Auth() {
               onClick={() => {
                 setShowSuccessDialog(false);
               }}
-              className="w-full max-w-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full max-w-xs bg-[#1AB1C7] hover:bg-[#148FA3] text-white font-semibold py-6 rounded-xl shadow-lg shadow-[#1AB1C7]/25 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
             >
               Close
             </Button>
