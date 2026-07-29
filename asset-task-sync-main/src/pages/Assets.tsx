@@ -186,9 +186,9 @@ const Assets = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
+        <div className="flex gap-2">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[130px] flex-1">
+            <SelectTrigger className="w-[150px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Type" />
             </SelectTrigger>
@@ -201,7 +201,7 @@ const Assets = () => {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[130px] flex-1">
+            <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -213,9 +213,9 @@ const Assets = () => {
           </Select>
           <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1 sm:flex-initial">
+              <Button variant="outline">
                 <Upload className="h-4 w-4 mr-2" />
-                Import
+                Import CSV
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
