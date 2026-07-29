@@ -8,7 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/layout/PageLoader";
 
-const Auth = lazy(() => import("./pages/Auth"));
+import Auth from "./pages/Auth";
 const Index = lazy(() => import("./pages/Index"));
 const Assets = lazy(() => import("./pages/Assets"));
 const Tickets = lazy(() => import("./pages/Tickets"));
