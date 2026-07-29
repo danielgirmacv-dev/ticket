@@ -355,13 +355,14 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-tr from-[#063b46] via-[#0d5968] to-[#167b8f]">
       {/* Dynamic Interactive Particle Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-80" />
 
-      {/* Subtle Ambient Radial Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-teal-500/10 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
+      {/* Bright Ambient Radial Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-teal-300/25 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[55%] rounded-full bg-cyan-300/25 blur-[120px] pointer-events-none" />
+      <div className="absolute top-[30%] right-[25%] w-[40%] h-[40%] rounded-full bg-[#1AB1C7]/20 blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
