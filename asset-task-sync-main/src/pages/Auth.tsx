@@ -117,85 +117,84 @@ export default function Auth() {
       baseOpacity: number;
       pulseSpeed: number;
       pulseTime: number;
+      color: string;
       update: (mouseX: number, mouseY: number) => void;
       draw: (context: CanvasRenderingContext2D) => void;
     }
 
-    const particles: Particle[] = [];
-    const particleCount = Math.min(150, Math.floor((width * height) / 9000));
+    const particleColors = [
+      'rgba(26, 177, 199, 0.85)',  // Company Teal
+      'rgba(45, 212, 191, 0.9)',   // Vibrant Mint
+      'rgba(56, 189, 248, 0.85)',  // Electric Blue
+      'rgba(94, 234, 212, 0.9)',   // Soft Cyan
+      'rgba(34, 211, 238, 0.85)',  // Bright Cyan
+    ];
 
-    const createParticle = (initYAtTop = false): Particle => {
-      const baseOpacity = Math.random() * 0.45 + 0.15;
-      const maxDepth = height * 0.35;
-      // Quadratic/exponential distribution to group particles heavily at the very top of the page
-      const yVal = initYAtTop 
-        ? 0 
-        : Math.pow(Math.random(), 2.4) * maxDepth;
+    const particles: Particle[] = [];
+    const particleCount = Math.min(160, Math.floor((width * height) / 8000));
+
+    const createParticle = (): Particle => {
+      const baseOpacity = Math.random() * 0.5 + 0.3;
+      const chosenColor = particleColors[Math.floor(Math.random() * particleColors.length)];
       
       return {
         x: Math.random() * width,
-        y: yVal,
-        size: Math.random() * 3.5 + 2.5, // Increased size for better visibility
-        speedX: (Math.random() - 0.5) * 0.4 - 0.22, // Faster elegant drift to the left
-        speedY: (Math.random() - 0.5) * 0.2, // Faster vertical waving
+        y: Math.random() * height,
+        size: Math.random() * 3 + 2,
+        speedX: (Math.random() - 0.5) * 0.6,
+        speedY: (Math.random() - 0.5) * 0.6,
         baseOpacity,
         opacity: baseOpacity,
-        type: Math.random() > 0.4 ? 'cross' : 'circle', // High ratio of crosses as in the image
+        type: Math.random() > 0.4 ? 'cross' : 'circle',
         angle: Math.random() * Math.PI * 2,
-        spinSpeed: (Math.random() - 0.5) * 0.025, // Faster rotation for the crosses
-        pulseSpeed: Math.random() * 0.015 + 0.003,
+        spinSpeed: (Math.random() - 0.5) * 0.03,
+        pulseSpeed: Math.random() * 0.02 + 0.005,
         pulseTime: Math.random() * 100,
+        color: chosenColor,
         update(mouseX: number, mouseY: number) {
           this.x += this.speedX;
           this.y += this.speedY;
           this.angle += this.spinSpeed;
           this.pulseTime += this.pulseSpeed;
 
-          // Wrap horizontally
+          // Wrap horizontally & vertically
           if (this.x < -10) this.x = width + 10;
           if (this.x > width + 10) this.x = -10;
+          if (this.y < -10) this.y = height + 10;
+          if (this.y > height + 10) this.y = -10;
 
-          // Respawn at the top if it drifts too low or high
-          if (this.y > maxDepth || this.y < -10) {
-            this.y = 0;
-            this.x = Math.random() * width;
-            this.speedX = (Math.random() - 0.5) * 0.4 - 0.22;
-            this.speedY = Math.random() * 0.15;
-          }
+          this.opacity = this.baseOpacity + Math.sin(this.pulseTime) * 0.15;
 
-          // Calculate vertical gradient fade (density fades to 0 towards the bottom threshold)
-          const depthFade = Math.max(0, 1 - (this.y / maxDepth));
-          this.opacity = (this.baseOpacity + Math.sin(this.pulseTime) * 0.06) * depthFade;
+          // Dynamic Cursor magnetic attraction & interaction
+          if (mouseX > 0 && mouseY > 0) {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const maxDistance = 160;
 
-          // Gentle mouse push
-          const dx = mouseX - this.x;
-          const dy = mouseY - this.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            const force = (100 - dist) / 100;
-            this.x -= (dx / dist) * force * 0.3;
-            this.y -= (dy / dist) * force * 0.3;
+            if (dist < maxDistance) {
+              const force = (maxDistance - dist) / maxDistance;
+              // Gently pull towards the cursor with spring smooth velocity
+              this.x += (dx / dist) * force * 1.8;
+              this.y += (dy / dist) * force * 1.8;
+            }
           }
         },
         draw(context: CanvasRenderingContext2D) {
           if (this.opacity <= 0.01) return;
           context.save();
-          context.globalAlpha = this.opacity;
-          
-          // Teal-green/mint color from your reference image
-          const colorString = 'rgba(45, 212, 191, 0.75)'; 
+          context.globalAlpha = Math.min(1, Math.max(0.1, this.opacity));
           
           if (this.type === 'circle') {
-            context.fillStyle = colorString;
+            context.fillStyle = this.color;
             context.beginPath();
-            context.arc(this.x, this.y, this.size * 0.7, 0, Math.PI * 2);
+            context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
             context.fill();
           } else {
-            // Draw a tiny rotating "+" cross shape
             context.translate(this.x, this.y);
             context.rotate(this.angle);
-            context.strokeStyle = colorString;
-            context.lineWidth = 1.3; // Increased stroke width for larger crosses
+            context.strokeStyle = this.color;
+            context.lineWidth = 1.8;
             context.beginPath();
             context.moveTo(-this.size, 0);
             context.lineTo(this.size, 0);
@@ -234,6 +233,36 @@ export default function Auth() {
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
+
+      // Draw connecting lines between particles near the cursor
+      if (mouseX > 0 && mouseY > 0) {
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          const distToMouse = Math.hypot(mouseX - p1.x, mouseY - p1.y);
+          if (distToMouse < 150) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(mouseX, mouseY);
+            ctx.strokeStyle = `rgba(45, 212, 191, ${0.35 * (1 - distToMouse / 150)})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            for (let j = i + 1; j < particles.length; j++) {
+              const p2 = particles[j];
+              const distBetween = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+              if (distBetween < 100) {
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgba(26, 177, 199, ${0.25 * (1 - distBetween / 100)})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+              }
+            }
+          }
+        }
+      }
+
       particles.forEach((p) => {
         p.update(mouseX, mouseY);
         p.draw(ctx);
