@@ -131,18 +131,22 @@ export default function Auth() {
     ];
 
     const particles: Particle[] = [];
-    const particleCount = Math.min(160, Math.floor((width * height) / 8000));
+    const particleCount = Math.min(150, Math.floor((width * height) / 9000));
 
-    const createParticle = (): Particle => {
-      const baseOpacity = Math.random() * 0.5 + 0.3;
+    const createParticle = (initYAtTop = false): Particle => {
+      const baseOpacity = Math.random() * 0.5 + 0.35;
       const chosenColor = particleColors[Math.floor(Math.random() * particleColors.length)];
+      const maxDepth = height * 0.35;
+      const yVal = initYAtTop 
+        ? 0 
+        : Math.pow(Math.random(), 2.4) * maxDepth;
       
       return {
         x: Math.random() * width,
-        y: Math.random() * height,
+        y: yVal,
         size: Math.random() * 3 + 2,
-        speedX: (Math.random() - 0.5) * 0.6,
-        speedY: (Math.random() - 0.5) * 0.6,
+        speedX: (Math.random() - 0.5) * 0.5 - 0.15,
+        speedY: (Math.random() - 0.5) * 0.2,
         baseOpacity,
         opacity: baseOpacity,
         type: Math.random() > 0.4 ? 'cross' : 'circle',
@@ -157,26 +161,32 @@ export default function Auth() {
           this.angle += this.spinSpeed;
           this.pulseTime += this.pulseSpeed;
 
-          // Wrap horizontally & vertically
+          // Wrap horizontally
           if (this.x < -10) this.x = width + 10;
           if (this.x > width + 10) this.x = -10;
-          if (this.y < -10) this.y = height + 10;
-          if (this.y > height + 10) this.y = -10;
 
-          this.opacity = this.baseOpacity + Math.sin(this.pulseTime) * 0.15;
+          // Respawn at top if it drifts below maxDepth or above -10
+          if (this.y > maxDepth || this.y < -10) {
+            this.y = 0;
+            this.x = Math.random() * width;
+            this.speedX = (Math.random() - 0.5) * 0.5 - 0.15;
+            this.speedY = Math.random() * 0.15;
+          }
+
+          const depthFade = Math.max(0, 1 - (this.y / maxDepth));
+          this.opacity = (this.baseOpacity + Math.sin(this.pulseTime) * 0.15) * depthFade;
 
           // Dynamic Cursor magnetic attraction & interaction
           if (mouseX > 0 && mouseY > 0) {
             const dx = mouseX - this.x;
             const dy = mouseY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const maxDistance = 160;
+            const maxDistance = 140;
 
             if (dist < maxDistance) {
               const force = (maxDistance - dist) / maxDistance;
-              // Gently pull towards the cursor with spring smooth velocity
-              this.x += (dx / dist) * force * 1.8;
-              this.y += (dy / dist) * force * 1.8;
+              this.x += (dx / dist) * force * 1.5;
+              this.y += (dy / dist) * force * 1.5;
             }
           }
         },
