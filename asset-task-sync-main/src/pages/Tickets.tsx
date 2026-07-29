@@ -255,9 +255,9 @@ const Tickets = () => {
             className="pl-10 w-full"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[140px] flex-1">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -271,7 +271,7 @@ const Tickets = () => {
           {(role === 'admin' || role === 'super_admin') && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="gap-2 flex-1 sm:flex-initial">
                   <Plus className="h-4 w-4" />
                   Issue Ticket
                 </Button>
