@@ -104,7 +104,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             </div>
             <div>
               <h1 className="text-lg font-bold text-sidebar-foreground">EEC</h1>
-              <p className="text-xs text-sidebar-foreground/60">IT Maintenance Scheduler</p>
+              <p className="text-xs text-sidebar-foreground/60">IT Ticket System</p>
             </div>
           </div>
         )}

@@ -412,7 +412,7 @@ export default function Auth() {
           <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
             EEC
           </h1>
-          <p className="text-teal-200/60 text-sm mt-1">IT Maintenance Scheduler</p>
+          <p className="text-teal-200/60 text-sm mt-1">IT Ticket System</p>
         </div>
 
         <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
