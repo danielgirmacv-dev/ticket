@@ -77,7 +77,7 @@ export default function Schedules() {
 
     if (isLoading) {
         return (
-            <DashboardLayout title="IT Ticket" subtitle="Manage scheduled IT tickets">
+            <DashboardLayout title="IT Schedule" subtitle="Manage scheduled IT tickets">
                 <div className="flex items-center justify-center h-64">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
@@ -86,11 +86,11 @@ export default function Schedules() {
     }
 
     return (
-        <DashboardLayout title="IT Ticket" subtitle="Manage scheduled IT tickets">
+        <DashboardLayout title="IT Schedule" subtitle="Manage scheduled IT tickets">
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h2 className="text-2xl font-bold">IT Ticket Schedules</h2>
+                        <h2 className="text-2xl font-bold">IT Schedules</h2>
                         <p className="text-muted-foreground">Automate recurring IT tickets</p>
                     </div>
                     <Button onClick={() => setShowCreateDialog(true)}>

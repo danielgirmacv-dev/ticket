@@ -43,7 +43,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     { href: '/assets', icon: Monitor, label: 'Assets' },
     { href: '/tickets', icon: ClipboardList, label: 'Tickets' },
     { href: '/calendar', icon: Calendar, label: 'Calendar' },
-    { href: '/schedules', icon: Wrench, label: 'IT Ticket' },
+    { href: '/schedules', icon: Wrench, label: 'IT Schedule' },
     { href: '/reports', icon: FileText, label: 'Reports' },
     { href: '/locations', icon: MapPin, label: 'Locations' },
     { href: '/departments', icon: Briefcase, label: 'Departments' },
