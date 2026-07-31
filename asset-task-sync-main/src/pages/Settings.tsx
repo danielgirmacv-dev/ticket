@@ -286,7 +286,7 @@ const Settings = () => {
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="text-sm text-muted-foreground">Theme, language, and timezone preferences are coming soon.</p>
-                <div className="flex items-center justify-between opacity-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
                   <div className="space-y-0.5">
                     <Label>Theme</Label>
                     <p className="text-sm text-muted-foreground">
@@ -294,7 +294,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <Select defaultValue="light" disabled>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -305,7 +305,7 @@ const Settings = () => {
                   </Select>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between opacity-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
                   <div className="space-y-0.5">
                     <Label>Language</Label>
                     <p className="text-sm text-muted-foreground">
@@ -313,7 +313,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <Select defaultValue="en" disabled>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -325,7 +325,7 @@ const Settings = () => {
                   </Select>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between opacity-50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
                   <div className="space-y-0.5">
                     <Label>Timezone</Label>
                     <p className="text-sm text-muted-foreground">
@@ -333,7 +333,7 @@ const Settings = () => {
                     </p>
                   </div>
                   <Select defaultValue="utc" disabled>
-                    <SelectTrigger className="w-[220px]">
+                    <SelectTrigger className="w-full sm:w-[220px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -612,7 +612,7 @@ const Settings = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">System maintenance settings are coming soon.</p>
-                  <div className="flex items-center justify-between opacity-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
                     <div className="space-y-0.5">
                       <Label>Default Reminder Time</Label>
                       <p className="text-sm text-muted-foreground">
@@ -620,7 +620,7 @@ const Settings = () => {
                       </p>
                     </div>
                     <Select defaultValue="24" disabled>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -632,7 +632,7 @@ const Settings = () => {
                     </Select>
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between opacity-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
                     <div className="space-y-0.5">
                       <Label>Auto-archive Completed Tickets</Label>
                       <p className="text-sm text-muted-foreground">
@@ -640,7 +640,7 @@ const Settings = () => {
                       </p>
                     </div>
                     <Select defaultValue="30" disabled>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

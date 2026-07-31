@@ -237,7 +237,7 @@ const Users = () => {
       subtitle="Manage users and their roles"
     >
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {Object.entries(usersByRole).map(([role, count]) => {
           const style = roleStyles[role as AppRole];
           const Icon = style.icon;
@@ -276,9 +276,9 @@ const Users = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[130px]">
               <SelectValue placeholder="Role" />
             </SelectTrigger>
             <SelectContent>
@@ -290,7 +290,7 @@ const Users = () => {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[130px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -301,7 +301,7 @@ const Users = () => {
             </SelectContent>
           </Select>
           <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-[130px]">
               <SelectValue placeholder="Location" />
             </SelectTrigger>
             <SelectContent>
