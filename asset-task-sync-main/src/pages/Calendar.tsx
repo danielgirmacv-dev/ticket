@@ -101,14 +101,15 @@ const Calendar = () => {
             {/* Week days header */}
             <div className="grid grid-cols-7 mb-2">
               {weekDays.map(day => (
-                <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                  {day}
+                <div key={day} className="p-1 sm:p-2 text-center text-xs sm:text-sm font-medium text-muted-foreground">
+                  <span className="hidden sm:inline">{day}</span>
+                  <span className="sm:hidden">{day[0]}</span>
                 </div>
               ))}
             </div>
 
             {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
               {days.map((day, index) => {
                 const dayTickets = getTicketsForDate(day);
                 const isCurrentMonth = isSameMonth(day, currentDate);
@@ -120,7 +121,7 @@ const Calendar = () => {
                     key={index}
                     onClick={() => setSelectedDate(day)}
                     className={cn(
-                      'min-h-[100px] p-2 rounded-lg border border-transparent transition-all duration-200 text-left',
+                      'min-h-[55px] sm:min-h-[100px] p-1 sm:p-2 rounded-md sm:rounded-lg border border-transparent transition-all duration-200 text-left',
                       !isCurrentMonth && 'opacity-40',
                       isSelected && 'border-accent bg-accent/5',
                       isDayToday && !isSelected && 'bg-muted',
@@ -128,7 +129,7 @@ const Calendar = () => {
                     )}
                   >
                     <span className={cn(
-                      'inline-flex h-7 w-7 items-center justify-center rounded-full text-sm',
+                      'inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full text-xs sm:text-sm',
                       isDayToday && 'bg-accent text-accent-foreground font-semibold'
                     )}>
                       {format(day, 'd')}
