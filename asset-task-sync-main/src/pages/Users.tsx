@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ const ALL_ASSIGNABLE_ROLES: AppRole[] = ['super_admin', 'admin', 'technician', '
 const MANAGER_ASSIGNABLE_ROLES: AppRole[] = ['technician', 'requester'];
 
 const Users = () => {
+  const queryClient = useQueryClient();
   const { role: currentRole, profile } = useAuth();
   const isSuperAdmin = currentRole === 'super_admin';
   const assignableRoles = isSuperAdmin ? ALL_ASSIGNABLE_ROLES : MANAGER_ASSIGNABLE_ROLES;
@@ -170,7 +172,7 @@ const Users = () => {
       setIsImporting(false);
       if (successCount > 0) {
         toast.success(`Successfully imported ${successCount} user(s).`);
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ['users'] });
       }
     };
     reader.readAsText(csvFile);
@@ -263,7 +265,7 @@ const Users = () => {
 
       toast.success('User updated successfully');
       setEditingUser(null);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Failed to update user');
       console.error(error);
@@ -274,7 +276,7 @@ const Users = () => {
     try {
       await laravelClient.post(`/users/${userId}/approve`);
       toast.success('User approved successfully');
-      window.location.reload(); // Refresh users list
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Failed to approve user');
       console.error(error);
@@ -285,7 +287,7 @@ const Users = () => {
     try {
       await laravelClient.post(`/users/${userId}/reject`);
       toast.success('User rejected');
-      window.location.reload(); // Refresh users list
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Failed to reject user');
       console.error(error);
@@ -300,7 +302,7 @@ const Users = () => {
     try {
       await laravelClient.delete(`/profiles/${userId}`);
       toast.success('User deleted successfully');
-      window.location.reload(); // Refresh users list
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Failed to delete user'));
       console.error(error);

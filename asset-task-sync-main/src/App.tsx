@@ -26,7 +26,16 @@ const Departments = lazy(() => import("./pages/Departments"));
 const Help = lazy(() => import("./pages/Help"));
 const Faqs = lazy(() => import("./pages/Faqs"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes cache for lightning-fast page switching
+      gcTime: 10 * 60 * 1000, // 10 minutes cache retention
+      refetchOnWindowFocus: false, // Prevent background refetches when switching browser tabs
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
