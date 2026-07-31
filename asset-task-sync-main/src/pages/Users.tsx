@@ -25,7 +25,7 @@ import { useUsers, useCreateUser, useUpdateUserRole, AppRole, UserWithRole } fro
 import { useLocations } from '@/hooks/useLocations';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
-import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock, Upload, Download } from 'lucide-react';
 import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -60,17 +60,121 @@ const ALL_ASSIGNABLE_ROLES: AppRole[] = ['super_admin', 'admin', 'technician', '
 const MANAGER_ASSIGNABLE_ROLES: AppRole[] = ['technician', 'requester'];
 
 const Users = () => {
-  const { role: currentRole } = useAuth();
+  const { role: currentRole, profile } = useAuth();
   const isSuperAdmin = currentRole === 'super_admin';
   const assignableRoles = isSuperAdmin ? ALL_ASSIGNABLE_ROLES : MANAGER_ASSIGNABLE_ROLES;
 
   const canManageUser = (user: UserWithRole) =>
     isSuperAdmin || (user.role !== 'admin' && user.role !== 'super_admin');
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('admin');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Bulk CSV Import state
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResults, setImportResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+
+  const downloadUserCsvTemplate = () => {
+    const csvContent = 'data:text/csv;charset=utf-8,' +
+      'Name,Email,Role,Department,Phone,Password\n' +
+      'Abebe Kebede,abebe@example.com,requester,IT Support,+251911223344,Password123!\n' +
+      'Tigist Haile,tigist@example.com,technician,Maintenance,+251922334455,Password123!\n' +
+      'Dawit Alemu,dawit@example.com,admin,Management,+251933445566,Password123!';
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'users_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBulkImportUsers = async () => {
+    if (!csvFile) {
+      toast.error('Please select a CSV file to import.');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportResults(null);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      if (!text) {
+        toast.error('Failed to read CSV file.');
+        setIsImporting(false);
+        return;
+      }
+
+      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+      if (lines.length <= 1) {
+        toast.error('CSV file is empty or missing data rows.');
+        setIsImporting(false);
+        return;
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const nameIdx = headers.indexOf('name');
+      const emailIdx = headers.indexOf('email');
+      const roleIdx = headers.indexOf('role');
+      const deptIdx = headers.indexOf('department');
+      const phoneIdx = headers.indexOf('phone');
+      const passIdx = headers.indexOf('password');
+
+      if (nameIdx === -1 || emailIdx === -1) {
+        toast.error('CSV must contain at least "Name" and "Email" columns.');
+        setIsImporting(false);
+        return;
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(',').map(cell => cell.trim().replace(/^["']|["']$/g, ''));
+        if (row.length < 2 || !row[emailIdx]) continue;
+
+        const name = row[nameIdx] || '';
+        const email = row[emailIdx] || '';
+        const roleStr = (row[roleIdx] || 'requester').toLowerCase();
+        const role = (ALL_ASSIGNABLE_ROLES.includes(roleStr as AppRole) ? roleStr : 'requester') as AppRole;
+        const department = row[deptIdx] || '';
+        const phone = row[phoneIdx] || '';
+        const password = row[passIdx] || 'Password123!';
+
+        try {
+          await createUser.mutateAsync({
+            name,
+            email,
+            password,
+            role,
+            department: department || undefined,
+            phone: phone || undefined,
+            location_id: profile?.location_id || undefined,
+          });
+          successCount++;
+        } catch (err: any) {
+          failedCount++;
+          errors.push(`Row ${i + 1} (${email}): ${getApiErrorMessage(err, 'Failed to create user')}`);
+        }
+      }
+
+      setImportResults({ success: successCount, failed: failedCount, errors });
+      setIsImporting(false);
+      if (successCount > 0) {
+        toast.success(`Successfully imported ${successCount} user(s).`);
+        window.location.reload();
+      }
+    };
+    reader.readAsText(csvFile);
+  };
 
   const { data: users, isLoading } = useUsers();
   const { data: locations } = useLocations();
@@ -311,6 +415,78 @@ const Users = () => {
               ))}
             </SelectContent>
           </Select>
+          <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Import
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Upload className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  Bulk Import Users
+                </DialogTitle>
+                <DialogDescription>
+                  Upload a CSV file to create multiple user accounts at once.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <Button variant="outline" onClick={downloadUserCsvTemplate} className="w-full justify-center">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download CSV Template
+                </Button>
+                <div className="grid gap-2">
+                  <Label htmlFor="user-csv-file">Select CSV File</Label>
+                  <Input
+                    id="user-csv-file"
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                  />
+                  {csvFile && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {csvFile.name}
+                    </p>
+                  )}
+                </div>
+                {importResults && (
+                  <div className={cn(
+                    "p-3 rounded-lg border text-xs space-y-1",
+                    importResults.failed > 0 ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800" : "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
+                  )}>
+                    <p className="font-semibold text-foreground">
+                      Import Results: {importResults.success} succeeded, {importResults.failed} failed
+                    </p>
+                    {importResults.errors.length > 0 && (
+                      <ul className="max-h-28 overflow-y-auto space-y-1 text-destructive font-mono text-[11px] pt-1">
+                        {importResults.errors.map((err, idx) => (
+                          <li key={idx}>• {err}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsImportDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleBulkImportUsers} disabled={!csvFile || isImporting} className="bg-teal-600 hover:bg-teal-700 text-white font-semibold">
+                  {isImporting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    'Import Users'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="accent">
