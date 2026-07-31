@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DepartmentController extends Controller
 {
     public function index()
     {
-        $departments = Department::orderBy('name')->get();
+        $departments = Cache::remember('departments.all', 3600, function () {
+            return Department::orderBy('name')->get();
+        });
 
         return response()->json($departments);
     }
@@ -28,6 +31,7 @@ class DepartmentController extends Controller
         ]);
 
         $department = Department::create($validated);
+        Cache::forget('departments.all');
 
         ActivityLogger::log('created', 'Department', $department->id, "Created department: {$department->name}");
 
@@ -51,6 +55,7 @@ class DepartmentController extends Controller
         ]);
 
         $department->update($validated);
+        Cache::forget('departments.all');
 
         ActivityLogger::log('updated', 'Department', $department->id, "Updated department: {$department->name}");
 
@@ -64,6 +69,7 @@ class DepartmentController extends Controller
         }
 
         $department->delete();
+        Cache::forget('departments.all');
 
         ActivityLogger::log('deleted', 'Department', $department->id, "Deleted department: {$department->name}");
 

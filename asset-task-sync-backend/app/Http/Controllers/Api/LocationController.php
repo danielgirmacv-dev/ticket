@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class LocationController extends Controller
 {
     public function index()
     {
-        $locations = Location::orderBy('name')->get();
+        $locations = Cache::remember('locations.all', 3600, function () {
+            return Location::orderBy('name')->get();
+        });
 
         return response()->json($locations);
     }
@@ -29,6 +32,7 @@ class LocationController extends Controller
         ]);
 
         $location = Location::create($validated);
+        Cache::forget('locations.all');
 
         ActivityLogger::log('created', 'Location', $location->id, "Created location: {$location->name}");
 
@@ -65,6 +69,7 @@ class LocationController extends Controller
         ]);
 
         $location->update($validated);
+        Cache::forget('locations.all');
 
         ActivityLogger::log('updated', 'Location', $location->id, "Updated location: {$location->name}");
 
@@ -78,6 +83,7 @@ class LocationController extends Controller
         }
 
         $location->delete();
+        Cache::forget('locations.all');
 
         ActivityLogger::log('deleted', 'Location', $location->id, "Deleted location: {$location->name}");
 
