@@ -21,7 +21,7 @@ import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateTicket } from '@/hooks/useTickets';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
-import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Sparkles, Activity } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Sparkles, Activity, Monitor, Database, Wrench, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -319,30 +319,81 @@ const Requests = () => {
 
             {/* Support Department routing */}
             <div className="grid gap-2">
-              <Label>Support Department<RequiredMark /></Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Label className="text-sm font-semibold flex items-center gap-1.5">
+                Support Department<RequiredMark />
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 {([
-                  { value: 'it_support', label: 'IT Support', desc: 'Hardware, software, connectivity', color: 'border-blue-400 bg-blue-50/50 dark:bg-blue-950/10 text-blue-700 dark:text-blue-300' },
-                  { value: 'sap', label: 'SAP System', desc: 'SAP ERP, deployment, modules', color: 'border-teal-400 bg-teal-50/50 dark:bg-teal-950/10 text-teal-700 dark:text-teal-300' },
-                  { value: 'general', label: 'General', desc: 'Other / not specific', color: 'border-slate-400 bg-slate-50/50 dark:bg-slate-950/10 text-slate-700 dark:text-slate-300' },
-                ] as const).map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setSupportCategory(cat.value)}
-                    className={cn(
-                      'rounded-xl border-2 px-4 py-3 text-left transition-all duration-150 hover:shadow-sm focus:outline-none',
-                      supportCategory === cat.value
-                        ? cat.color + ' ring-2 ring-offset-1 ring-current font-semibold shadow-sm'
-                        : 'border-muted bg-muted/10 hover:border-muted-foreground/40'
-                    )}
-                  >
-                    <p className="text-sm font-semibold">{cat.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{cat.desc}</p>
-                  </button>
-                ))}
+                  {
+                    value: 'it_support',
+                    label: 'IT Support',
+                    desc: 'Hardware, software & connectivity',
+                    icon: Monitor,
+                    activeBorder: 'border-blue-500 bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent text-blue-900 dark:text-blue-100 shadow-md shadow-blue-500/10 ring-1 ring-blue-500/30',
+                    iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+                    activeIconBg: 'bg-blue-500 text-white shadow-sm shadow-blue-500/30',
+                  },
+                  {
+                    value: 'sap',
+                    label: 'SAP System',
+                    desc: 'SAP ERP, modules & deployment',
+                    icon: Database,
+                    activeBorder: 'border-teal-500 bg-gradient-to-br from-teal-500/10 via-emerald-500/5 to-transparent text-teal-900 dark:text-teal-100 shadow-md shadow-teal-500/10 ring-1 ring-teal-500/30',
+                    iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+                    activeIconBg: 'bg-teal-500 text-white shadow-sm shadow-teal-500/30',
+                  },
+                  {
+                    value: 'general',
+                    label: 'General',
+                    desc: 'Facility, equipment & other requests',
+                    icon: Wrench,
+                    activeBorder: 'border-slate-500 bg-gradient-to-br from-slate-500/10 via-zinc-500/5 to-transparent text-slate-900 dark:text-slate-100 shadow-md shadow-slate-500/10 ring-1 ring-slate-500/30',
+                    iconBg: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+                    activeIconBg: 'bg-slate-700 text-white shadow-sm shadow-slate-500/30',
+                  },
+                ] as const).map((cat) => {
+                  const Icon = cat.icon;
+                  const isSelected = supportCategory === cat.value;
+                  return (
+                    <button
+                      key={cat.value}
+                      type="button"
+                      onClick={() => setSupportCategory(cat.value)}
+                      className={cn(
+                        'relative group flex flex-col justify-between rounded-2xl border-2 p-4 text-left transition-all duration-300 ease-out',
+                        'hover:-translate-y-1 hover:shadow-lg focus:outline-none',
+                        isSelected
+                          ? cat.activeBorder
+                          : 'border-border/60 bg-card hover:border-primary/40 hover:bg-accent/5 shadow-sm'
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-3 w-full">
+                        <div className={cn(
+                          'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-300',
+                          isSelected ? cat.activeIconBg : cat.iconBg
+                        )}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className={cn(
+                          'h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all duration-300',
+                          isSelected ? 'border-teal-500 bg-teal-500 text-white scale-110 shadow-sm' : 'border-muted-foreground/30 opacity-40 group-hover:opacity-70'
+                        )}>
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </div>
+                      </div>
+                      <div>
+                        <p className={cn('text-sm font-bold tracking-tight transition-colors', isSelected ? 'text-foreground' : 'text-foreground/90')}>
+                          {cat.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-snug">
+                          {cat.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 Your request will be automatically routed to the correct team based on this selection.
               </p>
             </div>
