@@ -21,7 +21,7 @@ import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateTicket } from '@/hooks/useTickets';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
-import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Sparkles, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -261,10 +261,27 @@ const Requests = () => {
       title="Submit Request"
       subtitle="Create a new IT support request"
     >
-      <Card className="max-w-2xl mx-auto overflow-hidden border-t-4 border-t-teal-600 dark:border-t-teal-500 shadow-lg">
-        <CardHeader>
-          <CardTitle>New Request</CardTitle>
-          <CardDescription>
+      <Card className="max-w-2xl mx-auto overflow-hidden border-t-4 border-t-teal-600 dark:border-t-teal-500 shadow-xl bg-card">
+        <CardHeader className="relative overflow-hidden bg-gradient-to-b from-teal-500/5 via-transparent to-transparent pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+              </div>
+              <CardTitle className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                <span className="bg-gradient-to-r from-teal-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
+                  New Support Request
+                </span>
+                <Sparkles className="h-5 w-5 text-teal-500 animate-pulse" />
+              </CardTitle>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 text-xs font-semibold self-start sm:self-auto">
+              <Activity className="h-3 w-3 animate-pulse" />
+              Live Assistance
+            </div>
+          </div>
+          <CardDescription className="text-muted-foreground text-sm mt-2">
             Submit a request for IT support. Our team will review it and respond based on priority.
           </CardDescription>
           {showHelpBanner && (
