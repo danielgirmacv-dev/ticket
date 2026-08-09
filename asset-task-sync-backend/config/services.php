@@ -40,4 +40,11 @@ return [
         'secret_key' => env('TURNSTILE_SECRET_KEY'),
     ],
 
+    'azure_graph' => [
+        'tenant_id'     => env('MICROSOFT_GRAPH_TENANT_ID'),
+        'client_id'     => env('MICROSOFT_GRAPH_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+        'sender_email'  => env('MICROSOFT_GRAPH_SENDER_EMAIL', 'system@eeigconstruction.com'),
+    ],
+
 ];

@@ -362,6 +362,9 @@ class MaintenanceTicketController extends Controller
             );
         }
 
+        // Dispatch Microsoft Graph API Email Notification Job
+        \App\Jobs\SendTicketApprovalNotification::dispatch($ticket);
+
         return response()->json($ticket->load('approvedBy', 'requester'));
     }
 
