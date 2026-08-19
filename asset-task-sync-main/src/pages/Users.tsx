@@ -775,15 +775,16 @@ const Users = () => {
               <Input
                 value={editFormData.name}
                 onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                disabled
+                disabled={!editingUser || !canManageUser(editingUser)}
               />
             </div>
             <div>
               <Label>Email</Label>
               <Input
+                type="email"
                 value={editFormData.email}
                 onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                disabled
+                disabled={!editingUser || !canManageUser(editingUser)}
               />
             </div>
             <div>
