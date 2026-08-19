@@ -23,7 +23,7 @@ class TurnstileService
         }
 
         try {
-            $response = Http::asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+            $response = Http::timeout(3)->asForm()->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
                 'secret' => config('services.turnstile.secret_key'),
                 'response' => $token,
             ]);

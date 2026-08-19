@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import laravelClient from '@/integrations/laravel/client';
+import laravelClient, { MaintenanceTicket } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 
@@ -45,7 +45,7 @@ interface SubmitFeedbackData {
     feedback_comment?: string;
 }
 
-// Approve ticket (Admin)
+// Approve ticket (Admin) - Optimistic UI
 export function useApproveTicket() {
     const queryClient = useQueryClient();
 
@@ -54,17 +54,31 @@ export function useApproveTicket() {
             const response = await laravelClient.post(`/maintenance-tickets/${data.id}/approve`);
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-            toast.success('Ticket approved successfully');
+        onMutate: async (data) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === data.id ? { ...t, status: 'approved' } : t))
+                );
+            }
+            toast.success('Ticket approved');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to approve ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
 
-// Reject ticket (Admin)
+// Reject ticket (Admin) - Optimistic UI
 export function useRejectTicket() {
     const queryClient = useQueryClient();
 
@@ -75,17 +89,31 @@ export function useRejectTicket() {
             });
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        onMutate: async (data) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === data.id ? { ...t, status: 'rejected' } : t))
+                );
+            }
             toast.success('Ticket rejected');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to reject ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
 
-// Assign technician (Admin)
+// Assign technician (Admin) - Optimistic UI
 export function useAssignTicket() {
     const queryClient = useQueryClient();
 
@@ -96,17 +124,31 @@ export function useAssignTicket() {
             });
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-            toast.success('Technician assigned successfully');
+        onMutate: async (data) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === data.id ? { ...t, status: 'assigned', assigned_technician_id: data.assigned_technician_id } : t))
+                );
+            }
+            toast.success('Technician assigned');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to assign technician'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
 
-// Start ticket (Technician)
+// Start ticket (Technician) - Optimistic UI
 export function useStartTicket() {
     const queryClient = useQueryClient();
 
@@ -115,12 +157,26 @@ export function useStartTicket() {
             const response = await laravelClient.post(`/maintenance-tickets/${id}/start`);
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === id ? { ...t, status: 'in_progress' } : t))
+                );
+            }
             toast.success('Ticket started');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to start ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
@@ -145,7 +201,7 @@ export function useUpdateProgress() {
     });
 }
 
-// Complete ticket (Technician)
+// Complete ticket (Technician) - Optimistic UI
 export function useCompleteTicket() {
     const queryClient = useQueryClient();
 
@@ -155,17 +211,31 @@ export function useCompleteTicket() {
             const response = await laravelClient.post(`/maintenance-tickets/${id}/complete`, completeData);
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        onMutate: async (data) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === data.id ? { ...t, status: 'completed_pending_review' } : t))
+                );
+            }
             toast.success('Ticket marked as completed');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to complete ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
 
-// Review completion (Admin)
+// Review completion (Admin) - Optimistic UI
 export function useReviewCompletion() {
     const queryClient = useQueryClient();
 
@@ -175,12 +245,27 @@ export function useReviewCompletion() {
             const response = await laravelClient.post(`/maintenance-tickets/${id}/review-completion`, reviewData);
             return response.data;
         },
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
-            toast.success(variables.approved ? 'Ticket approved' : 'Ticket reopened for revision');
+        onMutate: async (data) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                const nextStatus = data.approved ? 'completed' : 'reopened';
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.map((t) => (t.id === data.id ? { ...t, status: nextStatus } : t))
+                );
+            }
+            toast.success(data.approved ? 'Ticket approved' : 'Ticket reopened for revision');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to review ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }
@@ -205,7 +290,7 @@ export function useSubmitFeedback() {
     });
 }
 
-// Delete ticket (Admin)
+// Delete ticket (Admin) - Optimistic UI
 export function useDeleteTicket() {
     const queryClient = useQueryClient();
 
@@ -213,12 +298,26 @@ export function useDeleteTicket() {
         mutationFn: async (id: string) => {
             await laravelClient.delete(`/maintenance-tickets/${id}`);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: ['tickets'] });
+            const previousTickets = queryClient.getQueryData<MaintenanceTicket[]>(['tickets']);
+
+            if (previousTickets) {
+                queryClient.setQueryData<MaintenanceTicket[]>(['tickets'], (old) =>
+                    old?.filter((t) => t.id !== id)
+                );
+            }
             toast.success('Ticket deleted successfully');
+            return { previousTickets };
         },
-        onError: (error) => {
+        onError: (error, _, context) => {
+            if (context?.previousTickets) {
+                queryClient.setQueryData(['tickets'], context.previousTickets);
+            }
             toast.error(getApiErrorMessage(error, 'Failed to delete ticket'));
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
         },
     });
 }

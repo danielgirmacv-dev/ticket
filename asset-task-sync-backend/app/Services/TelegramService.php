@@ -30,7 +30,7 @@ class TelegramService
         }
 
         try {
-            $response = Http::post("{$this->baseUrl}/sendMessage", [
+            $response = Http::timeout(3)->post("{$this->baseUrl}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
                 'parse_mode' => 'Markdown',
