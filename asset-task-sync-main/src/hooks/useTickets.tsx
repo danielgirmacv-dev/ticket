@@ -9,7 +9,9 @@ export function useTickets() {
         queryFn: async (): Promise<MaintenanceTicket[]> => {
             const response = await laravelClient.get('/maintenance-tickets');
             return response.data;
-        }
+        },
+        refetchInterval: 5000,
+        refetchIntervalInBackground: false,
     });
 }
 

@@ -7,6 +7,8 @@ export function useActivityLogs() {
         queryFn: async (): Promise<ActivityLog[]> => {
             const response = await laravelClient.get('/activity-logs', { params: { limit: 100 } });
             return response.data;
-        }
+        },
+        refetchInterval: 5000,
+        refetchIntervalInBackground: false,
     });
 }
