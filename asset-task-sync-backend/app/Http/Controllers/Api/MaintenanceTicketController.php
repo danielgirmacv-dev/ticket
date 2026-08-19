@@ -98,9 +98,9 @@ class MaintenanceTicketController extends Controller
             'attachments.*'           => 'file|mimes:jpg,jpeg,png,gif,webp,pdf|max:5120',
         ]);
 
-        // Default category to 'general' if not provided
+        // Default category to 'it_support' if not provided
         if (! isset($validated['support_category'])) {
-            $validated['support_category'] = 'general';
+            $validated['support_category'] = 'it_support';
         }
 
         // Auto-set requester_id to authenticated user's profile if not provided
@@ -162,25 +162,41 @@ class MaintenanceTicketController extends Controller
         // Smart routing: route to the correct manager based on category
         // ---------------------------------------------------------------
         try {
-            $category = $ticket->support_category ?? 'general';
+            $category = $ticket->support_category ?? 'it_support';
 
-            // Department keyword map — matches manager's profile->department field
+            // Extended department keyword map — matches manager's profile->department field
             $categoryDeptMap = [
-                'it_support' => 'IT Support',
-                'sap'        => 'SAP',
+                'it_support' => ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'],
+                'sap'        => ['sap', 'sap deployment', 'erp', 'enterprise systems'],
             ];
 
             $assignedManager = null;
 
             if (isset($categoryDeptMap[$category])) {
-                $deptKeyword = $categoryDeptMap[$category];
+                $keywords = (array) $categoryDeptMap[$category];
 
-                // Find an admin whose department contains the keyword (case-insensitive)
-                $matchingManager = \App\Models\User::role('admin')
-                    ->whereHas('profile', fn($q) => $q->whereRaw('LOWER(department) LIKE ?', ['%' . strtolower($deptKeyword) . '%']))
+                // Find an admin or super_admin whose department contains any of the keywords (case-insensitive)
+                $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                    ->whereHas('profile', function ($q) use ($keywords) {
+                        $q->where(function ($sub) use ($keywords) {
+                            foreach ($keywords as $kw) {
+                                $sub->orWhereRaw('LOWER(department) LIKE ?', ['%' . strtolower($kw) . '%']);
+                            }
+                        });
+                    })
                     ->first();
 
-                if ($matchingManager) {
+                // Fallback: search by user email or profile name if department didn't match
+                if (! $matchingManager && $category === 'it_support') {
+                    $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                        ->where(function ($q) {
+                            $q->whereRaw('LOWER(email) LIKE ?', ['%it%'])
+                              ->orWhereRaw('LOWER(name) LIKE ?', ['%it%']);
+                        })
+                        ->first();
+                }
+
+                if ($matchingManager && $matchingManager->profile) {
                     $assignedManager = $matchingManager;
                     // Set the assigned_manager_id on the ticket
                     $ticket->update(['assigned_manager_id' => $matchingManager->profile->id]);
@@ -227,7 +243,7 @@ class MaintenanceTicketController extends Controller
                 }
             } else {
                 // Notify the category-matched manager
-                $categoryLabel = $category === 'it_support' ? 'IT Support' : 'SAP';
+                $categoryLabel = $category === 'it_support' ? 'IT Support' : ($category === 'sap' ? 'SAP' : 'General');
                 $this->createNotification(
                     $assignedManager->id,
                     "New {$categoryLabel} Request",

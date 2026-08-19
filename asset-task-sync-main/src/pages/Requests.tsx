@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,6 +56,9 @@ function RequiredMark() {
 const Requests = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const categoryParam = searchParams.get('category');
+
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showHelpBanner, setShowHelpBanner] = useState(true);
   const [submittedTicket, setSubmittedTicket] = useState<MaintenanceTicket | null>(null);
@@ -75,7 +78,15 @@ const Requests = () => {
   });
 
   const [locationId, setLocationId] = useState('');
-  const [supportCategory, setSupportCategory] = useState<'it_support' | 'sap' | 'general'>('general');
+  const [supportCategory, setSupportCategory] = useState<'it_support' | 'sap' | 'general'>(
+    (categoryParam as 'it_support' | 'sap' | 'general') || 'it_support'
+  );
+
+  useEffect(() => {
+    if (categoryParam && ['it_support', 'sap', 'general'].includes(categoryParam)) {
+      setSupportCategory(categoryParam as 'it_support' | 'sap' | 'general');
+    }
+  }, [categoryParam]);
   const [preferredDate, setPreferredDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] =

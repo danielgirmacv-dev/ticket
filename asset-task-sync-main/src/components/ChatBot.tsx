@@ -234,7 +234,7 @@ const ChatBot = () => {
                             )}
                             {message.showRequestLink && (
                               <Link
-                                to="/requests"
+                                to="/requests?category=it_support"
                                 className="text-xs px-2.5 py-1 rounded-full bg-[hsl(186,100%,39%)]/10 text-[hsl(186,100%,39%)] border border-[hsl(186,100%,39%)]/30 hover:bg-[hsl(186,100%,39%)]/20 transition-colors"
                                 onClick={() => setIsOpen(false)}
                               >

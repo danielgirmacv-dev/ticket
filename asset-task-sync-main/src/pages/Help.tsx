@@ -151,7 +151,7 @@ export default function Help() {
               <div className="text-center py-12 text-muted-foreground">
                 <p>No articles found.</p>
                 <Button variant="link" asChild className="mt-2">
-                  <Link to="/requests">Submit a request instead</Link>
+                  <Link to="/requests?category=it_support">Submit a request instead</Link>
                 </Button>
               </div>
             ) : (
@@ -202,7 +202,7 @@ export default function Help() {
             <div className="pt-4 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">Didn&apos;t find what you need?</p>
               <Button variant="accent" asChild>
-                <Link to="/requests">
+                <Link to="/requests?category=it_support">
                   Submit a request
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
