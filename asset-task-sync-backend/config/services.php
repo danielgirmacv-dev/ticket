@@ -35,11 +35,6 @@ return [
         ],
     ],
 
-    'turnstile' => [
-        'site_key' => env('TURNSTILE_SITE_KEY'),
-        'secret_key' => env('TURNSTILE_SECRET_KEY'),
-    ],
-
     'azure_graph' => [
         'tenant_id'     => env('MICROSOFT_GRAPH_TENANT_ID'),
         'client_id'     => env('MICROSOFT_GRAPH_CLIENT_ID'),
