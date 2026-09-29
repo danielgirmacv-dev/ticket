@@ -1,9 +1,26 @@
+<IfModule mod_headers.c>
+    # Allow specific origins dynamically
+    SetEnvIf Origin "^http://it-support\.eecproducts\.com$" ORIGIN_OK=$0
+    SetEnvIf Origin "^https://esupport\.eec\.com\.et$" ORIGIN_OK=$0
+    SetEnvIf Origin "^https://www\.esupport\.eec\.com\.et$" ORIGIN_OK=$0
+
+    Header always set Access-Control-Allow-Origin "%{ORIGIN_OK}e" env=ORIGIN_OK
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-XSRF-TOKEN"
+    Header always set Access-Control-Allow-Credentials "true"
+    Header always set Access-Control-Max-Age "86400"
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
 
     RewriteEngine On
+
+    # Handle OPTIONS preflight requests
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule .* - [R=200,L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
