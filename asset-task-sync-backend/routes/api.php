@@ -81,6 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications
     Route::apiResource('notifications', NotificationController::class);
     Route::patch('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
 
     // Profiles
     Route::apiResource('profiles', ProfileController::class)->only(['index', 'show', 'update', 'destroy']);

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, Moon, Sun, Menu, LogOut, User, Settings } from 'lucide-react';
+import { Bell, Moon, Sun, Menu, LogOut, User, Settings, CheckCheck, Trash2, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +12,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
-import laravelClient, { Notification } from '@/integrations/laravel/client';
+import {
+  useNotifications,
+  useMarkAsRead,
+  useMarkAllRead,
+  useDeleteNotification,
+} from '@/hooks/useNotifications';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   title: string;
@@ -23,54 +30,51 @@ interface HeaderProps {
   onMenuClick?: () => void;
 }
 
+const TYPE_DOT: Record<string, string> = {
+  warning: 'bg-yellow-400',
+  success: 'bg-emerald-500',
+  error:   'bg-red-500',
+  info:    'bg-blue-500',
+};
+
 const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
   const [isDark, setIsDark] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [open, setOpen] = useState(false);
 
-  const fetchNotifications = async () => {
-    try {
-      const response = await laravelClient.get('/notifications');
-      setNotifications(response.data.slice(0, 5));
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
+  /* ── Real-time notifications (polls every 5 s) ── */
+  const { data: allNotifications = [] } = useNotifications();
+  const markAsRead      = useMarkAsRead();
+  const markAllRead     = useMarkAllRead();
+  const deleteNotif     = useDeleteNotification();
+
+  // Only show unread ones in the bell dropdown
+  const unread = allNotifications.filter(n => !n.is_read);
+  const unreadCount = unread.length;
+
+  /* ── Handlers ── */
+  const handleNotificationClick = async (id: string, link?: string | null) => {
+    // Immediately mark read (disappears from dropdown)
+    markAsRead.mutate(id);
+    setOpen(false);
+    if (link) navigate(link);
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  const handleNotificationClick = async (notification: Notification) => {
-    try {
-      // Mark as read in backend
-      if (!notification.is_read) {
-        await laravelClient.put(`/notifications/${notification.id}`, { is_read: true });
-
-        // Update local state
-        setNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-        );
-      }
-
-      // Navigate to link if exists
-      if (notification.link) {
-        navigate(notification.link);
-      }
-    } catch (error) {
-      console.error('Error handling notification click:', error);
-    }
+  const handleMarkAllRead = () => {
+    markAllRead.mutate(undefined, {
+      onSuccess: () => toast.success('All notifications marked as read'),
+    });
   };
 
-  const unreadNotifications = notifications.filter(n => !n.is_read).length;
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteNotif.mutate(id);
+  };
 
+  /* ── UI helpers ── */
   const toggleDarkMode = () => {
-    setIsDark(!isDark);
+    setIsDark(p => !p);
     document.documentElement.classList.toggle('dark');
   };
 
@@ -80,35 +84,26 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
     navigate('/auth');
   };
 
-  const getInitials = (name: string | undefined) => {
+  const getInitials = (name?: string) => {
     if (!name) return 'U';
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const getRoleLabel = (role: string | null) => {
-    switch (role) {
-      case 'super_admin': return 'Super Admin';
-      case 'admin': return 'Manager';
-      case 'technician': return 'Technician';
-      case 'requester': return 'Requester';
-      default: return 'User';
-    }
+  const getRoleLabel = (r: string | null) => {
+    const map: Record<string, string> = {
+      super_admin: 'Super Admin',
+      admin:       'Manager',
+      technician:  'Technician',
+      requester:   'Requester',
+    };
+    return map[r ?? ''] ?? 'User';
   };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 sm:px-6">
+      {/* Left — title */}
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden flex-shrink-0"
-          onClick={onMenuClick}
-        >
+        <Button variant="ghost" size="icon" className="lg:hidden flex-shrink-0" onClick={onMenuClick}>
           <Menu className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
@@ -119,81 +114,119 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="hidden md:flex relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search tickets, assets..."
-            className="w-64 pl-9 bg-muted/50 border-0 focus-visible:ring-1"
-          />
-        </div>
+      {/* Right — actions */}
+      <div className="flex items-center gap-1 sm:gap-2">
 
-        {/* Dark Mode Toggle */}
+        {/* Dark mode */}
         <Button
           variant="ghost"
           size="icon"
           onClick={toggleDarkMode}
           className="text-muted-foreground hover:text-foreground"
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </Button>
 
-        {/* Notifications */}
-        <DropdownMenu>
+        {/* ── Notification Bell ── */}
+        <DropdownMenu open={open} onOpenChange={setOpen}>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5 text-muted-foreground" />
-              {unreadNotifications > 0 && (
-                <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive">
-                  {unreadNotifications}
-                </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+            >
+              <Bell className={cn('h-5 w-5', unreadCount > 0 ? 'text-foreground' : 'text-muted-foreground')} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white shadow-sm ring-2 ring-background animate-in zoom-in-50 duration-200">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 max-w-sm">
-            <DropdownMenuLabel className="font-semibold">
-              Notifications
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {notifications.filter(n => !n.is_read).length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No new notifications
+
+          <DropdownMenuContent align="end" className="w-[min(calc(100vw-1rem),22rem)] p-0 overflow-hidden shadow-xl">
+            {/* Header row */}
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                    {unreadCount} new
+                  </Badge>
+                )}
+              </div>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                  onClick={handleMarkAllRead}
+                  disabled={markAllRead.isPending}
+                >
+                  <CheckCheck className="h-3.5 w-3.5" />
+                  Mark all read
+                </Button>
+              )}
+            </div>
+
+            {/* Notification list */}
+            {unread.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground">
+                <BellOff className="h-8 w-8 opacity-30" />
+                <p className="text-sm font-medium">You're all caught up!</p>
+                <p className="text-xs">No new notifications</p>
               </div>
             ) : (
-              notifications.filter(n => !n.is_read).slice(0, 5).map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className="flex flex-col items-start gap-1 p-3 cursor-pointer"
-                  onClick={() => handleNotificationClick(notification)}
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <span className={`h-2 w-2 rounded-full ${notification.type === 'warning' ? 'bg-warning' :
-                      notification.type === 'success' ? 'bg-success' :
-                        notification.type === 'error' ? 'bg-destructive' : 'bg-info'
-                      }`} />
-                    <span className="font-medium text-sm flex-1">{notification.title}</span>
-                    {!notification.is_read && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground pl-4">
-                    {notification.message}
-                  </p>
-                </DropdownMenuItem>
-              ))
+              <ScrollArea className="max-h-[340px]">
+                <div className="divide-y">
+                  {unread.slice(0, 8).map((n) => (
+                    <div
+                      key={n.id}
+                      className="group relative flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleNotificationClick(n.id, n.link)}
+                    >
+                      {/* Type indicator */}
+                      <span className={cn('mt-1.5 h-2 w-2 rounded-full shrink-0', TYPE_DOT[n.type] ?? 'bg-blue-500')} />
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 space-y-0.5 pr-6">
+                        <p className="text-sm font-medium leading-tight truncate">{n.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                        <p className="text-[10px] text-muted-foreground/60">
+                          {format(new Date(n.created_at), 'MMM d · h:mm a')}
+                        </p>
+                      </div>
+
+                      {/* Delete button — visible on hover */}
+                      <button
+                        className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => handleDelete(e, n.id)}
+                        title="Dismiss"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-center text-sm text-accent cursor-pointer"
-              onClick={() => navigate('/notifications')}
-            >
-              View all notifications
-            </DropdownMenuItem>
+
+            {/* Footer */}
+            <div className="border-t">
+              <button
+                className="w-full py-2.5 text-xs font-medium text-primary hover:bg-muted/50 transition-colors"
+                onClick={() => { setOpen(false); navigate('/notifications'); }}
+              >
+                View all notifications →
+              </button>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Menu */}
+        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2 h-auto py-1.5 px-2 sm:px-3">
