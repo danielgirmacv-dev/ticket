@@ -156,6 +156,30 @@ const Requests = () => {
 
     return null;
   }, [formData.title, formData.description, supportCategory]);
+
+  const handleTypeChange = (val: string) => {
+    const newType = val as MaintenanceTicket['type'];
+    setFormData((prev) => ({ ...prev, type: newType }));
+
+    if (['repair', 'maintenance', 'installation', 'inspection'].includes(newType)) {
+      if (supportCategory !== 'it_support') {
+        setSupportCategory('it_support');
+        toast({
+          title: 'Department Auto-Selected: IT Support',
+          description: `Set to IT Support for ${newType} requests. You can change this anytime above.`,
+        });
+      }
+    } else if (newType === 'other') {
+      if (supportCategory !== 'sap') {
+        setSupportCategory('sap');
+        toast({
+          title: 'Department Auto-Selected: SAP System',
+          description: 'Set to SAP System for Account / Access requests. You can change this anytime above.',
+        });
+      }
+    }
+  };
+
   const [preferredDate, setPreferredDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] =
@@ -533,22 +557,17 @@ const Requests = () => {
                 <Select
                   required
                   value={formData.type}
-                  onValueChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      type: val as MaintenanceTicket['type'],
-                    })
-                  }
+                  onValueChange={handleTypeChange}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="repair">Repair / Hardware issue</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="installation">Installation</SelectItem>
-                    <SelectItem value="inspection">Inspection</SelectItem>
-                    <SelectItem value="other">Other / Access / Account</SelectItem>
+                    <SelectItem value="repair">🛠️ Repair / Hardware (IT Support)</SelectItem>
+                    <SelectItem value="maintenance">🧹 Maintenance (IT Support)</SelectItem>
+                    <SelectItem value="installation">📦 Installation / Setup (IT Support)</SelectItem>
+                    <SelectItem value="inspection">🔍 Inspection (IT Support)</SelectItem>
+                    <SelectItem value="other">🔑 Other / Account / Access (SAP System)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
