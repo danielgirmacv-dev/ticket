@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/maintenance-tickets/{id}/complete', [MaintenanceTicketController::class, 'complete']);
     Route::post('/maintenance-tickets/{id}/review-completion', [MaintenanceTicketController::class, 'reviewCompletion']);
     Route::post('/maintenance-tickets/{id}/feedback', [MaintenanceTicketController::class, 'submitFeedback']);
+    Route::post('/maintenance-tickets/{id}/transfer', [MaintenanceTicketController::class, 'transfer']);
 
     // Maintenance Schedules (Preventive Maintenance)
     Route::apiResource('maintenance-schedules', MaintenanceScheduleController::class);

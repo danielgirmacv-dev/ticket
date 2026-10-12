@@ -28,12 +28,17 @@ import {
     Paperclip,
     FileText,
     ExternalLink,
+    ArrowLeftRight,
+    Loader2,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
 import { EditTicketDialog } from '@/components/tickets/EditTicketDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeleteTicket } from '@/hooks/useTicketWorkflow';
-import { useUpdateTicket } from '@/hooks/useTickets';
+import { useUpdateTicket, useTransferTicket } from '@/hooks/useTickets';
 
 interface TicketDetailsDialogProps {
     ticket: MaintenanceTicket | null;
@@ -68,6 +73,10 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
     const updateTicket = useUpdateTicket();
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
+    const [showTransferDialog, setShowTransferDialog] = useState(false);
+    const [targetCategory, setTargetCategory] = useState<'it_support' | 'sap' | 'general'>('it_support');
+    const [transferReason, setTransferReason] = useState('');
+    const transferTicket = useTransferTicket();
 
     if (!ticket) return null;
 
@@ -77,6 +86,20 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                 setShowDeleteDialog(false);
                 onOpenChange(false);
             },
+        });
+    };
+
+    const handleTransfer = () => {
+        if (!ticket) return;
+        transferTicket.mutate({
+            id: ticket.id,
+            support_category: targetCategory,
+            reason: transferReason.trim() || undefined,
+        }, {
+            onSuccess: () => {
+                setShowTransferDialog(false);
+                setTransferReason('');
+            }
         });
     };
 
@@ -96,6 +119,21 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                     <Badge className={categoryStyles[ticket.support_category || 'general']} variant="outline">
                                         {categoryLabels[ticket.support_category || 'general']}
                                     </Badge>
+                                    {['admin', 'super_admin'].includes(role ?? '') && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 px-1.5 text-[11px] text-muted-foreground hover:text-foreground gap-1 border border-dashed border-border"
+                                            onClick={() => {
+                                                setTargetCategory(ticket.support_category === 'sap' ? 'it_support' : 'sap');
+                                                setShowTransferDialog(true);
+                                            }}
+                                            title="Transfer ticket to another department"
+                                        >
+                                            <ArrowLeftRight className="h-2.5 w-2.5" />
+                                            Transfer
+                                        </Button>
+                                    )}
                                     {ticket.is_recurring && (
                                         <Badge variant="outline">Recurring: {ticket.recurring_interval}</Badge>
                                     )}
@@ -397,6 +435,69 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
             </Dialog>
 
             <EditTicketDialog ticket={ticket} open={showEditDialog} onOpenChange={setShowEditDialog} />
+
+            {/* Transfer Department Dialog */}
+            <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ArrowLeftRight className="h-5 w-5 text-primary" />
+                            Transfer Department
+                        </DialogTitle>
+                        <DialogDescription>
+                            Re-route this ticket to a different support queue. The assigned manager will be automatically updated.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Department</Label>
+                            <div className="p-2.5 rounded-lg border bg-muted/30 text-sm font-medium flex items-center justify-between">
+                                <span>{categoryLabels[ticket.support_category || 'general']}</span>
+                                <Badge variant="outline" className={categoryStyles[ticket.support_category || 'general']}>Active</Badge>
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transfer To</Label>
+                            <Select value={targetCategory} onValueChange={(v) => setTargetCategory(v as any)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="it_support">🖥️ IT Support (Hardware, network, PC)</SelectItem>
+                                    <SelectItem value="sap">🗄️ SAP System (ERP, modules & access)</SelectItem>
+                                    <SelectItem value="general">🔧 General Support (Facility & equipment)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reason for Transfer (Optional)</Label>
+                            <Textarea
+                                placeholder="e.g. Requester accidentally submitted under SAP, but this is a printer error..."
+                                rows={3}
+                                value={transferReason}
+                                onChange={(e) => setTransferReason(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowTransferDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleTransfer}
+                            disabled={transferTicket.isPending || targetCategory === (ticket.support_category || 'general')}
+                            className="gap-1.5"
+                        >
+                            {transferTicket.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowLeftRight className="h-4 w-4" />}
+                            Confirm Transfer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

@@ -49,6 +49,23 @@ function ticketReference(id: string) {
   return `TKT-${id.slice(0, 8).toUpperCase()}`;
 }
 
+const SAP_KEYWORDS = [
+  'sap', 'tcode', 't-code', 'fbl3n', 'me21n', 'migo', 'miro', 'fb60', 'va01', 'me23n',
+  'su01', 'erp', 'gui', 'sap logon', 'gl account', 'purchase order', 'po approval',
+  'cost center', 'profit center', 'pr approval', 'abap', 'hana', 'bapi', 'workflow approval',
+  'fico', 'mm module', 'sd module', 'pm module', 'sap password', 'sap user', 'sap error',
+  'sap access', 't code', 'transaction code', 'idoc', 'posting', 'invoice verification'
+];
+
+const IT_KEYWORDS = [
+  'printer', 'scanner', 'photocopier', 'toner', 'cartridge', 'paper jam', 'monitor',
+  'screen', 'display', 'hdmi', 'vga', 'mouse', 'keyboard', 'laptop', 'desktop', 'pc',
+  'computer', 'cpu', 'ram', 'hard disk', 'ssd', 'wifi', 'wi-fi', 'internet', 'ethernet',
+  'lan cable', 'router', 'switch', 'outlook', 'email', 'teams', 'windows', 'blue screen',
+  'bsod', 'macbook', 'charger', 'power cable', 'ups', 'projector', 'headset', 'webcam',
+  'microphone', 'hardware', 'slow computer', 'virus', 'antivirus', 'lan'
+];
+
 function RequiredMark() {
   return <span className="text-destructive ml-0.5" aria-hidden="true">*</span>;
 }
@@ -81,12 +98,64 @@ const Requests = () => {
   const [supportCategory, setSupportCategory] = useState<'it_support' | 'sap' | 'general'>(
     (categoryParam as 'it_support' | 'sap' | 'general') || 'it_support'
   );
+  const [dismissedSuggestion, setDismissedSuggestion] = useState<string | null>(null);
 
   useEffect(() => {
     if (categoryParam && ['it_support', 'sap', 'general'].includes(categoryParam)) {
       setSupportCategory(categoryParam as 'it_support' | 'sap' | 'general');
     }
   }, [categoryParam]);
+
+  useEffect(() => {
+    setDismissedSuggestion(null);
+  }, [supportCategory]);
+
+  const smartSuggestion = useMemo(() => {
+    const text = `${formData.title || ''} ${formData.description || ''}`.toLowerCase();
+    if (!text.trim()) return null;
+
+    const findMatch = (keywords: string[]) => {
+      for (const kw of keywords) {
+        const regex = new RegExp(`(^|[^a-z0-9])${kw.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}([^a-z0-9]|$)`, 'i');
+        if (regex.test(text)) return kw;
+      }
+      return null;
+    };
+
+    // If currently NOT on SAP, but mentions SAP keywords:
+    if (supportCategory !== 'sap') {
+      const match = findMatch(SAP_KEYWORDS);
+      if (match) {
+        return {
+          target: 'sap' as const,
+          label: 'SAP System',
+          keyword: match,
+          icon: Database,
+          colorClass: 'border-teal-500/40 bg-teal-500/10 text-teal-900 dark:text-teal-200',
+          btnClass: 'bg-teal-600 hover:bg-teal-700 text-white',
+          message: `Your request mentions "${match}". It appears to be related to the SAP ERP system.`,
+        };
+      }
+    }
+
+    // If currently on SAP, but mentions IT/Hardware keywords:
+    if (supportCategory === 'sap') {
+      const match = findMatch(IT_KEYWORDS);
+      if (match) {
+        return {
+          target: 'it_support' as const,
+          label: 'IT Support',
+          keyword: match,
+          icon: Monitor,
+          colorClass: 'border-blue-500/40 bg-blue-500/10 text-blue-900 dark:text-blue-200',
+          btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+          message: `Your request mentions "${match}". It appears to be a hardware or IT support issue.`,
+        };
+      }
+    }
+
+    return null;
+  }, [formData.title, formData.description, supportCategory]);
   const [preferredDate, setPreferredDate] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] =
@@ -405,6 +474,54 @@ const Requests = () => {
                   );
                 })}
               </div>
+
+              {/* Smart Keyword Detection Banner */}
+              {smartSuggestion && dismissedSuggestion !== smartSuggestion.target && (
+                <div className={cn(
+                  'mt-2.5 p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200',
+                  smartSuggestion.colorClass
+                )}>
+                  <div className="flex items-start sm:items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-background/80 shadow-2xs shrink-0 mt-0.5 sm:mt-0">
+                      <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold">
+                        Smart Department Suggestion
+                      </p>
+                      <p className="text-xs opacity-90 mt-0.5">
+                        {smartSuggestion.message}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className={cn('h-7 px-3 text-xs gap-1 font-semibold shadow-2xs', smartSuggestion.btnClass)}
+                      onClick={() => {
+                        setSupportCategory(smartSuggestion.target);
+                        toast({
+                          title: 'Department Updated',
+                          description: `Switched routing to ${smartSuggestion.label}.`,
+                        });
+                      }}
+                    >
+                      <smartSuggestion.icon className="h-3 w-3" />
+                      Switch to {smartSuggestion.label}
+                    </Button>
+                    <button
+                      type="button"
+                      className="p-1 rounded-md opacity-60 hover:opacity-100 transition-opacity"
+                      onClick={() => setDismissedSuggestion(smartSuggestion.target)}
+                      title="Keep current department"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <p className="text-xs text-muted-foreground mt-1">
                 Your request will be automatically routed to the correct team based on this selection.
               </p>

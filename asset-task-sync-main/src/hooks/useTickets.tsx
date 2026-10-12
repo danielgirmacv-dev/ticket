@@ -74,3 +74,24 @@ export function useDeleteTicket() {
         }
     });
 }
+
+export function useTransferTicket() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, support_category, reason }: { id: string; support_category: string; reason?: string }) => {
+            const response = await laravelClient.post(`/maintenance-tickets/${id}/transfer`, {
+                support_category,
+                reason,
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['tickets'] });
+            toast.success('Ticket transferred successfully');
+        },
+        onError: (error) => {
+            toast.error(getApiErrorMessage(error, 'Failed to transfer ticket'));
+        }
+    });
+}

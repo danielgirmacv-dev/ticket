@@ -309,6 +309,7 @@ class MaintenanceTicketController extends Controller
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'type' => 'sometimes|in:maintenance,repair,installation,inspection,other',
+            'support_category' => 'sometimes|in:it_support,sap,general',
             'status' => 'sometimes|in:submitted,approved,rejected,assigned,in_progress,completed_pending_review,completed,reopened,cancelled',
             'priority' => 'sometimes|in:low,medium,high,critical',
             'asset_id' => 'nullable|uuid|exists:assets,id',
@@ -661,5 +662,133 @@ class MaintenanceTicketController extends Controller
         }
 
         return response()->json($ticket);
+    }
+
+    /**
+     * Resolve and assign the best manager for a given support category.
+     */
+    private function assignManagerForCategory(MaintenanceTicket $ticket, string $category): ?\App\Models\User
+    {
+        $categoryDeptMap = [
+            'it_support' => ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'],
+            'sap'        => ['sap', 'sap deployment', 'erp', 'enterprise systems'],
+            'general'    => ['general', 'general management', 'administration', 'admin'],
+        ];
+
+        if (isset($categoryDeptMap[$category])) {
+            $keywords = (array) $categoryDeptMap[$category];
+
+            $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                ->whereHas('profile', function ($q) use ($keywords) {
+                    $q->where(function ($sub) use ($keywords) {
+                        foreach ($keywords as $kw) {
+                            $sub->orWhereRaw('LOWER(department) LIKE ?', ['%' . strtolower($kw) . '%']);
+                        }
+                    });
+                })
+                ->first();
+
+            if (! $matchingManager && $category === 'it_support') {
+                $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                    ->where(function ($q) {
+                        $q->whereRaw('LOWER(email) LIKE ?', ['%it%'])
+                          ->orWhereRaw('LOWER(name) LIKE ?', ['%it%']);
+                    })
+                    ->first();
+            }
+
+            if ($matchingManager && $matchingManager->profile) {
+                $ticket->update(['assigned_manager_id' => $matchingManager->profile->id]);
+                return $matchingManager;
+            }
+        }
+
+        // Fallback: Location or any admin/super_admin
+        $requesterProfile    = \App\Models\Profile::find($ticket->requester_id);
+        $requesterLocationId = $requesterProfile?->location_id;
+        $fallback = null;
+
+        if ($requesterLocationId) {
+            $fallback = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                ->whereHas('profile', fn($q) => $q->where('location_id', $requesterLocationId))
+                ->first();
+        }
+
+        if (! $fallback) {
+            $fallback = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                ->whereHas('profile')
+                ->where(function ($q) use ($ticket) {
+                    $q->whereDoesntHave('profile', fn($p) => $p->where('id', $ticket->requester_id));
+                })
+                ->first();
+        }
+
+        if ($fallback && $fallback->profile) {
+            $ticket->update(['assigned_manager_id' => $fallback->profile->id]);
+            return $fallback;
+        }
+
+        return null;
+    }
+
+    /**
+     * Transfer ticket to a different support department/category (Admin/Manager only).
+     */
+    public function transfer(Request $request, $id)
+    {
+        Gate::authorize('manage', MaintenanceTicket::class);
+
+        $validated = $request->validate([
+            'support_category' => 'required|in:it_support,sap,general',
+            'reason'           => 'nullable|string|max:500',
+        ]);
+
+        $ticket = MaintenanceTicket::findOrFail($id);
+        $oldCategory = $ticket->support_category ?? 'general';
+        $newCategory = $validated['support_category'];
+
+        if ($oldCategory === $newCategory) {
+            return response()->json(['message' => 'Ticket is already in this department'], 422);
+        }
+
+        $ticket->update(['support_category' => $newCategory]);
+
+        // Auto re-route to manager of the new department
+        $newManager = $this->assignManagerForCategory($ticket, $newCategory);
+
+        $categoryNames = [
+            'it_support' => 'IT Support',
+            'sap'        => 'SAP System',
+            'general'    => 'General Support',
+        ];
+        $oldLabel = $categoryNames[$oldCategory] ?? $oldCategory;
+        $newLabel = $categoryNames[$newCategory] ?? $newCategory;
+        $reasonText = !empty($validated['reason']) ? " (Reason: {$validated['reason']})" : '';
+
+        ActivityLogger::log('updated', 'Ticket', $ticket->id, "Transferred ticket from {$oldLabel} to {$newLabel}{$reasonText}");
+
+        // Notify new assigned manager
+        if ($newManager && (string)$newManager->id !== (string)auth()->id()) {
+            $this->createNotification(
+                $newManager->id,
+                'Ticket Transferred to Your Department',
+                "Ticket '{$ticket->title}' was re-routed to {$newLabel}{$reasonText}.",
+                'info',
+                "/tickets?id={$ticket->id}"
+            );
+        }
+
+        // Notify requester
+        if ($ticket->requester && $ticket->requester->user_id) {
+            $this->createNotification(
+                $ticket->requester->user_id,
+                'Ticket Department Updated',
+                "Your ticket '{$ticket->title}' has been re-routed from {$oldLabel} to {$newLabel}{$reasonText}.",
+                'info',
+                "/tickets?id={$ticket->id}"
+            );
+        }
+
+        return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'));
     }
 }
