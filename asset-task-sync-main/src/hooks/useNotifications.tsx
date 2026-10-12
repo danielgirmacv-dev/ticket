@@ -40,12 +40,28 @@ export function useMarkAsRead() {
     });
 }
 
-/** Mark ALL unread as read in one shot */
+/** Mark ALL unread as read in one shot with automatic fallback */
 export function useMarkAllRead() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: async () => {
-            await laravelClient.post('/notifications/mark-all-read');
+            const currentNotifications = qc.getQueryData<Notification[]>(['notifications']) || [];
+            const unreadIds = currentNotifications.filter(n => !n.is_read).map(n => n.id);
+            if (unreadIds.length === 0) return;
+
+            try {
+                await laravelClient.post('/notifications/mark-all-read');
+            } catch (err: any) {
+                // Fallback: If backend endpoint is 404 or 405 (e.g. cached route on production),
+                // mark each unread notification individually so it succeeds regardless
+                if (err?.response?.status === 404 || err?.response?.status === 405) {
+                    await Promise.allSettled(
+                        unreadIds.map(id => laravelClient.patch(`/notifications/${id}/mark-read`))
+                    );
+                } else {
+                    throw err;
+                }
+            }
         },
         onMutate: async () => {
             await qc.cancelQueries({ queryKey: ['notifications'] });

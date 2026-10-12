@@ -79,9 +79,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('maintenance-schedules', MaintenanceScheduleController::class);
 
     // Notifications
-    Route::apiResource('notifications', NotificationController::class);
-    Route::patch('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+    Route::patch('/notifications/{notification}/mark-read', [NotificationController::class, 'markAsRead']);
+    Route::apiResource('notifications', NotificationController::class);
 
     // Profiles
     Route::apiResource('profiles', ProfileController::class)->only(['index', 'show', 'update', 'destroy']);
