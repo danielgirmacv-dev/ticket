@@ -82,8 +82,9 @@
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 38 92% 50%;
-    --primary-foreground: 222 47% 11%;
+    /* Electric Indigo-Violet — vibrant, premium dark mode primary */
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 222 47% 18%;
     --secondary-foreground: 210 40% 98%;
@@ -91,36 +92,36 @@
     --muted: 222 47% 15%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 38 92% 50%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 239 84% 67%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 142 76% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 55%;
     --warning-foreground: 222 47% 11%;
 
-    --info: 199 89% 48%;
+    --info: 199 89% 52%;
     --info-foreground: 0 0% 100%;
 
     --border: 222 47% 18%;
     --input: 222 47% 18%;
-    --ring: 38 92% 50%;
+    --ring: 239 84% 67%;
 
     --sidebar-background: 186 100% 39%;
     /* #00ADC5 */
     --sidebar-foreground: 0 0% 100%;
     /* White text */
-    --sidebar-primary: 38 92% 50%;
-    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 15%;
     --sidebar-accent-foreground: 0 0% 100%;
     /* White text */
     --sidebar-border: 222 47% 15%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-ring: 239 84% 67%;
   }
 }
 
