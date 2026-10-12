@@ -98,9 +98,9 @@ class MaintenanceTicketController extends Controller
             'attachments.*'           => 'file|mimes:jpg,jpeg,png,gif,webp,pdf|max:5120',
         ]);
 
-        // Default category to 'it_support' if not provided
+        // Default category to 'general' if not provided (matches DB column default)
         if (! isset($validated['support_category'])) {
-            $validated['support_category'] = 'it_support';
+            $validated['support_category'] = 'general';
         }
 
         // Auto-set requester_id to authenticated user's profile if not provided
@@ -168,6 +168,7 @@ class MaintenanceTicketController extends Controller
             $categoryDeptMap = [
                 'it_support' => ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'],
                 'sap'        => ['sap', 'sap deployment', 'erp', 'enterprise systems'],
+                'general'    => ['general', 'general management', 'administration', 'admin'],
             ];
 
             $assignedManager = null;
@@ -224,6 +225,20 @@ class MaintenanceTicketController extends Controller
 
                 // Assign the first manager found as the ticket owner
                 $firstManager = $notifyUsers->first(fn($u) => $u->profile?->id !== $ticket->requester_id);
+
+                // Absolute fallback: if still no manager found, pick any admin/super_admin in the system
+                if (! $firstManager) {
+                    $firstManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+                        ->whereHas('profile')
+                        ->where(function ($q) use ($ticket) {
+                            $q->whereDoesntHave('profile', fn($p) => $p->where('id', $ticket->requester_id));
+                        })
+                        ->first();
+                    if ($firstManager) {
+                        $notifyUsers = collect([$firstManager]);
+                    }
+                }
+
                 if ($firstManager) {
                     $ticket->update(['assigned_manager_id' => $firstManager->profile->id]);
                     $assignedManager = $firstManager;
