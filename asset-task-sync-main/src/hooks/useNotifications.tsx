@@ -37,6 +37,7 @@ export function useMarkAsRead() {
         onError: (_e, _id, ctx) => {
             if (ctx?.prev) qc.setQueryData(['notifications'], ctx.prev);
         },
+        onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
     });
 }
 
@@ -45,19 +46,20 @@ export function useMarkAllRead() {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: async () => {
-            const currentNotifications = qc.getQueryData<Notification[]>(['notifications']) || [];
-            const unreadIds = currentNotifications.filter(n => !n.is_read).map(n => n.id);
-            if (unreadIds.length === 0) return;
-
             try {
+                // Primary: call the fast bulk mark-all-read endpoint
                 await laravelClient.post('/notifications/mark-all-read');
             } catch (err: any) {
                 // Fallback: If backend endpoint is 404 or 405 (e.g. cached route on production),
-                // mark each unread notification individually so it succeeds regardless
+                // fetch unread list from server and mark each one individually
                 if (err?.response?.status === 404 || err?.response?.status === 405) {
-                    await Promise.allSettled(
-                        unreadIds.map(id => laravelClient.patch(`/notifications/${id}/mark-read`))
-                    );
+                    const res = await laravelClient.get('/notifications?is_read=false');
+                    const unreadList: Notification[] = Array.isArray(res.data) ? res.data : [];
+                    if (unreadList.length > 0) {
+                        await Promise.allSettled(
+                            unreadList.map(n => laravelClient.patch(`/notifications/${n.id}/mark-read`))
+                        );
+                    }
                 } else {
                     throw err;
                 }
@@ -96,5 +98,6 @@ export function useDeleteNotification() {
         onError: (_e, _id, ctx) => {
             if (ctx?.prev) qc.setQueryData(['notifications'], ctx.prev);
         },
+        onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
     });
 }

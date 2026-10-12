@@ -49,7 +49,7 @@ class NotificationController extends Controller
     public function show(Notification $notification)
     {
         // Ensure user can only view their own notifications
-        if ($notification->user_id !== auth()->id()) {
+        if ((string)$notification->user_id !== (string)auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -62,7 +62,7 @@ class NotificationController extends Controller
     public function update(Request $request, Notification $notification)
     {
         // Ensure user can only update their own notifications
-        if ($notification->user_id !== auth()->id()) {
+        if ((string)$notification->user_id !== (string)auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -81,7 +81,7 @@ class NotificationController extends Controller
     public function markAsRead(Notification $notification)
     {
         // Ensure user can only mark their own notifications
-        if ($notification->user_id !== auth()->id()) {
+        if ((string)$notification->user_id !== (string)auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -109,7 +109,7 @@ class NotificationController extends Controller
     public function destroy(Notification $notification)
     {
         // Ensure user can only delete their own notifications
-        if ($notification->user_id !== auth()->id()) {
+        if ((string)$notification->user_id !== (string)auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

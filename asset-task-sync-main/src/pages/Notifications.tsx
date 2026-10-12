@@ -34,7 +34,7 @@ const TYPE_BG: Record<string, string> = {
 
 const NotificationsPage = () => {
     const navigate = useNavigate();
-    const [filter, setFilter] = useState<'all' | 'unread'>('all');
+    const [filter, setFilter] = useState<'all' | 'unread'>('unread');
 
     const { data: notifications = [], isLoading, refetch, isFetching } = useNotifications();
     const markAsRead  = useMarkAsRead();
