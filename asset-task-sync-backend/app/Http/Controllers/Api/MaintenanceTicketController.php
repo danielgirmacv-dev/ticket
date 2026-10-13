@@ -163,114 +163,29 @@ class MaintenanceTicketController extends Controller
         // ---------------------------------------------------------------
         try {
             $category = $ticket->support_category ?? 'it_support';
+            $assignedManager = $this->assignManagerForCategory($ticket, $category);
 
-            // Extended department keyword map — matches manager's profile->department field
-            $categoryDeptMap = [
-                'it_support' => ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'],
-                'sap'        => ['sap', 'sap deployment', 'erp', 'enterprise systems'],
-                'general'    => ['general', 'general management', 'administration', 'admin'],
-            ];
-
-            $assignedManager = null;
-
-            if (isset($categoryDeptMap[$category])) {
-                $keywords = (array) $categoryDeptMap[$category];
-
-                // Find an admin or super_admin whose department contains any of the keywords (case-insensitive)
-                $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                    ->whereHas('profile', function ($q) use ($keywords) {
-                        $q->where(function ($sub) use ($keywords) {
-                            foreach ($keywords as $kw) {
-                                $sub->orWhereRaw('LOWER(department) LIKE ?', ['%' . strtolower($kw) . '%']);
-                            }
-                        });
-                    })
-                    ->first();
-
-                // Fallback: search by user email or profile name if department didn't match
-                if (! $matchingManager && $category === 'it_support') {
-                    $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                        ->where(function ($q) {
-                            $q->whereRaw('LOWER(email) LIKE ?', ['%it%'])
-                              ->orWhereRaw('LOWER(name) LIKE ?', ['%it%']);
-                        })
-                        ->first();
-                }
-
-                if ($matchingManager && $matchingManager->profile) {
-                    $assignedManager = $matchingManager;
-                    // Set the assigned_manager_id on the ticket
-                    $ticket->update(['assigned_manager_id' => $matchingManager->profile->id]);
+            if ($assignedManager) {
+                // Notify the assigned manager (only if creator is not the manager themselves)
+                if ((string) $assignedManager->id !== (string) auth()->id()) {
+                    $categoryLabel = match ($category) {
+                        'it_support' => 'IT Support',
+                        'sap'        => 'SAP',
+                        default      => 'General',
+                    };
+                    $this->createNotification(
+                        $assignedManager->id,
+                        "New {$categoryLabel} Request",
+                        "A new {$categoryLabel} ticket '{$ticket->title}' has been routed to you.",
+                        'info',
+                        "/tickets/{$ticket->id}"
+                    );
                 }
             }
 
-            // If no category-specific manager found, fall back to location-based routing
-            if (! $assignedManager) {
-                $requesterProfile  = \App\Models\Profile::find($ticket->requester_id);
-                $requesterLocationId = $requesterProfile?->location_id;
-
-                $notifyUsers = collect();
-                if ($requesterLocationId) {
-                    $locationManagers    = \App\Models\User::role('admin')
-                        ->whereHas('profile', fn($q) => $q->where('location_id', $requesterLocationId))->get();
-                    $locationSuperAdmins = \App\Models\User::role('super_admin')
-                        ->whereHas('profile', fn($q) => $q->where('location_id', $requesterLocationId))->get();
-                    $notifyUsers = $locationManagers->merge($locationSuperAdmins);
-                }
-
-                if ($notifyUsers->isEmpty()) {
-                    $notifyUsers = \App\Models\User::role('admin')->get()
-                        ->merge(\App\Models\User::role('super_admin')->get());
-                }
-
-                // Assign the first manager found as the ticket owner
-                $firstManager = $notifyUsers->first(fn($u) => $u->profile?->id !== $ticket->requester_id);
-
-                // Absolute fallback: if still no manager found, pick any admin/super_admin in the system
-                if (! $firstManager) {
-                    $firstManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                        ->whereHas('profile')
-                        ->where(function ($q) use ($ticket) {
-                            $q->whereDoesntHave('profile', fn($p) => $p->where('id', $ticket->requester_id));
-                        })
-                        ->first();
-                    if ($firstManager) {
-                        $notifyUsers = collect([$firstManager]);
-                    }
-                }
-
-                if ($firstManager) {
-                    $ticket->update(['assigned_manager_id' => $firstManager->profile->id]);
-                    $assignedManager = $firstManager;
-                    $notifyUsers = collect([$firstManager]);
-                }
-
-                foreach ($notifyUsers as $manager) {
-                    if ($manager->profile?->id !== $ticket->requester_id) {
-                        $this->createNotification(
-                            $manager->id,
-                            'New Maintenance Request',
-                            "A new ticket '{$ticket->title}' has been submitted by {$ticket->requester?->name}.",
-                            'info',
-                            "/tickets/{$ticket->id}"
-                        );
-                    }
-                }
-            } else {
-                // Notify the category-matched manager
-                $categoryLabel = $category === 'it_support' ? 'IT Support' : ($category === 'sap' ? 'SAP' : 'General');
-                $this->createNotification(
-                    $assignedManager->id,
-                    "New {$categoryLabel} Request",
-                    "A new {$categoryLabel} ticket '{$ticket->title}' has been routed to you.",
-                    'info',
-                    "/tickets/{$ticket->id}"
-                );
-            }
-
-            // Always notify super_admins so they have full visibility
-            \App\Models\User::role('super_admin')->each(function ($superAdmin) use ($ticket) {
-                if ($superAdmin->profile?->id !== $ticket->requester_id) {
+            // Always notify super_admins for oversight (if not creator and not already notified as assigned manager)
+            \App\Models\User::role('super_admin')->each(function ($superAdmin) use ($ticket, $assignedManager) {
+                if ((string) $superAdmin->id !== (string) auth()->id() && (! $assignedManager || (string) $superAdmin->id !== (string) $assignedManager->id)) {
                     $this->createNotification(
                         $superAdmin->id,
                         'New Maintenance Request',
@@ -669,63 +584,119 @@ class MaintenanceTicketController extends Controller
      */
     private function assignManagerForCategory(MaintenanceTicket $ticket, string $category): ?\App\Models\User
     {
-        $categoryDeptMap = [
-            'it_support' => ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'],
-            'sap'        => ['sap', 'sap deployment', 'erp', 'enterprise systems'],
-            'general'    => ['general', 'general management', 'administration', 'admin'],
-        ];
+        // 1. Retrieve all managers (admin or super_admin) who have a profile
+        $managers = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
+            ->whereHas('profile')
+            ->with(['profile', 'roles'])
+            ->get();
 
-        if (isset($categoryDeptMap[$category])) {
-            $keywords = (array) $categoryDeptMap[$category];
+        if ($managers->isEmpty()) {
+            return null;
+        }
 
-            $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                ->whereHas('profile', function ($q) use ($keywords) {
-                    $q->where(function ($sub) use ($keywords) {
-                        foreach ($keywords as $kw) {
-                            $sub->orWhereRaw('LOWER(department) LIKE ?', ['%' . strtolower($kw) . '%']);
-                        }
-                    });
-                })
-                ->first();
+        // Helper to identify if a manager is exclusively for SAP
+        $isSapUser = function (\App\Models\User $user): bool {
+            $dept  = strtolower($user->profile?->department ?? '');
+            $name  = strtolower($user->name ?? '');
+            $email = strtolower($user->email ?? '');
 
-            if (! $matchingManager && $category === 'it_support') {
-                $matchingManager = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                    ->where(function ($q) {
-                        $q->whereRaw('LOWER(email) LIKE ?', ['%it%'])
-                          ->orWhereRaw('LOWER(name) LIKE ?', ['%it%']);
-                    })
-                    ->first();
+            return str_contains($dept, 'sap')
+                || str_contains($dept, 'erp')
+                || str_contains($name, 'sap')
+                || str_contains($email, 'sap')
+                || str_contains($name, 'deployment'); // Handles 'IT SAP Deployment Manager'
+        };
+
+        $assigned = null;
+
+        if ($category === 'it_support') {
+            // Priority 1: Manager whose department matches IT keywords AND is NOT an SAP user
+            $itKeywords = ['it support', 'it', 'information technology', 'helpdesk', 'tech support', 'tech', 'system admin'];
+            $assigned = $managers->first(function ($user) use ($itKeywords, $isSapUser) {
+                if ($isSapUser($user)) {
+                    return false;
+                }
+                $dept = strtolower($user->profile?->department ?? '');
+                foreach ($itKeywords as $kw) {
+                    if (str_contains($dept, $kw)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            // Priority 2: Manager whose name or email matches IT/tech keywords AND is NOT SAP
+            if (! $assigned) {
+                $assigned = $managers->first(function ($user) use ($isSapUser) {
+                    if ($isSapUser($user)) {
+                        return false;
+                    }
+                    $name  = strtolower($user->name ?? '');
+                    $email = strtolower($user->email ?? '');
+                    return preg_match('/\b(it|tech|support|helpdesk|admin)\b/i', $name)
+                        || preg_match('/\b(it|tech|support|helpdesk|admin)\b/i', $email);
+                });
             }
 
-            if ($matchingManager && $matchingManager->profile) {
-                $ticket->update(['assigned_manager_id' => $matchingManager->profile->id]);
-                return $matchingManager;
+            // Priority 3: Non-SAP super_admin (e.g. IT Manager promoted/changed to super_admin in production)
+            if (! $assigned) {
+                $assigned = $managers->first(function ($user) use ($isSapUser) {
+                    return $user->hasRole('super_admin') && ! $isSapUser($user);
+                });
+            }
+
+            // Priority 4: Any non-SAP manager
+            if (! $assigned) {
+                $assigned = $managers->first(function ($user) use ($isSapUser) {
+                    return ! $isSapUser($user);
+                });
+            }
+        } elseif ($category === 'sap') {
+            // Priority 1: Manager matching SAP in department, name, or email
+            $assigned = $managers->first(function ($user) use ($isSapUser) {
+                return $isSapUser($user);
+            });
+
+            // Fallback: If no SAP manager exists, pick any manager
+            if (! $assigned) {
+                $assigned = $managers->first();
+            }
+        } else {
+            // General category:
+            // Priority 1: Match general/admin department
+            $generalKeywords = ['general', 'general management', 'administration', 'admin'];
+            $assigned = $managers->first(function ($user) use ($generalKeywords, $isSapUser) {
+                if ($isSapUser($user)) {
+                    return false;
+                }
+                $dept = strtolower($user->profile?->department ?? '');
+                foreach ($generalKeywords as $kw) {
+                    if (str_contains($dept, $kw)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            // Priority 2: First non-SAP manager
+            if (! $assigned) {
+                $assigned = $managers->first(fn($user) => ! $isSapUser($user));
+            }
+
+            // Fallback: Any manager
+            if (! $assigned) {
+                $assigned = $managers->first();
             }
         }
 
-        // Fallback: Location or any admin/super_admin
-        $requesterProfile    = \App\Models\Profile::find($ticket->requester_id);
-        $requesterLocationId = $requesterProfile?->location_id;
-        $fallback = null;
-
-        if ($requesterLocationId) {
-            $fallback = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                ->whereHas('profile', fn($q) => $q->where('location_id', $requesterLocationId))
-                ->first();
+        // Absolute fallback if still null
+        if (! $assigned) {
+            $assigned = $managers->first();
         }
 
-        if (! $fallback) {
-            $fallback = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
-                ->whereHas('profile')
-                ->where(function ($q) use ($ticket) {
-                    $q->whereDoesntHave('profile', fn($p) => $p->where('id', $ticket->requester_id));
-                })
-                ->first();
-        }
-
-        if ($fallback && $fallback->profile) {
-            $ticket->update(['assigned_manager_id' => $fallback->profile->id]);
-            return $fallback;
+        if ($assigned && $assigned->profile) {
+            $ticket->update(['assigned_manager_id' => $assigned->profile->id]);
+            return $assigned;
         }
 
         return null;
