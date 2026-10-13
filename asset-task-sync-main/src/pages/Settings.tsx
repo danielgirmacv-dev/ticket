@@ -37,6 +37,22 @@ const Settings = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
+  // Session timeout state
+  const [sessionTimeout, setSessionTimeout] = useState(() => {
+    return localStorage.getItem('session_timeout_minutes') || '15';
+  });
+
+  const handleSessionTimeoutChange = (val: string) => {
+    setSessionTimeout(val);
+    localStorage.setItem('session_timeout_minutes', val);
+    toast({
+      title: 'Session Timeout Updated',
+      description: val === 'disabled'
+        ? 'Automatic session timeout has been disabled.'
+        : `Inactivity timeout set to ${val} minutes.`,
+    });
+  };
+
   // Telegram state
   const [telegramLinked, setTelegramLinked] = useState(false);
   const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
@@ -593,6 +609,39 @@ const Settings = () => {
                     </p>
                   </div>
                   <Switch disabled />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  Session Security & Auto-Logout
+                </CardTitle>
+                <CardDescription>
+                  Automatically logs out your account after inactivity to protect against unauthorized access on unattended devices.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border bg-muted/30">
+                  <div className="space-y-0.5">
+                    <Label className="font-semibold text-sm">Inactivity Timeout</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Session ends and redirects to login when no mouse, keyboard, or touch events occur.
+                    </p>
+                  </div>
+                  <Select value={sessionTimeout} onValueChange={handleSessionTimeoutChange}>
+                    <SelectTrigger className="w-full sm:w-[240px]">
+                      <SelectValue placeholder="Select timeout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="15">⏱️ 15 Minutes (Recommended)</SelectItem>
+                      <SelectItem value="30">⏱️ 30 Minutes</SelectItem>
+                      <SelectItem value="60">⏱️ 1 Hour</SelectItem>
+                      <SelectItem value="disabled">🚫 Disabled (Stay logged in)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>

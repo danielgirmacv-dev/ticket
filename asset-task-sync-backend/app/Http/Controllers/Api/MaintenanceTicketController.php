@@ -108,15 +108,15 @@ class MaintenanceTicketController extends Controller
             $validated['requester_id'] = auth()->user()->profile->id;
         }
 
-        // Restrict multiple pending requests for requesters
+        // Restrict pending requests for requesters (allow up to 3 active requests)
         if (auth()->user()->hasRole('requester')) {
-            $existingPendingTicket = MaintenanceTicket::where('requester_id', $validated['requester_id'])
-                ->whereIn('status', ['submitted', 'assigned', 'in_progress'])
-                ->exists();
+            $pendingCount = MaintenanceTicket::where('requester_id', $validated['requester_id'])
+                ->whereIn('status', ['submitted', 'approved', 'assigned', 'in_progress', 'reopened'])
+                ->count();
 
-            if ($existingPendingTicket) {
+            if ($pendingCount >= 3) {
                 return response()->json([
-                    'message' => 'You already have a pending request. Please wait for it to be completed before submitting a new one.',
+                    'message' => 'You already have 3 active requests in progress. Please wait for them to be completed before submitting a new one.',
                 ], 400);
             }
         }

@@ -51,6 +51,16 @@ export default function Auth() {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reason') === 'inactivity') {
+      toast.warning('Session Expired', {
+        description: 'You were automatically logged out due to inactivity for your security.',
+        duration: 6000,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     if (authLoading) return;
     const canvas = canvasRef.current;
     if (!canvas) return;

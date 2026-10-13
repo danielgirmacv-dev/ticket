@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PageLoader } from "@/components/layout/PageLoader";
+import { SessionTimeoutHandler } from "@/components/auth/SessionTimeoutHandler";
 
 import Auth from "./pages/Auth";
 const Index = lazy(() => import("./pages/Index"));
@@ -44,6 +45,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter future={{ v7_relativeSplatPath: true }}>
         <AuthProvider>
+          <SessionTimeoutHandler />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
