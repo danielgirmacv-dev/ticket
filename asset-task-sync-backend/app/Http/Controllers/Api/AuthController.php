@@ -20,6 +20,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:30',
             'telegram_username' => 'nullable|string|max:255',
             'location_id' => 'nullable|exists:locations,id',
         ]);
@@ -36,6 +37,7 @@ class AuthController extends Controller
             'user_id' => $user->id,
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
             'telegram_username' => $validated['telegram_username'] ?? null,
             'location_id' => $validated['location_id'] ?? null,
         ]);

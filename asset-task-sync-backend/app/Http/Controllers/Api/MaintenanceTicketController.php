@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\MaintenanceTicket;
 use App\Services\ActivityLogger;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class MaintenanceTicketController extends Controller
@@ -180,6 +182,16 @@ class MaintenanceTicketController extends Controller
                         'info',
                         "/tickets/{$ticket->id}"
                     );
+
+                    // Telegram: notify assigned manager
+                    $this->sendTelegramToUser(
+                        $assignedManager,
+                        "📋 *New {$categoryLabel} Ticket Submitted*\n\n"
+                        . "*#{$ticket->id}* — {$ticket->title}\n"
+                        . "Submitted by: {$ticket->requester?->name}\n"
+                        . "Priority: " . strtoupper($ticket->priority ?? 'medium') . "\n\n"
+                        . "Please log in to review and approve."
+                    );
                 }
             }
 
@@ -193,11 +205,20 @@ class MaintenanceTicketController extends Controller
                         'info',
                         "/tickets/{$ticket->id}"
                     );
+
+                    // Telegram: notify super admins
+                    $this->sendTelegramToUser(
+                        $superAdmin,
+                        "📋 *New Ticket Submitted*\n\n"
+                        . "*#{$ticket->id}* — {$ticket->title}\n"
+                        . "Submitted by: {$ticket->requester?->name}\n"
+                        . "Priority: " . strtoupper($ticket->priority ?? 'medium')
+                    );
                 }
             });
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to route ticket: ' . $e->getMessage());
+            Log::error('Failed to route ticket: ' . $e->getMessage());
         }
 
         return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'), 201);
@@ -273,7 +294,26 @@ class MaintenanceTicketController extends Controller
             ]);
         } catch (\Exception $e) {
             // Log error but don't fail the request
-            \Illuminate\Support\Facades\Log::error('Failed to create notification: '.$e->getMessage());
+            Log::error('Failed to create notification: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Helper to send Telegram message to a user (gracefully skips if not linked)
+     */
+    private function sendTelegramToUser($user, string $message): void
+    {
+        try {
+            if (! $user) {
+                return;
+            }
+            $chatId = $user->profile?->telegram_chat_id ?? null;
+            if (! $chatId) {
+                return;
+            }
+            app(TelegramService::class)->sendMessage($chatId, $message);
+        } catch (\Exception $e) {
+            Log::warning('Telegram notification failed: ' . $e->getMessage());
         }
     }
 
@@ -306,6 +346,16 @@ class MaintenanceTicketController extends Controller
                 "Your ticket '{$ticket->title}' has been approved.",
                 'success',
                 "/tickets/{$ticket->id}"
+            );
+
+            // Telegram: notify requester their ticket was approved
+            $requesterUser = \App\Models\User::find($ticket->requester->user_id);
+            $this->sendTelegramToUser(
+                $requesterUser,
+                "✅ *Ticket Approved!*\n\n"
+                . "*#{$ticket->id}* — {$ticket->title}\n"
+                . "Your request has been approved. A technician will be assigned shortly.\n"
+                . "Approved by: " . (auth()->user()->name ?? 'Administrator')
             );
         }
 
@@ -348,6 +398,16 @@ class MaintenanceTicketController extends Controller
                 'error',
                 "/tickets/{$ticket->id}"
             );
+
+            // Telegram: notify requester their ticket was rejected
+            $requesterUser = \App\Models\User::find($ticket->requester->user_id);
+            $this->sendTelegramToUser(
+                $requesterUser,
+                "❌ *Ticket Rejected*\n\n"
+                . "*#{$ticket->id}* — {$ticket->title}\n"
+                . "*Reason:* {$validated['rejection_reason']}\n\n"
+                . "You may submit a new request after addressing the issue."
+            );
         }
 
         return response()->json($ticket->load('requester'));
@@ -387,6 +447,38 @@ class MaintenanceTicketController extends Controller
                 'info',
                 "/tickets/{$ticket->id}"
             );
+
+            // Telegram: notify technician they were assigned
+            $technicianUser = \App\Models\User::find($technicianProfile->user_id);
+            $this->sendTelegramToUser(
+                $technicianUser,
+                "🔧 *Ticket Assigned to You*\n\n"
+                . "*#{$ticket->id}* — {$ticket->title}\n"
+                . "Submitted by: {$ticket->requester?->name}\n"
+                . "Priority: " . strtoupper($ticket->priority ?? 'medium') . "\n"
+                . "Scheduled: {$ticket->scheduled_date}\n\n"
+                . "Please log in to start working on this ticket."
+            );
+
+            // Also notify the requester that a technician has been assigned
+            if ($ticket->requester && $ticket->requester->user_id) {
+                $this->createNotification(
+                    $ticket->requester->user_id,
+                    'Technician Assigned',
+                    "A technician has been assigned to your ticket '{$ticket->title}'.",
+                    'info',
+                    "/tickets/{$ticket->id}"
+                );
+
+                $requesterUser = \App\Models\User::find($ticket->requester->user_id);
+                $this->sendTelegramToUser(
+                    $requesterUser,
+                    "👨‍🔧 *Technician Assigned*\n\n"
+                    . "*#{$ticket->id}* — {$ticket->title}\n"
+                    . "Technician: {$technicianProfile->name}\n"
+                    . "Your request is being handled. You'll be notified on completion."
+                );
+            }
         }
 
         return response()->json($ticket->load('assignedTechnician', 'requester'));

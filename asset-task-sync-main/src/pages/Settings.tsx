@@ -441,7 +441,7 @@ const Settings = () => {
                   Telegram Notifications
                 </CardTitle>
                 <CardDescription>
-                  Receive instant notifications via Telegram when your account is approved
+                  Receive instant Telegram messages for ticket lifecycle events — submission, approval, rejection, and technician assignment
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -462,8 +462,14 @@ const Settings = () => {
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      You'll receive approval notifications and updates directly in Telegram.
+                      You'll receive Telegram messages for these events:
                     </p>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside ml-1">
+                      <li>📋 New ticket submitted (manager notified)</li>
+                      <li>✅ Ticket approved (requester notified)</li>
+                      <li>❌ Ticket rejected (requester notified)</li>
+                      <li>🔧 Technician assigned (technician &amp; requester notified)</li>
+                    </ul>
                     <Button
                       variant="outline"
                       onClick={handleUnlinkTelegram}

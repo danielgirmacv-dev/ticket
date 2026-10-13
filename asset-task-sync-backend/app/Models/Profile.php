@@ -16,6 +16,7 @@ class Profile extends Model
         'user_id',
         'name',
         'email',
+        'phone',
         'avatar_url',
         'department',
         'telegram_username',

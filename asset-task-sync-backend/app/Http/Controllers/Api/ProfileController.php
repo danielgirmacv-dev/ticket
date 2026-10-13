@@ -48,6 +48,7 @@ class ProfileController extends Controller
 
         $rules = [
             'name' => 'sometimes|string|max:255',
+            'phone' => 'nullable|string|max:30',
             'avatar_url' => 'nullable|string',
             'department' => 'nullable|string',
             'location_id' => 'nullable|exists:locations,id',

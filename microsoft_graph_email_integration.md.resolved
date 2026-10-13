@@ -1,0 +1,441 @@
+# Microsoft Graph API Email Integration Guide (Laravel + Microsoft 365)
+
+This guide documents the integration of **Microsoft Graph API** for automated email notifications in your existing Laravel IT Ticketing System. 
+
+When a Director/Admin approves a ticket, Laravel automatically dispatches an asynchronous background job to request an OAuth2 Token from **Microsoft Entra ID** and send an HTML notification email via **Microsoft Graph API** using `system@eeigconstruction.com`.
+
+---
+
+## 🏗️ Architecture & Security Workflow
+
+```
+[User / Director Approves Ticket]
+              │
+              ▼
+[Laravel MaintenanceTicketController@approve]
+              │ (dispatches background job)
+              ▼
+[SendTicketApprovalNotification (Queue Job)]
+              │
+              ├─► 1. Requests Bearer Token via OAuth2 Client Credentials
+              │      (https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token)
+              │
+              ├─► 2. Microsoft Entra ID returns Access Token
+              │
+              └─► 3. POST https://graph.microsoft.com/v1.0/users/system@eeigconstruction.com/sendMail
+                     │
+                     ▼
+            [Exchange Online] (Enforces Application Access Policy)
+                     │
+                     ▼
+            [Recipient Mailbox] (Requester Email)
+```
+
+---
+
+## 🔒 Security Best Practices Implemented
+1. **No Stored User Passwords**: Uses OAuth2 Client Credentials grant (Application ID + Secret).
+2. **Zero Admin Impersonation**: `danielgi@eeigconstruction.com` is used **only** for administrative setup in Azure. The application uses `system@eeigconstruction.com`.
+3. **Restricted Mailbox Access (Exchange Application Access Policy)**: The application permission `Mail.Send` is locked down using PowerShell so the app **CANNOT** send emails on behalf of any other user in `@eeigconstruction.com`.
+
+---
+
+## 📋 Phase 1: Microsoft 365 & Microsoft Entra ID Configuration
+
+As the M365 Administrator (`danielgi@eeigconstruction.com`), execute the following setup steps in the **Microsoft Entra Admin Center**:
+
+### Step 1.1: Register the Application
+1. Log in to [Microsoft Entra Admin Center](https://entra.microsoft.com/).
+2. Navigate to **Identity** → **Applications** → **App registrations** → **New registration**.
+3. Enter details:
+   - **Name**: `EEIG IT Ticket System Email Service`
+   - **Supported account types**: `Accounts in this organizational directory only (Single tenant)`
+   - **Redirect URI**: Leave empty.
+4. Click **Register**.
+5. Copy and save the following credentials from the Overview tab:
+   - **Application (client) ID**
+   - **Directory (tenant) ID**
+
+### Step 1.2: Generate Client Secret
+1. In your App Registration sidebar, click **Certificates & secrets**.
+2. Click **New client secret**.
+3. Description: `Laravel Production Mailer Secret`.
+4. Expires: Select `24 months` (or your preferred policy).
+5. Click **Add**.
+6. **IMPORTANT**: Copy the secret **Value** immediately. (It will be hidden once you navigate away).
+
+### Step 1.3: Configure API Permissions
+1. In the sidebar, click **API permissions** → **Add a permission**.
+2. Select **Microsoft Graph**.
+3. Select **Application permissions** (not Delegated permissions).
+4. Search for and select: `Mail.Send`.
+5. Click **Add permissions**.
+6. Click **Grant admin consent for EEIG Construction** and confirm with **Yes**.
+
+---
+
+### Step 1.4: Restrict Mail Sending with Exchange Online Policy (CRITICAL)
+
+By default, Graph API `Mail.Send` (Application Permission) allows sending from *any* mailbox in the organization. To enforce maximum security and restrict sending **only to `system@eeigconstruction.com`**:
+
+1. Open PowerShell on your admin machine and connect to Exchange Online:
+   ```powershell
+   Install-Module -Name ExchangeOnlineManagement -AllowClobber
+   Connect-ExchangeOnline -UserPrincipalName danielgi@eeigconstruction.com
+   ```
+
+2. Create a Mail-Enabled Security Group containing only `system@eeigconstruction.com`:
+   ```powershell
+   New-DistributionGroup -Name "GraphAppAllowedMailboxes" -Type Security -Members "system@eeigconstruction.com"
+   ```
+
+3. Create the **Application Access Policy** binding your App Registration ID to the group:
+   ```powershell
+   New-ApplicationAccessPolicy `
+     -AppId "YOUR_CLIENT_ID_FROM_STEP_1.1" `
+     -PolicyScopeGroupId "GraphAppAllowedMailboxes@eeigconstruction.com" `
+     -AccessRight RestrictAccess `
+     -Description "Restrict Laravel IT Ticket App to send only from system@eeigconstruction.com"
+   ```
+
+4. Test the policy enforcement:
+   ```powershell
+   # Test allowed mailbox (Should return: Granted)
+   Test-ApplicationAccessPolicy -AppId "YOUR_CLIENT_ID_FROM_STEP_1.1" -Identity "system@eeigconstruction.com"
+
+   # Test restricted mailbox (Should return: Denied)
+   Test-ApplicationAccessPolicy -AppId "YOUR_CLIENT_ID_FROM_STEP_1.1" -Identity "danielgi@eeigconstruction.com"
+   ```
+
+---
+
+## 🛠️ Phase 2: Laravel Implementation
+
+### Step 2.1: Required Packages
+Laravel uses `guzzlehttp/guzzle` to execute REST calls to Microsoft Graph API:
+```bash
+composer require guzzlehttp/guzzle
+```
+
+### Step 2.2: `.env` Configuration
+Add the following keys to your `/asset-task-sync-backend/.env` file:
+
+```ini
+# Microsoft Graph API Credentials
+MICROSOFT_GRAPH_TENANT_ID=your-tenant-id-guid
+MICROSOFT_GRAPH_CLIENT_ID=your-client-id-guid
+MICROSOFT_GRAPH_CLIENT_SECRET=your-client-secret-value
+MICROSOFT_GRAPH_SENDER_EMAIL=system@eeigconstruction.com
+```
+
+### Step 2.3: `config/services.php` Setup
+Add the `azure_graph` array inside `config/services.php`:
+
+```php
+    'azure_graph' => [
+        'tenant_id'     => env('MICROSOFT_GRAPH_TENANT_ID'),
+        'client_id'     => env('MICROSOFT_GRAPH_CLIENT_ID'),
+        'client_secret' => env('MICROSOFT_GRAPH_CLIENT_SECRET'),
+        'sender_email'  => env('MICROSOFT_GRAPH_SENDER_EMAIL', 'system@eeigconstruction.com'),
+    ],
+```
+
+---
+
+### Step 2.4: Microsoft Graph API Service Class
+
+Create `app/Services/MicrosoftGraphService.php`:
+
+```php
+<?php
+
+namespace App\Services;
+
+use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Exception;
+
+class MicrosoftGraphService
+{
+    protected string $tenantId;
+    protected string $clientId;
+    protected string $clientSecret;
+    protected string $senderEmail;
+    protected Client $httpClient;
+
+    public function __construct()
+    {
+        $this->tenantId     = config('services.azure_graph.tenant_id');
+        $this->clientId     = config('services.azure_graph.client_id');
+        $this->clientSecret = config('services.azure_graph.client_secret');
+        $this->senderEmail  = config('services.azure_graph.sender_email');
+        $this->httpClient   = new Client();
+    }
+
+    /**
+     * Fetch OAuth2 Client Credentials Access Token (cached until expiration)
+     */
+    public function getAccessToken(): string
+    {
+        return Cache::remember('ms_graph_access_token', 3300, function () {
+            $tokenUrl = "https://login.microsoftonline.com/{$this->tenantId}/oauth2/v2.0/token";
+
+            $response = $this->httpClient->post($tokenUrl, [
+                'form_params' => [
+                    'client_id'     => $this->clientId,
+                    'client_secret' => $this->clientSecret,
+                    'scope'         => 'https://graph.microsoft.com/.default',
+                    'grant_type'    => 'client_credentials',
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            if (! isset($data['access_token'])) {
+                throw new Exception('Failed to retrieve access token from Microsoft Entra ID.');
+            }
+
+            return $data['access_token'];
+        });
+    }
+
+    /**
+     * Send email via Microsoft Graph API sendMail endpoint
+     */
+    public function sendEmail(string $toEmail, string $subject, string $htmlBody): bool
+    {
+        $accessToken = $this->getAccessToken();
+        $endpointUrl = "https://graph.microsoft.com/v1.0/users/{$this->senderEmail}/sendMail";
+
+        $payload = [
+            'message' => [
+                'subject' => $subject,
+                'body' => [
+                    'contentType' => 'HTML',
+                    'content'     => $htmlBody,
+                ],
+                'toRecipients' => [
+                    [
+                        'emailAddress' => [
+                            'address' => $toEmail,
+                        ],
+                    ],
+                ],
+            ],
+            'saveToSentItems' => 'true',
+        ];
+
+        try {
+            $response = $this->httpClient->post($endpointUrl, [
+                'headers' => [
+                    'Authorization' => "Bearer {$accessToken}",
+                    'Content-Type'  => 'application/json',
+                ],
+                'json' => $payload,
+            ]);
+
+            return $response->getStatusCode() === 202;
+        } catch (Exception $e) {
+            Log::error('Microsoft Graph sendMail failed: ' . $e->getMessage(), [
+                'to'      => $toEmail,
+                'subject' => $subject,
+            ]);
+            throw $e;
+        }
+    }
+}
+```
+
+---
+
+### Step 2.5: Queue Job for Approval Notifications
+
+Create `app/Jobs/SendTicketApprovalNotification.php`:
+
+```php
+<?php
+
+namespace App\Jobs;
+
+use App\Models\MaintenanceTicket;
+use App\Services\MicrosoftGraphService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+
+class SendTicketApprovalNotification implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+    public int $backoff = 60; // Retry after 60 seconds if Graph API rate limited
+
+    public MaintenanceTicket $ticket;
+
+    public function __construct(MaintenanceTicket $ticket)
+    {
+        $this->ticket = $ticket;
+    }
+
+    public function handle(MicrosoftGraphService $graphService): void
+    {
+        // Load ticket relationships
+        $this->ticket->load(['requester.user', 'approvedBy.user', 'asset']);
+
+        $recipientEmail = $this->ticket->requester?->user?->email;
+
+        if (! $recipientEmail) {
+            Log::warning("Skipping approval email for Ticket #{$this->ticket->id}: Requester has no valid email address.");
+            return;
+        }
+
+        // Prevent Duplicate Email Notifications via Cache Lock
+        $cacheKey = "ticket_approval_email_sent_{$this->ticket->id}";
+        if (Cache::has($cacheKey)) {
+            Log::info("Approval notification for Ticket #{$this->ticket->id} was already sent recently.");
+            return;
+        }
+
+        $subject = "IT Ticket Approved - #{$this->ticket->id}";
+        $htmlBody = $this->buildEmailHtml();
+
+        $graphService->sendEmail($recipientEmail, $subject, $htmlBody);
+
+        // Lock cache key for 24 hours to prevent duplicate triggers
+        Cache::put($cacheKey, true, now()->addHours(24));
+
+        Log::info("Ticket approval notification email successfully sent via Graph API to {$recipientEmail} for Ticket #{$this->ticket->id}");
+    }
+
+    protected function buildEmailHtml(): string
+    {
+        $ticketId     = htmlspecialchars($this->ticket->id);
+        $title        = htmlspecialchars($this->ticket->title);
+        $description  = htmlspecialchars($this->ticket->description ?? 'N/A');
+        $requester    = htmlspecialchars($this->ticket->requester?->name ?? 'Requester');
+        $approver     = htmlspecialchars($this->ticket->approvedBy?->name ?? 'System Administrator');
+        $approvedAt   = $this->ticket->approved_at ? $this->ticket->approved_at->format('M d, Y h:i A') : now()->format('M d, Y h:i A');
+
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
+                .card { max-width: 600px; background: #ffffff; margin: 0 auto; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+                .header { background-color: #1AB1C7; color: #ffffff; padding: 20px; text-align: center; }
+                .content { padding: 24px; color: #334155; line-height: 1.6; }
+                .badge { background-color: #22c55e; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-weight: bold; font-size: 12px; }
+                .table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+                .table td { padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+                .label { font-weight: bold; color: #64748b; width: 140px; }
+                .footer { text-align: center; padding: 16px; background-color: #f8fafc; color: #94a3b8; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div class='card'>
+                <div class='header'>
+                    <h2 style='margin:0;'>EEIG Construction - IT Ticket Approved</h2>
+                </div>
+                <div class='content'>
+                    <p>Hello <strong>{$requester}</strong>,</p>
+                    <p>Your IT Support request has been reviewed and <span class='badge'>APPROVED</span>.</p>
+                    
+                    <table class='table'>
+                        <tr><td class='label'>Ticket Number:</td><td>#{$ticketId}</td></tr>
+                        <tr><td class='label'>Subject:</td><td>{$title}</td></tr>
+                        <tr><td class='label'>Description:</td><td>{$description}</td></tr>
+                        <tr><td class='label'>Approver:</td><td>{$approver}</td></tr>
+                        <tr><td class='label'>Approved Date:</td><td>{$approvedAt}</td></tr>
+                        <tr><td class='label'>Status:</td><td>Approved (Pending Assignment)</td></tr>
+                    </table>
+
+                    <p style='margin-top: 20px;'>A technician will be assigned shortly to assist you.</p>
+                </div>
+                <div class='footer'>
+                    This is an automated notification from the EEIG Construction IT Service Desk. Please do not reply directly to this email.
+                </div>
+            </div>
+        </body>
+        </html>
+        ";
+    }
+
+    public function failed(\Throwable $exception): void
+    {
+        Log::error("SendTicketApprovalNotification Job failed permanently for Ticket #{$this->ticket->id}: {$exception->getMessage()}");
+    }
+}
+```
+
+---
+
+## 🔌 Phase 3: Connecting to Existing Approval Logic
+
+In your existing `app/Http/Controllers/Api/MaintenanceTicketController.php`, locate the `approve()` method (lines 336–366) and dispatch the job right after the ticket status is updated:
+
+### Modified `approve()` Method in `MaintenanceTicketController.php`:
+
+```php
+    /**
+     * Approve a maintenance ticket (Admin only).
+     */
+    public function approve(Request $request, $id)
+    {
+        Gate::authorize('manage', MaintenanceTicket::class);
+
+        $ticket = MaintenanceTicket::findOrFail($id);
+
+        if ($ticket->status !== 'submitted') {
+            return response()->json(['message' => 'Ticket cannot be approved in current status'], 400);
+        }
+
+        $ticket->update([
+            'status' => 'approved',
+            'approved_by' => auth()->user()->profile->id,
+            'approved_at' => now(),
+        ]);
+
+        ActivityLogger::log('approved', 'Ticket', $ticket->id, "Approved ticket: {$ticket->title}");
+
+        // 1. In-App Notification to Requester
+        if ($ticket->requester && $ticket->requester->user_id) {
+            $this->createNotification(
+                $ticket->requester->user_id,
+                'Ticket Approved',
+                "Your ticket '{$ticket->title}' has been approved.",
+                'success',
+                "/tickets/{$ticket->id}"
+            );
+        }
+
+        // 2. DISPATCH MICROSOFT GRAPH API EMAIL NOTIFICATION JOB
+        \App\Jobs\SendTicketApprovalNotification::dispatch($ticket);
+
+        return response()->json($ticket->load('approvedBy', 'requester'));
+    }
+```
+
+---
+
+## ✅ Phase 4: Verification & Logging
+
+1. **Test in Local / Staging:**
+   Run the Laravel queue worker to process jobs:
+   ```bash
+   php artisan queue:work
+   ```
+2. **Approve a Ticket:**
+   Approve any submitted ticket through the Admin Dashboard interface or API endpoint `/api/tickets/{id}/approve`.
+3. **Verify Logs:**
+   Check `storage/logs/laravel.log`:
+   ```
+   [2026-08-09 21:25:00] local.INFO: Ticket approval notification email successfully sent via Graph API to user@eeigconstruction.com for Ticket #...
+   ```
+4. **Verify Recipient Inbox:**
+   The recipient receives the formatted HTML email sent from `system@eeigconstruction.com` via Exchange Online.
