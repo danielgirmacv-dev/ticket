@@ -105,6 +105,9 @@ class ProfileController extends Controller
 
         $profile->user->syncRoles([$validated['role']]);
 
+        // Role change may add/remove a manager — refresh cached ticket routing
+        MaintenanceTicketController::forgetRoutingCache();
+
         ActivityLogger::log('updated', 'User', $profile->user_id, "Updated role to {$validated['role']} for user: {$profile->name}");
 
         return response()->json(['message' => 'Role updated successfully']);
@@ -143,6 +146,9 @@ class ProfileController extends Controller
 
         $userName = $profile->name;
         $userId = $profile->user_id;
+
+        // Deleting a manager would leave a stale routing entry — refresh the cache
+        MaintenanceTicketController::forgetRoutingCache();
 
         // Delete the associated user (this will cascade delete the profile)
         $profile->user()->delete();

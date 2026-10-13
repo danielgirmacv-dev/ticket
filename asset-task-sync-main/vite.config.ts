@@ -35,7 +35,24 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      rollupOptions: {},
+        rollupOptions: {
+            output: {
+                // Split heavy vendor libs into separately cached chunks
+                manualChunks: {
+                    react: ['react', 'react-dom', 'react-router-dom'],
+                    charts: ['recharts'],
+                    radix: [
+                        '@radix-ui/react-dialog',
+                        '@radix-ui/react-dropdown-menu',
+                        '@radix-ui/react-popover',
+                        '@radix-ui/react-select',
+                        '@radix-ui/react-tabs',
+                        '@radix-ui/react-tooltip',
+                    ],
+                    query: ['@tanstack/react-query'],
+                },
+            },
+        },
     },
   };
 });

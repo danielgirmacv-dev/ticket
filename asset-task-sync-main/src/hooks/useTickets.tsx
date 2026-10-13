@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient, { MaintenanceTicket } from '@/integrations/laravel/client';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
@@ -10,8 +10,12 @@ export function useTickets() {
             const response = await laravelClient.get('/maintenance-tickets');
             return response.data;
         },
-        refetchInterval: 5000,
+        // Poll less aggressively — refetch on focus gives instant freshness without hammering the API
+        refetchInterval: 15000,
         refetchIntervalInBackground: false,
+        refetchOnWindowFocus: true,
+        staleTime: 10000,
+        placeholderData: keepPreviousData,
     });
 }
 

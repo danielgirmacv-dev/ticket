@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CompressJsonResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Gzip all JSON API responses (70–90% smaller payloads)
+        $middleware->append(CompressJsonResponse::class);
+
         $middleware->redirectTo(guests: '/login');
     })
     ->withExceptions(function (Exceptions $exceptions): void {

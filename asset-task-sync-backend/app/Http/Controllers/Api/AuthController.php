@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
@@ -207,6 +208,9 @@ class AuthController extends Controller
 
         $user->assignRole($validated['role']);
 
+        // Refresh cached manager-routing so new managers are picked up immediately
+        MaintenanceTicketController::forgetRoutingCache();
+
         return response()->json([
             'message' => 'User created successfully',
             'user' => $user->load('profile', 'roles'),
@@ -231,6 +235,9 @@ class AuthController extends Controller
         }
 
         $user->update(['status' => 'active']);
+
+        // Refresh cached manager-routing in case the user now qualifies as a manager
+        MaintenanceTicketController::forgetRoutingCache();
 
         // Notify the user
         try {

@@ -46,8 +46,26 @@ sudo journalctl -u laravel-worker -f
 - Run `php artisan config:cache` and `php artisan route:cache` after deploy.
 - Restart workers after deploy: `php artisan queue:restart`.
 
-4) Troubleshooting
+4) cPanel / shared hosting (no Supervisor, no systemd)
+
+This app deploys to cPanel shared hosting (`public/setup.php`), where you cannot run a
+persistent worker. Ticket notifications (submit/approve/reject/assign) are queued
+(`ShouldQueue`), so without a worker they pile up in the `jobs` table and are never sent.
+Run the worker from cron instead — in cPanel → Cron Jobs, add:
+
+```
+* * * * * cd /home/USER/public_html/api && php artisan queue:work --stop-when-empty --max-time=50 >> storage/logs/queue-cron.log 2>&1
+```
+
+- `--stop-when-empty` makes the process exit after draining the queue, so cron starts a
+  fresh worker every minute without piling up processes.
+- Replace the path with the real backend path (the folder containing `artisan`).
+- Optional safety net while no worker exists: `QUEUE_CONNECTION=sync` runs jobs inline,
+  slower but never loses notifications.
+
+5) Troubleshooting
 - If jobs are queued but not processed, ensure the worker is running under the same user and environment as your app.
 - Check `storage/logs/laravel.log` and `journalctl` or `stdout_logfile` for errors.
+- Check the `jobs` table row count: `SELECT COUNT(*) FROM jobs;` — if it grows, the worker/cron is not running.
 
 If you want, I can also add a small `deploy/scripts` helper (copy-and-enable script) to the repo — ask and I'll add it.

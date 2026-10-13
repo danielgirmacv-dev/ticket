@@ -20,7 +20,8 @@ class NotificationController extends Controller
             $query->where('is_read', $request->boolean('is_read'));
         }
 
-        $notifications = $query->orderBy('created_at', 'desc')->get();
+        // Keep payload small even after months of use — latest 200 only
+        $notifications = $query->orderBy('created_at', 'desc')->limit(200)->get();
 
         return response()->json($notifications);
     }

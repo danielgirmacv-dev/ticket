@@ -3,10 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendTicketApprovalNotification;
+use App\Jobs\SendTicketApprovedNotification;
+use App\Jobs\SendTicketAssignedNotification;
+use App\Jobs\SendTicketRejectedNotification;
+use App\Jobs\SendTicketSubmittedNotification;
 use App\Models\MaintenanceTicket;
 use App\Services\ActivityLogger;
-use App\Services\TelegramService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -163,63 +168,27 @@ class MaintenanceTicketController extends Controller
         // ---------------------------------------------------------------
         // Smart routing: route to the correct manager based on category
         // ---------------------------------------------------------------
+        $assignedManager = null;
         try {
             $category = $ticket->support_category ?? 'it_support';
             $assignedManager = $this->assignManagerForCategory($ticket, $category);
-
-            if ($assignedManager) {
-                // Notify the assigned manager (only if creator is not the manager themselves)
-                if ((string) $assignedManager->id !== (string) auth()->id()) {
-                    $categoryLabel = match ($category) {
-                        'it_support' => 'IT Support',
-                        'sap'        => 'SAP',
-                        default      => 'General',
-                    };
-                    $this->createNotification(
-                        $assignedManager->id,
-                        "New {$categoryLabel} Request",
-                        "A new {$categoryLabel} ticket '{$ticket->title}' has been routed to you.",
-                        'info',
-                        "/tickets/{$ticket->id}"
-                    );
-
-                    // Telegram: notify assigned manager
-                    $this->sendTelegramToUser(
-                        $assignedManager,
-                        "📋 *New {$categoryLabel} Ticket Submitted*\n\n"
-                        . "*#{$ticket->id}* — {$ticket->title}\n"
-                        . "Submitted by: {$ticket->requester?->name}\n"
-                        . "Priority: " . strtoupper($ticket->priority ?? 'medium') . "\n\n"
-                        . "Please log in to review and approve."
-                    );
-                }
-            }
-
-            // Always notify super_admins for oversight (if not creator and not already notified as assigned manager)
-            \App\Models\User::role('super_admin')->each(function ($superAdmin) use ($ticket, $assignedManager) {
-                if ((string) $superAdmin->id !== (string) auth()->id() && (! $assignedManager || (string) $superAdmin->id !== (string) $assignedManager->id)) {
-                    $this->createNotification(
-                        $superAdmin->id,
-                        'New Maintenance Request',
-                        "Ticket '{$ticket->title}' submitted — routed to assigned manager.",
-                        'info',
-                        "/tickets/{$ticket->id}"
-                    );
-
-                    // Telegram: notify super admins
-                    $this->sendTelegramToUser(
-                        $superAdmin,
-                        "📋 *New Ticket Submitted*\n\n"
-                        . "*#{$ticket->id}* — {$ticket->title}\n"
-                        . "Submitted by: {$ticket->requester?->name}\n"
-                        . "Priority: " . strtoupper($ticket->priority ?? 'medium')
-                    );
-                }
-            });
-
         } catch (\Exception $e) {
             Log::error('Failed to route ticket: ' . $e->getMessage());
         }
+
+        $categoryLabel = match ($ticket->support_category ?? 'general') {
+            'it_support' => 'IT Support',
+            'sap'        => 'SAP',
+            default      => 'General',
+        };
+
+        // Dispatch notifications to background queue — API returns instantly ⚡
+        SendTicketSubmittedNotification::dispatch(
+            $ticket,
+            $assignedManager?->id,
+            $categoryLabel,
+            auth()->id()
+        );
 
         return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'), 201);
     }
@@ -338,29 +307,9 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('approved', 'Ticket', $ticket->id, "Approved ticket: {$ticket->title}");
 
-        // Notify Requester
-        if ($ticket->requester && $ticket->requester->user_id) {
-            $this->createNotification(
-                $ticket->requester->user_id,
-                'Ticket Approved',
-                "Your ticket '{$ticket->title}' has been approved.",
-                'success',
-                "/tickets/{$ticket->id}"
-            );
-
-            // Telegram: notify requester their ticket was approved
-            $requesterUser = \App\Models\User::find($ticket->requester->user_id);
-            $this->sendTelegramToUser(
-                $requesterUser,
-                "✅ *Ticket Approved!*\n\n"
-                . "*#{$ticket->id}* — {$ticket->title}\n"
-                . "Your request has been approved. A technician will be assigned shortly.\n"
-                . "Approved by: " . (auth()->user()->name ?? 'Administrator')
-            );
-        }
-
-        // Dispatch Microsoft Graph API Email Notification Job
-        \App\Jobs\SendTicketApprovalNotification::dispatch($ticket);
+        // Dispatch background jobs — API returns instantly ⚡
+        SendTicketApprovedNotification::dispatch($ticket, auth()->user()->name ?? 'Administrator');
+        SendTicketApprovalNotification::dispatch($ticket); // Microsoft Graph email
 
         return response()->json($ticket->load('approvedBy', 'requester'));
     }
@@ -389,26 +338,8 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('rejected', 'Ticket', $ticket->id, "Rejected ticket: {$ticket->title}");
 
-        // Notify Requester
-        if ($ticket->requester && $ticket->requester->user_id) {
-            $this->createNotification(
-                $ticket->requester->user_id,
-                'Ticket Rejected',
-                "Your ticket '{$ticket->title}' was rejected. Reason: {$validated['rejection_reason']}",
-                'error',
-                "/tickets/{$ticket->id}"
-            );
-
-            // Telegram: notify requester their ticket was rejected
-            $requesterUser = \App\Models\User::find($ticket->requester->user_id);
-            $this->sendTelegramToUser(
-                $requesterUser,
-                "❌ *Ticket Rejected*\n\n"
-                . "*#{$ticket->id}* — {$ticket->title}\n"
-                . "*Reason:* {$validated['rejection_reason']}\n\n"
-                . "You may submit a new request after addressing the issue."
-            );
-        }
+        // Dispatch background job — API returns instantly ⚡
+        SendTicketRejectedNotification::dispatch($ticket, $validated['rejection_reason']);
 
         return response()->json($ticket->load('requester'));
     }
@@ -437,49 +368,8 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('assigned', 'Ticket', $ticket->id, "Assigned ticket: {$ticket->title}");
 
-        // Notify Technician
-        $technicianProfile = \App\Models\Profile::find($validated['assigned_technician_id']);
-        if ($technicianProfile && $technicianProfile->user_id) {
-            $this->createNotification(
-                $technicianProfile->user_id,
-                'New Ticket Assigned',
-                "You have been assigned to ticket '{$ticket->title}'.",
-                'info',
-                "/tickets/{$ticket->id}"
-            );
-
-            // Telegram: notify technician they were assigned
-            $technicianUser = \App\Models\User::find($technicianProfile->user_id);
-            $this->sendTelegramToUser(
-                $technicianUser,
-                "🔧 *Ticket Assigned to You*\n\n"
-                . "*#{$ticket->id}* — {$ticket->title}\n"
-                . "Submitted by: {$ticket->requester?->name}\n"
-                . "Priority: " . strtoupper($ticket->priority ?? 'medium') . "\n"
-                . "Scheduled: {$ticket->scheduled_date}\n\n"
-                . "Please log in to start working on this ticket."
-            );
-
-            // Also notify the requester that a technician has been assigned
-            if ($ticket->requester && $ticket->requester->user_id) {
-                $this->createNotification(
-                    $ticket->requester->user_id,
-                    'Technician Assigned',
-                    "A technician has been assigned to your ticket '{$ticket->title}'.",
-                    'info',
-                    "/tickets/{$ticket->id}"
-                );
-
-                $requesterUser = \App\Models\User::find($ticket->requester->user_id);
-                $this->sendTelegramToUser(
-                    $requesterUser,
-                    "👨‍🔧 *Technician Assigned*\n\n"
-                    . "*#{$ticket->id}* — {$ticket->title}\n"
-                    . "Technician: {$technicianProfile->name}\n"
-                    . "Your request is being handled. You'll be notified on completion."
-                );
-            }
-        }
+        // Dispatch background job — API returns instantly ⚡
+        SendTicketAssignedNotification::dispatch($ticket, $validated['assigned_technician_id']);
 
         return response()->json($ticket->load('assignedTechnician', 'requester'));
     }
@@ -673,8 +563,46 @@ class MaintenanceTicketController extends Controller
 
     /**
      * Resolve and assign the best manager for a given support category.
+     * Result is cached for 5 minutes — routing rules rarely change and this
+     * removes 3–4 queries from every ticket create/transfer request.
      */
     private function assignManagerForCategory(MaintenanceTicket $ticket, string $category): ?\App\Models\User
+    {
+        $cacheKey = "ticket_routing.manager.{$category}";
+
+        // Cache::remember cannot persist null, so store a sentinel for "no manager"
+        $managerId = Cache::remember($cacheKey, now()->addMinutes(5), fn () =>
+            $this->resolveManagerForCategory($category)?->id ?? 0
+        );
+
+        $assigned = $managerId ? \App\Models\User::find($managerId) : null;
+
+        // Stale entry: cached manager was deleted or lost its manager role/profile —
+        // re-resolve live and refresh the cache before giving up
+        if ($managerId && ! ($assigned && $assigned->profile && $assigned->hasAnyRole(['admin', 'super_admin']))) {
+            $assigned = $this->resolveManagerForCategory($category);
+            Cache::put($cacheKey, $assigned?->id ?? 0, now()->addMinutes(5));
+        }
+
+        if ($assigned && $assigned->profile) {
+            $ticket->update(['assigned_manager_id' => $assigned->profile->id]);
+            return $assigned;
+        }
+
+        return null;
+    }
+
+    /**
+     * Drop cached manager-routing entries (call when users/roles change).
+     */
+    public static function forgetRoutingCache(): void
+    {
+        Cache::forget('ticket_routing.manager.it_support');
+        Cache::forget('ticket_routing.manager.sap');
+        Cache::forget('ticket_routing.manager.general');
+    }
+
+    private function resolveManagerForCategory(string $category): ?\App\Models\User
     {
         // 1. Retrieve all managers (admin or super_admin) who have a profile
         $managers = \App\Models\User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))
@@ -786,12 +714,7 @@ class MaintenanceTicketController extends Controller
             $assigned = $managers->first();
         }
 
-        if ($assigned && $assigned->profile) {
-            $ticket->update(['assigned_manager_id' => $assigned->profile->id]);
-            return $assigned;
-        }
-
-        return null;
+        return $assigned;
     }
 
     /**

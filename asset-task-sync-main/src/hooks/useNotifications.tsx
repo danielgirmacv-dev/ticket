@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import laravelClient, { Notification } from '@/integrations/laravel/client';
 
 /**
@@ -13,9 +13,12 @@ export function useNotifications() {
             const res = await laravelClient.get('/notifications');
             return res.data;
         },
-        refetchInterval: 5000,
+        // 15s polling + focus refetch = fresh bell without 12 req/min per user
+        refetchInterval: 15000,
         refetchIntervalInBackground: false,
-        staleTime: 3000,
+        refetchOnWindowFocus: true,
+        staleTime: 10000,
+        placeholderData: keepPreviousData,
     });
 }
 
