@@ -28,6 +28,15 @@ class SendTicketApprovalNotification implements ShouldQueue
 
     public function handle(MicrosoftGraphService $graphService): void
     {
+        // Microsoft Graph not configured (e.g. local dev) — skip instead of
+        // retrying a call that can never succeed
+        if (empty(config('services.azure_graph.tenant_id'))
+            || empty(config('services.azure_graph.client_id'))
+            || empty(config('services.azure_graph.client_secret'))) {
+            Log::info("Microsoft Graph not configured — skipping approval email for Ticket #{$this->ticket->id}.");
+            return;
+        }
+
         // Load ticket relationships safely
         $this->ticket->load(['requester.user', 'approvedBy.user', 'asset']);
 
