@@ -43,15 +43,9 @@ class MaintenanceTicketPolicy
             return true;
         }
 
-        // Requesters can update their own tickets if they are not completed yet?
-        // Or maybe just update description?
-        // For simplicity, let's say only those with 'manage tickets' (technicians/admins) can update.
-        // But wait, requesters might need to cancel?
-
-        // Let's check if the user is the requester
-        if ($maintenanceTicket->requester_id === $user->profile->id) {
-            // Maybe allow them to update if status is pending?
-            return $maintenanceTicket->status === 'pending';
+        // Requesters can cancel their own submitted tickets
+        if ($maintenanceTicket->requester_id === $user->profile?->id) {
+            return in_array($maintenanceTicket->status, ['submitted', 'reopened']);
         }
 
         return false;

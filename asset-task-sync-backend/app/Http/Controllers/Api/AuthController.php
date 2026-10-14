@@ -176,11 +176,12 @@ class AuthController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => 'required|in:super_admin,admin,technician,requester',
-            'department' => 'nullable|string|max:255',
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|string|email|max:255|unique:users',
+            'password'    => 'required|string|min:8',
+            'role'        => 'required|in:super_admin,admin,technician,requester',
+            'department'  => 'nullable|string|max:255',
+            'phone'       => 'nullable|string|max:30',
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
@@ -199,10 +200,11 @@ class AuthController extends Controller
         ]);
 
         Profile::create([
-            'user_id' => $user->id,
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'department' => $validated['department'] ?? null,
+            'user_id'     => $user->id,
+            'name'        => $validated['name'],
+            'email'       => $validated['email'],
+            'phone'       => $validated['phone'] ?? null,
+            'department'  => $validated['department'] ?? null,
             'location_id' => $validated['location_id'] ?? null,
         ]);
 

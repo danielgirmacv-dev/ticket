@@ -52,6 +52,7 @@ interface CreateUserData {
   name: string;
   role: AppRole;
   department?: string;
+  phone?: string;
   location_id?: string;
 }
 
@@ -66,6 +67,7 @@ export function useCreateUser() {
         password: data.password,
         role: data.role,
         department: data.department || undefined,
+        phone: data.phone || undefined,
         location_id: data.location_id || undefined,
       });
 

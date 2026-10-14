@@ -64,12 +64,13 @@ const Users = () => {
   const queryClient = useQueryClient();
   const { role: currentRole, profile } = useAuth();
   const isSuperAdmin = currentRole === 'super_admin';
+  const isManager = currentRole === 'admin';
   const assignableRoles = isSuperAdmin ? ALL_ASSIGNABLE_ROLES : MANAGER_ASSIGNABLE_ROLES;
 
   const canManageUser = (user: UserWithRole) =>
     isSuperAdmin || (user.role !== 'admin' && user.role !== 'super_admin');
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('admin');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -191,6 +192,7 @@ const Users = () => {
     department: '',
     location_id: 'none',
     password: '',
+    phone: '',
   });
 
   const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
@@ -207,6 +209,7 @@ const Users = () => {
       await createUser.mutateAsync({
         ...newUser,
         location_id: newUser.location_id === 'none' ? undefined : newUser.location_id,
+        phone: newUser.phone || undefined,
       });
       setIsDialogOpen(false);
       setNewUser({
@@ -216,6 +219,7 @@ const Users = () => {
         department: '',
         location_id: 'none',
         password: '',
+        phone: '',
       });
     } catch {
       // Error toast is handled in useCreateUser
@@ -498,9 +502,13 @@ const Users = () => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
+                <DialogTitle>
+                  {isManager ? '👷 Add Technician or Requester' : 'Add New User'}
+                </DialogTitle>
                 <DialogDescription>
-                  Create a new user account with role assignment.
+                  {isManager
+                    ? 'Create a technician or requester account directly under your management.'
+                    : 'Create a new user account with role assignment.'}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -576,6 +584,16 @@ const Users = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone Number <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="e.g. +251911223344"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="password">Temporary Password</Label>
