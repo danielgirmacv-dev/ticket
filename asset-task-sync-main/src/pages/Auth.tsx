@@ -34,6 +34,7 @@ export default function Auth() {
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupTelegram, setSignupTelegram] = useState('');
@@ -309,7 +310,7 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, signupName, signupTelegram);
+    const result = await signUp(signupEmail, signupPassword, signupName, signupTelegram, signupPhone);
     setIsLoading(false);
 
     if (result.error) {
@@ -487,6 +488,23 @@ export default function Auth() {
                       disabled={isLoading}
                       className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
+                      Phone Number <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
+                    </Label>
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="+251911223344"
+                      value={signupPhone}
+                      onChange={(e) => setSignupPhone(e.target.value)}
+                      disabled={isLoading}
+                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Used for SMS notifications when available
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-telegram" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">

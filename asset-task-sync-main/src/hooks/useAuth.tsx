@@ -10,7 +10,7 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string, telegram?: string) => Promise<{ error: Error | null; isPending?: boolean; message?: string }>;
+  signUp: (email: string, password: string, name: string, telegram?: string, phone?: string) => Promise<{ error: Error | null; isPending?: boolean; message?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, telegram?: string) => {
+  const signUp = async (email: string, password: string, name: string, telegram?: string, phone?: string) => {
     try {
       const payload: Record<string, string> = {
         name,
@@ -93,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       if (telegram) {
         payload.telegram_username = telegram;
+      }
+      if (phone) {
+        payload.phone = phone;
       }
 
       const response = await laravelClient.post('/register', payload);
