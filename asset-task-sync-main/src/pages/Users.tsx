@@ -73,8 +73,13 @@ const Users = () => {
     const text = `${dept || ''} ${name || ''} ${email || ''}`.toLowerCase();
     return text.includes('sap') || text.includes('erp');
   };
+  const isFacilityEntity = (dept?: string | null, name?: string | null, email?: string | null) => {
+    const text = `${dept || ''} ${name || ''} ${email || ''}`.toLowerCase();
+    return text.includes('facility') || text.includes('facilities') || text.includes('maintenance') || text.includes('general') || text.includes('workplace');
+  };
   const isSapManager = isSapEntity(profile?.department, profile?.name, profile?.email);
-  const managerDepartment = profile?.department || (isSapManager ? 'SAP Deployment' : 'IT Support');
+  const isFacilityManager = isFacilityEntity(profile?.department, profile?.name, profile?.email);
+  const managerDepartment = profile?.department || (isSapManager ? 'SAP Deployment' : isFacilityManager ? 'Facility & Maintenance' : 'IT Support');
 
   const canManageUser = (user: UserWithRole) =>
     isSuperAdmin || (user.role !== 'admin' && user.role !== 'super_admin');
@@ -349,8 +354,16 @@ const Users = () => {
   const visibleUsers = users?.filter(user => {
     if (isManager && !isSuperAdmin && user.role === 'technician') {
       const isTechSap = isSapEntity(user.department, user.name, user.email);
-      if (isSapManager && !isTechSap) return false;
-      if (!isSapManager && isTechSap) return false;
+      const isTechFacility = isFacilityEntity(user.department, user.name, user.email);
+
+      if (isSapManager) {
+        return isTechSap;
+      }
+      if (isFacilityManager) {
+        return isTechFacility;
+      }
+      // IT Support Manager: only IT technicians (neither SAP nor Facility)
+      return !isTechSap && !isTechFacility;
     }
     return true;
   }) || [];

@@ -13,7 +13,13 @@ export function toAuthUserMessage(raw: string): string {
     return 'Invalid email or password.';
   }
 
-  if (lower.includes('already been taken') || lower.includes('already registered')) {
+  if (
+    lower.includes('already been taken') ||
+    lower.includes('already registered') ||
+    lower.includes('already exist') ||
+    lower.includes('already exists') ||
+    lower.includes('duplicate')
+  ) {
     return 'An account with this email already exists.';
   }
 

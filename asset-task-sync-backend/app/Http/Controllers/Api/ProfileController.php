@@ -41,17 +41,26 @@ class ProfileController extends Controller
             $dept = strtolower($user->profile?->department ?? '');
             $name = strtolower($user->name ?? '');
             $email = strtolower($user->email ?? '');
+
             $isSapManager = str_contains($dept, 'sap')
                 || str_contains($dept, 'erp')
                 || str_contains($name, 'sap')
                 || str_contains($email, 'sap')
                 || str_contains($name, 'deployment');
 
-            $query->where(function ($q) use ($isSapManager) {
+            $isFacilityManager = str_contains($dept, 'facility')
+                || str_contains($dept, 'facilities')
+                || str_contains($dept, 'general')
+                || str_contains($dept, 'maintenance')
+                || str_contains($dept, 'workplace')
+                || str_contains($name, 'facility')
+                || str_contains($email, 'facility');
+
+            $query->where(function ($q) use ($isSapManager, $isFacilityManager) {
                 // Non-technicians (managers, requesters) remain visible
                 $q->whereDoesntHave('user.roles', function ($rq) {
                     $rq->where('name', 'technician');
-                })->orWhere(function ($tq) use ($isSapManager) {
+                })->orWhere(function ($tq) use ($isSapManager, $isFacilityManager) {
                     if ($isSapManager) {
                         // SAP Manager only sees SAP technicians
                         $tq->where(function ($sub) {
@@ -60,17 +69,34 @@ class ProfileController extends Controller
                                 ->orWhere('name', 'like', '%sap%')
                                 ->orWhere('email', 'like', '%sap%');
                         });
+                    } elseif ($isFacilityManager) {
+                        // Facility/General Manager only sees Facility/Maintenance technicians
+                        $tq->where(function ($sub) {
+                            $sub->where('department', 'like', '%facility%')
+                                ->orWhere('department', 'like', '%facilities%')
+                                ->orWhere('department', 'like', '%maintenance%')
+                                ->orWhere('department', 'like', '%general%')
+                                ->orWhere('department', 'like', '%workplace%')
+                                ->orWhere('name', 'like', '%facility%')
+                                ->orWhere('email', 'like', '%facility%');
+                        });
                     } else {
-                        // IT Support Manager only sees non-SAP technicians
+                        // IT Support Manager sees IT technicians (neither SAP nor Facility)
                         $tq->where(function ($sub) {
                             $sub->whereNull('department')
                                 ->orWhere(function ($inner) {
                                     $inner->where('department', 'not like', '%sap%')
-                                          ->where('department', 'not like', '%erp%');
+                                          ->where('department', 'not like', '%erp%')
+                                          ->where('department', 'not like', '%facility%')
+                                          ->where('department', 'not like', '%facilities%')
+                                          ->where('department', 'not like', '%maintenance%')
+                                          ->where('department', 'not like', '%workplace%');
                                 });
                         })
                         ->where('name', 'not like', '%sap%')
-                        ->where('email', 'not like', '%sap%');
+                        ->where('email', 'not like', '%sap%')
+                        ->where('name', 'not like', '%facility%')
+                        ->where('email', 'not like', '%facility%');
                     }
                 });
             });

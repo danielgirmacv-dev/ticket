@@ -368,20 +368,24 @@ class MaintenanceTicketController extends Controller
             return response()->json(['message' => 'Ticket cannot be assigned in current status'], 400);
         }
 
-        // Domain isolation: ensure SAP tickets are assigned to SAP technicians, and IT tickets to IT technicians
+        // Domain isolation: ensure tickets are assigned to appropriate technicians
         $technician = Profile::find($validated['assigned_technician_id']);
         if ($technician) {
             $techDept = strtolower($technician->department ?? '');
             $techName = strtolower($technician->name ?? '');
             $techEmail = strtolower($technician->email ?? '');
             $isSapTech = str_contains($techDept, 'sap') || str_contains($techDept, 'erp') || str_contains($techName, 'sap') || str_contains($techEmail, 'sap');
+            $isFacilityTech = str_contains($techDept, 'facility') || str_contains($techDept, 'facilities') || str_contains($techDept, 'maintenance') || str_contains($techDept, 'general') || str_contains($techDept, 'workplace') || str_contains($techName, 'facility') || str_contains($techEmail, 'facility');
 
             $category = $ticket->support_category ?? 'general';
             if ($category === 'sap' && ! $isSapTech) {
                 return response()->json(['message' => 'This technician does not belong to the SAP support team.'], 422);
             }
-            if ($category === 'it_support' && $isSapTech) {
-                return response()->json(['message' => 'This technician belongs to the SAP team and cannot be assigned to IT Support tickets.'], 422);
+            if ($category === 'it_support' && ($isSapTech || $isFacilityTech)) {
+                return response()->json(['message' => 'This technician does not belong to the IT Support team.'], 422);
+            }
+            if ($category === 'general' && $isSapTech) {
+                return response()->json(['message' => 'This technician belongs to the SAP team and cannot be assigned to Facility/General tickets.'], 422);
             }
         }
 
@@ -706,15 +710,15 @@ class MaintenanceTicketController extends Controller
                 $assigned = $managers->first();
             }
         } else {
-            // General category:
-            // Priority 1: Match general/admin department
-            $generalKeywords = ['general', 'general management', 'administration', 'admin'];
-            $assigned = $managers->first(function ($user) use ($generalKeywords, $isSapUser) {
+            // General / Facility category:
+            // Priority 1: Match facility / maintenance / general department
+            $facilityKeywords = ['facility', 'facilities', 'workplace', 'maintenance', 'general management', 'general', 'operations'];
+            $assigned = $managers->first(function ($user) use ($facilityKeywords, $isSapUser) {
                 if ($isSapUser($user)) {
                     return false;
                 }
                 $dept = strtolower($user->profile?->department ?? '');
-                foreach ($generalKeywords as $kw) {
+                foreach ($facilityKeywords as $kw) {
                     if (str_contains($dept, $kw)) {
                         return true;
                     }
@@ -722,7 +726,20 @@ class MaintenanceTicketController extends Controller
                 return false;
             });
 
-            // Priority 2: First non-SAP manager
+            // Priority 2: Name or email matching facility/maintenance/general
+            if (! $assigned) {
+                $assigned = $managers->first(function ($user) use ($isSapUser) {
+                    if ($isSapUser($user)) {
+                        return false;
+                    }
+                    $name  = strtolower($user->name ?? '');
+                    $email = strtolower($user->email ?? '');
+                    return preg_match('/\b(facility|facilities|maintenance|general)\b/i', $name)
+                        || preg_match('/\b(facility|facilities|maintenance|general)\b/i', $email);
+                });
+            }
+
+            // Priority 3: Non-SAP manager
             if (! $assigned) {
                 $assigned = $managers->first(fn($user) => ! $isSapUser($user));
             }

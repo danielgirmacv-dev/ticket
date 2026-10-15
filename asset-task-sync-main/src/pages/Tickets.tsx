@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -30,35 +28,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAssets } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
-import { Plus, Search, Calendar, Clock, User, Monitor, ArrowRight, Loader2, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { TicketStatusBadge } from '@/components/tickets/TicketStatusBadge';
-import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
+import { Plus, Search, Calendar, Loader2 } from 'lucide-react';
+import { TicketCard } from '@/components/tickets/TicketCard';
+import { TicketListView } from '@/components/tickets/TicketListView';
+import { TicketStatusTabs } from '@/components/tickets/TicketStatusTabs';
+import { TicketViewToggle } from '@/components/tickets/TicketViewToggle';
 import { TicketDetailsDialog } from '@/components/tickets/TicketDetailsDialog';
 import { AssignTechnicianDialog } from '@/components/tickets/AssignTechnicianDialog';
-
-const statusStyles = {
-  pending: 'status-pending',
-  in_progress: 'status-in-progress',
-  completed: 'status-completed',
-  cancelled: 'bg-muted text-muted-foreground',
-};
-
-const priorityStyles = {
-  low:      'bg-slate-100  text-slate-700  dark:bg-slate-800  dark:text-slate-300  border border-slate-300  dark:border-slate-600',
-  medium:   'bg-blue-100   text-blue-700   dark:bg-blue-900/40 dark:text-blue-300   border border-blue-300   dark:border-blue-700',
-  high:     'bg-amber-100  text-amber-800  dark:bg-amber-900/40 dark:text-amber-300  border border-amber-300  dark:border-amber-700',
-  critical: 'bg-rose-100   text-rose-700   dark:bg-rose-900/40  dark:text-rose-300   border border-rose-300   dark:border-rose-700',
-};
-
-const priorityCardBorder = {
-  low:      'border-l-4 border-l-slate-400 dark:border-l-slate-600',
-  medium:   'border-l-4 border-l-blue-400  dark:border-l-blue-600',
-  high:     'border-l-4 border-l-amber-400 dark:border-l-amber-500',
-  critical: 'border-l-4 border-l-rose-500  dark:border-l-rose-600',
-};
+import { useTicketsViewMode } from '@/hooks/useTicketsViewMode';
 
 const Tickets = () => {
   const [searchParams] = useSearchParams();
@@ -81,6 +58,7 @@ const Tickets = () => {
   const { data: users } = useUsers();
   const createTicket = useCreateTicket();
   const { ticketId } = useParams();
+  const { viewMode, setViewMode } = useTicketsViewMode();
 
   const isSapEntity = (dept?: string | null, name?: string | null, email?: string | null) => {
     const text = `${dept || ''} ${name || ''} ${email || ''}`.toLowerCase();
@@ -168,111 +146,10 @@ const Tickets = () => {
     completed: filteredTickets.filter(t => t.status === 'completed'),
   };
 
-  const TicketCard = ({ ticket, index }: { ticket: MaintenanceTicket; index: number }) => (
-    <Card
-      className={cn(
-        'group hover:shadow-lg transition-all duration-300 cursor-pointer animate-slide-up hover:-translate-y-0.5',
-        priorityCardBorder[ticket.priority]
-      )}
-      style={{ animationDelay: `${index * 50}ms` }}
-      onClick={() => {
-        setSelectedTicket(ticket);
-        setIsDetailsOpen(true);
-      }}
-    >
-      <CardContent className="p-3 sm:p-5">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge className={cn('text-xs', priorityStyles[ticket.priority])}>
-                {ticket.priority}
-              </Badge>
-              <TicketStatusBadge status={ticket.status} />
-              {ticket.is_recurring && (
-                <Badge variant="outline" className="text-xs">
-                  Recurring
-                </Badge>
-              )}
-            </div>
-            <h3 className="font-semibold text-base group-hover:text-accent transition-colors truncate">
-              {ticket.title}
-            </h3>
-            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-              {ticket.description}
-            </p>
-          </div>
-          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-4 w-4" />
-            <span>{format(new Date(ticket.scheduled_date), 'MMM d, yyyy')}</span>
-          </div>
-          {ticket.estimated_duration && (
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4" />
-              <span>{Math.floor(ticket.estimated_duration / 60)}h {ticket.estimated_duration % 60}m</span>
-            </div>
-          )}
-        </div>
-
-        {ticket.asset && (
-          <div className="bg-muted/40 p-3 rounded-md mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-primary" />
-              <span className="font-medium text-sm">{ticket.asset.name}</span>
-            </div>
-            <div className="flex items-center gap-2 text-accent font-medium bg-accent/10 px-3 py-1.5 rounded-full self-start sm:self-auto">
-              <MapPin className="h-4 w-4" />
-              <span className="text-sm">{ticket.asset.location}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between pt-3 border-t border-border/50">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Requester:</span>
-            <div className="flex items-center gap-1.5">
-              <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-[10px] bg-muted">
-                  {ticket.requester?.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs font-medium">{ticket.requester?.name}</span>
-            </div>
-          </div>
-          {ticket.assigned_technician && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Tech:</span>
-              <div className="flex items-center gap-1.5">
-                <Avatar className="h-5 w-5">
-                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                    {ticket.assigned_technician.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs font-medium">{ticket.assigned_technician.name}</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Workflow Actions */}
-        <div className="mt-4 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
-          <TicketWorkflow
-            ticket={ticket}
-            technicians={getTechniciansForTicket(ticket)}
-            onApprove={() => {
-              setTicketToAssign(ticket);
-              setIsAssignDialogOpen(true);
-            }}
-          />
-        </div>
-      </CardContent>
-    </Card >
-  );
+  const openTicket = (ticket: MaintenanceTicket) => {
+    setSelectedTicket(ticket);
+    setIsDetailsOpen(true);
+  };
 
   if (isLoadingTickets) {
     return (
@@ -447,48 +324,50 @@ const Tickets = () => {
 
       {/* Tabs */}
       <Tabs defaultValue={searchParams.get('status') === 'submitted' ? 'pending' : searchParams.get('status') || 'all'} className="w-full">
-        <div className="overflow-x-auto pb-1">
-          <TabsList className="mb-4 inline-flex min-w-max">
-          <TabsTrigger value="all" className="gap-2">
-            All
-            <Badge variant="secondary" className="ml-1 text-xs bg-slate-100 dark:bg-slate-800">
-              {ticketsByStatus.all.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-2">
-            Pending
-            <Badge variant="secondary" className="ml-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-              {ticketsByStatus.pending.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="in_progress" className="gap-2">
-            In Progress
-            <Badge variant="secondary" className="ml-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-              {ticketsByStatus.in_progress.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="review" className="gap-2">
-            In Review
-            <Badge variant="secondary" className="ml-1 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-              {ticketsByStatus.review.length}
-            </Badge>
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="gap-2">
-            Completed
-            <Badge variant="secondary" className="ml-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-              {ticketsByStatus.completed.length}
-            </Badge>
-          </TabsTrigger>
-          </TabsList>
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-5">
+          <div className="flex-1 min-w-0 w-full">
+            <TicketStatusTabs
+              counts={{
+                all: ticketsByStatus.all.length,
+                pending: ticketsByStatus.pending.length,
+                in_progress: ticketsByStatus.in_progress.length,
+                review: ticketsByStatus.review.length,
+                completed: ticketsByStatus.completed.length,
+              }}
+            />
+          </div>
+          <TicketViewToggle value={viewMode} onChange={setViewMode} className="self-end lg:self-auto shrink-0" />
         </div>
 
         {Object.keys(ticketsByStatus).map((status) => (
           <TabsContent key={status} value={status}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {ticketsByStatus[status as keyof typeof ticketsByStatus].map((ticket, index) => (
-                <TicketCard key={ticket.id} ticket={ticket} index={index} />
-              ))}
-            </div>
+            {viewMode === 'cards' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {ticketsByStatus[status as keyof typeof ticketsByStatus].map((ticket, index) => (
+                  <TicketCard
+                    key={ticket.id}
+                    ticket={ticket}
+                    index={index}
+                    onOpen={openTicket}
+                    technicians={getTechniciansForTicket(ticket)}
+                    onApproveAssign={(t) => {
+                      setTicketToAssign(t);
+                      setIsAssignDialogOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <TicketListView
+                tickets={ticketsByStatus[status as keyof typeof ticketsByStatus]}
+                onOpen={openTicket}
+                getTechnicians={getTechniciansForTicket}
+                onApproveAssign={(t) => {
+                  setTicketToAssign(t);
+                  setIsAssignDialogOpen(true);
+                }}
+              />
+            )}
             {ticketsByStatus[status as keyof typeof ticketsByStatus].length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />

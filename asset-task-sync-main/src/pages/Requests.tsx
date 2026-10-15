@@ -65,6 +65,53 @@ const IT_KEYWORDS = [
   'microphone', 'hardware', 'slow computer', 'virus', 'antivirus', 'lan'
 ];
 
+const FACILITY_KEYWORDS = [
+  'air conditioner', 'ac', 'cooling', 'heating', 'ventilation', 'leak', 'water', 'pipe',
+  'plumbing', 'toilet', 'restroom', 'sink', 'bulb', 'light', 'lighting', 'power socket',
+  'wall socket', 'outlet', 'electricity', 'circuit breaker', 'power trip', 'generator',
+  'door lock', 'lock', 'key', 'handle', 'door', 'window', 'desk', 'chair', 'furniture',
+  'drawer', 'cabinet', 'carpet', 'paint', 'painting', 'ceiling', 'roof', 'office chair'
+];
+
+const REQUEST_TYPES_BY_CATEGORY: Record<
+  'it_support' | 'sap' | 'general',
+  Array<{ value: MaintenanceTicket['type']; label: string }>
+> = {
+  it_support: [
+    { value: 'repair', label: '🖥️ Hardware Repair (PC, Laptop, Monitor, Printer)' },
+    { value: 'maintenance', label: '🌐 Network & Wi-Fi / Connectivity Issue' },
+    { value: 'installation', label: '📦 Software Installation & Device Setup' },
+    { value: 'inspection', label: '🔍 IT Diagnostic & Hardware Inspection' },
+    { value: 'other', label: '❓ Other IT Support Request' },
+  ],
+  sap: [
+    { value: 'other', label: '🔑 User Account / Role & Authorization Request' },
+    { value: 'repair', label: '⚠️ Transaction / T-Code Error & Bug Fix' },
+    { value: 'installation', label: '⚙️ SAP Module / Authorization Config' },
+    { value: 'maintenance', label: '🔄 Data / Configuration Maintenance' },
+    { value: 'inspection', label: '📋 Authorization & Access Review' },
+  ],
+  general: [
+    { value: 'repair', label: '⚡ Electrical & Lighting (Power Sockets, Bulbs, Breaker)' },
+    { value: 'maintenance', label: '❄️ AC, Ventilation & Climate Maintenance' },
+    { value: 'installation', label: '🪑 Office Furniture & Locks (Desks, Chairs, Doors)' },
+    { value: 'inspection', label: '🚰 Plumbing & Water Fixtures (Pipes, Restroom, Leaks)' },
+    { value: 'other', label: '🏢 Building, Painting & General Workplace Maintenance' },
+  ],
+};
+
+const TITLE_PLACEHOLDERS = {
+  it_support: 'e.g., Computer not turning on, Printer paper jam, Wi-Fi keeps disconnecting',
+  sap: 'e.g., Authorization error on T-Code ME21N, Need access to SAP MM module',
+  general: 'e.g., Air conditioner leaking water in Room 204, Broken chair wheel, Dead power socket',
+};
+
+const DESCRIPTION_PLACEHOLDERS = {
+  it_support: 'Describe what happened, any error messages, and troubleshooting steps already tried...',
+  sap: 'Describe the SAP module, error message or T-Code, and what operation you were trying to perform...',
+  general: 'Describe the facility issue, specific room/floor location, urgency, and any safety hazards...',
+};
+
 function RequiredMark() {
   return <span className="text-destructive ml-0.5" aria-hidden="true">*</span>;
 }
@@ -137,8 +184,40 @@ const Requests = () => {
       }
     }
 
+    // Facility / maintenance keywords when not already on Facility:
+    if (supportCategory !== 'general') {
+      const match = findMatch(FACILITY_KEYWORDS);
+      if (match) {
+        return {
+          target: 'general' as const,
+          label: 'Facility & Maintenance',
+          keyword: match,
+          icon: Wrench,
+          colorClass: 'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100',
+          btnClass: 'bg-amber-600 hover:bg-amber-700 text-white',
+          message: `Your request mentions "${match}". It looks like a facility or workplace maintenance issue.`,
+        };
+      }
+    }
+
     // If currently on SAP, but mentions IT/Hardware keywords:
     if (supportCategory === 'sap') {
+      const match = findMatch(IT_KEYWORDS);
+      if (match) {
+        return {
+          target: 'it_support' as const,
+          label: 'IT Support',
+          keyword: match,
+          icon: Monitor,
+          colorClass: 'border-blue-500/40 bg-blue-500/10 text-blue-900 dark:text-blue-200',
+          btnClass: 'bg-blue-600 hover:bg-blue-700 text-white',
+          message: `Your request mentions "${match}". It appears to be a hardware or IT support issue.`,
+        };
+      }
+    }
+
+    // If on Facility but mentions IT keywords:
+    if (supportCategory === 'general') {
       const match = findMatch(IT_KEYWORDS);
       if (match) {
         return {
@@ -157,26 +236,7 @@ const Requests = () => {
   }, [formData.title, formData.description, supportCategory]);
 
   const handleTypeChange = (val: string) => {
-    const newType = val as MaintenanceTicket['type'];
-    setFormData((prev) => ({ ...prev, type: newType }));
-
-    if (['repair', 'maintenance', 'installation', 'inspection'].includes(newType)) {
-      if (supportCategory !== 'it_support') {
-        setSupportCategory('it_support');
-        toast({
-          title: 'Department Auto-Selected: IT Support',
-          description: `Set to IT Support for ${newType} requests. You can change this anytime above.`,
-        });
-      }
-    } else if (newType === 'other') {
-      if (supportCategory !== 'sap') {
-        setSupportCategory('sap');
-        toast({
-          title: 'Department Auto-Selected: SAP System',
-          description: 'Set to SAP System for Account / Access requests. You can change this anytime above.',
-        });
-      }
-    }
+    setFormData((prev) => ({ ...prev, type: val as MaintenanceTicket['type'] }));
   };
 
   const [preferredDate, setPreferredDate] = useState('');
@@ -185,8 +245,9 @@ const Requests = () => {
     useState<NonNullable<MaintenanceTicket['recurring_interval']>>('monthly');
   const [recurringEndsAt, setRecurringEndsAt] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [facilityRoom, setFacilityRoom] = useState('');
 
-  const showAssetField = ASSET_REQUIRED_TYPES.includes(
+  const showAssetField = supportCategory === 'it_support' && ASSET_REQUIRED_TYPES.includes(
     (formData.type || 'other') as MaintenanceTicket['type']
   );
   const isUrgent =
@@ -412,7 +473,7 @@ const Requests = () => {
               <Label htmlFor="title">Request Title<RequiredMark /></Label>
               <Input
                 id="title"
-                placeholder="e.g., Computer not starting up"
+                placeholder={TITLE_PLACEHOLDERS[supportCategory]}
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -448,8 +509,8 @@ const Requests = () => {
                   },
                   {
                     value: 'general',
-                    label: 'General',
-                    desc: 'Facility, equipment & general',
+                    label: 'Facility & Maintenance',
+                    desc: 'Electrical, plumbing, AC & furniture',
                     icon: Wrench,
                     normalStyle: 'border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 hover:bg-amber-100/70 dark:hover:bg-amber-900/40',
                     activeStyle: 'border-amber-500 bg-amber-100 dark:bg-amber-900/60 text-amber-950 dark:text-amber-50 ring-2 ring-amber-500/50 shadow-md',
@@ -561,11 +622,11 @@ const Requests = () => {
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="repair">🛠️ Repair / Hardware (IT Support)</SelectItem>
-                    <SelectItem value="maintenance">🧹 Maintenance (IT Support)</SelectItem>
-                    <SelectItem value="installation">📦 Installation / Setup (IT Support)</SelectItem>
-                    <SelectItem value="inspection">🔍 Inspection (IT Support)</SelectItem>
-                    <SelectItem value="other">🔑 Other / Account / Access (SAP System)</SelectItem>
+                    {(REQUEST_TYPES_BY_CATEGORY[supportCategory] || REQUEST_TYPES_BY_CATEGORY.it_support).map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -593,6 +654,24 @@ const Requests = () => {
                 </Select>
               </div>
             </div>
+
+            {/* Room / Facility Area for General tickets */}
+            {supportCategory === 'general' && (
+              <div className="grid gap-2 animate-in fade-in duration-200">
+                <Label htmlFor="facility-room">
+                  Room / Office / Building Area <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+                </Label>
+                <Input
+                  id="facility-room"
+                  placeholder="e.g., Building A, 2nd Floor, Room 204 / Executive Conference Room"
+                  value={facilityRoom}
+                  onChange={(e) => setFacilityRoom(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Specify the exact room or area so the facility technician can locate it immediately.
+                </p>
+              </div>
+            )}
 
             {showAssetField && (
               <div className="grid gap-2">
@@ -639,7 +718,7 @@ const Requests = () => {
               <Label htmlFor="description">Description<RequiredMark /></Label>
               <Textarea
                 id="description"
-                placeholder="Describe the issue in detail. Include error messages, symptoms, or steps already tried..."
+                placeholder={DESCRIPTION_PLACEHOLDERS[supportCategory]}
                 rows={5}
                 required
                 value={formData.description}

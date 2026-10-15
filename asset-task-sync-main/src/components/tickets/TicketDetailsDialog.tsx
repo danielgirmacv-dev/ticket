@@ -57,14 +57,14 @@ const priorityStyles = {
 
 const categoryLabels = {
     it_support: 'IT Support',
-    sap: 'System Related Issue',
-    general: 'General Support',
+    sap: 'System Related Issue (SAP)',
+    general: 'Facility & Maintenance',
 };
 
 const categoryStyles = {
     it_support: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
     sap: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200 dark:border-teal-800',
-    general: 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300 border-slate-200 dark:border-slate-800',
+    general: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
 };
 
 export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = [], onApprove }: TicketDetailsDialogProps) {
@@ -125,7 +125,9 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                             size="sm"
                                             className="h-5 px-1.5 text-[11px] text-muted-foreground hover:text-foreground gap-1 border border-dashed border-border"
                                             onClick={() => {
-                                                setTargetCategory(ticket.support_category === 'sap' ? 'it_support' : 'sap');
+                                                const current = ticket.support_category || 'general';
+                                                const next = current === 'it_support' ? 'sap' : current === 'sap' ? 'general' : 'it_support';
+                                                setTargetCategory(next);
                                                 setShowTransferDialog(true);
                                             }}
                                             title="Transfer ticket to another department"

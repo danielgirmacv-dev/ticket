@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
 import { CheckCircle, XCircle, UserPlus, Play, CheckCheck, Star, Wrench } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const parseSpareParts = (text: string) =>
     text.split('\n').filter(Boolean).map((line) => ({ name: line.trim(), quantity: 1 }));
@@ -35,9 +36,18 @@ interface TicketWorkflowProps {
     ticket: MaintenanceTicket;
     technicians?: Array<{ id: string; name: string }>;
     onApprove?: () => void;
+    /** Cancel ticket is only shown in detail view by default */
+    showCancel?: boolean;
+    compact?: boolean;
 }
 
-export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWorkflowProps) {
+export function TicketWorkflow({
+    ticket,
+    technicians = [],
+    onApprove,
+    showCancel = true,
+    compact = false,
+}: TicketWorkflowProps) {
     const { role, profile } = useAuth();
     const [showRejectDialog, setShowRejectDialog] = useState(false);
     const [showAssignDialog, setShowAssignDialog] = useState(false);
@@ -84,9 +94,18 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
         setShowProgressDialog(false);
     };
 
-    const cancelButton = canCancel ? (
-        <Button onClick={handleCancel} size="sm" variant="outline" className="text-destructive border-destructive/30">
-            Cancel Ticket
+    const rowClass = compact ? 'flex flex-wrap gap-1 justify-end' : 'flex flex-wrap gap-2';
+    const btnClass = compact ? 'h-7 px-2 text-[11px]' : undefined;
+    const iconClass = compact ? 'h-3 w-3 mr-1 shrink-0' : 'h-4 w-4 mr-2 shrink-0';
+
+    const cancelButton = canCancel && showCancel ? (
+        <Button
+            onClick={handleCancel}
+            size="sm"
+            variant="outline"
+            className={cn('text-destructive border-destructive/30', btnClass)}
+        >
+            {compact ? 'Cancel' : 'Cancel Ticket'}
         </Button>
     ) : null;
 
@@ -139,13 +158,13 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
     if (['admin', 'super_admin'].includes(role ?? '')) {
         if (ticket.status === 'submitted') {
             return (
-                <div className="flex flex-wrap gap-2">
-                    <Button onClick={handleApprove} size="sm" variant="default">
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                <div className={rowClass}>
+                    <Button onClick={handleApprove} size="sm" variant="default" className={btnClass}>
+                        <CheckCircle className={iconClass} />
                         Approve
                     </Button>
-                    <Button onClick={() => setShowRejectDialog(true)} size="sm" variant="destructive">
-                        <XCircle className="h-4 w-4 mr-2" />
+                    <Button onClick={() => setShowRejectDialog(true)} size="sm" variant="destructive" className={btnClass}>
+                        <XCircle className={iconClass} />
                         Reject
                     </Button>
                     {cancelButton}
@@ -183,10 +202,10 @@ export function TicketWorkflow({ ticket, technicians = [], onApprove }: TicketWo
 
         if (ticket.status === 'approved') {
             return (
-                <div className="flex flex-wrap gap-2">
-                    <Button onClick={() => setShowAssignDialog(true)} size="sm">
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Assign Technician
+                <div className={rowClass}>
+                    <Button onClick={() => setShowAssignDialog(true)} size="sm" className={btnClass}>
+                        <UserPlus className={iconClass} />
+                        {compact ? 'Assign' : 'Assign Technician'}
                     </Button>
                     {cancelButton}
 
