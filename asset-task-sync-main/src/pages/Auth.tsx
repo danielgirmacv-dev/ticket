@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Wrench, Shield, Users, Check, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Wrench, Shield, Users, Eye, EyeOff } from 'lucide-react';
 import { z } from 'zod';
 import {
   Dialog,
@@ -16,11 +16,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { eeccLogo } from '@/lib/branding';
+import {
+  eeccLogo,
+  brandPrimary,
+  brandPrimaryDark,
+  brandPrimaryLight,
+  brandButtonClass,
+  productName,
+  productTagline,
+  supportMailto,
+} from '@/lib/branding';
+import { ProfessionalEmailInput } from '@/components/ui/professional-email-input';
+import { validateEmail, normalizeEmail } from '@/lib/email-validation';
+import {
+  normalizeTelegram,
+  validateOptionalPhone,
+  validateOptionalTelegram,
+} from '@/lib/auth-validation';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 
-const emailSchema = z.string().email('Please enter a valid email address');
-const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const passwordSchema = z.string().min(8, 'Password must be at least 8 characters');
 const nameSchema = z.string().min(2, 'Name must be at least 2 characters');
+
+type SuccessDialogVariant = 'pending' | 'active';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -29,6 +47,7 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [successDialogVariant, setSuccessDialogVariant] = useState<SuccessDialogVariant>('pending');
   
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -43,7 +62,14 @@ export default function Auth() {
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const resetSignupForm = () => {
+    setSignupName('');
+    setSignupEmail('');
+    setSignupPhone('');
+    setSignupPassword('');
+    setSignupConfirmPassword('');
+    setSignupTelegram('');
+  };
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -61,209 +87,17 @@ export default function Auth() {
     }
   }, []);
 
-  useEffect(() => {
-    if (authLoading) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
-
-    interface Particle {
-      x: number;
-      y: number;
-      size: number;
-      speedX: number;
-      speedY: number;
-      opacity: number;
-      type: 'circle' | 'cross';
-      angle: number;
-      spinSpeed: number;
-      baseOpacity: number;
-      pulseSpeed: number;
-      pulseTime: number;
-      color: string;
-      update: (mouseX: number, mouseY: number) => void;
-      draw: (context: CanvasRenderingContext2D) => void;
-    }
-
-    const particleColors = [
-      'rgba(26, 177, 199, 0.85)',  // Company Teal
-      'rgba(45, 212, 191, 0.9)',   // Vibrant Mint
-      'rgba(56, 189, 248, 0.85)',  // Electric Blue
-      'rgba(94, 234, 212, 0.9)',   // Soft Cyan
-      'rgba(34, 211, 238, 0.85)',  // Bright Cyan
-    ];
-
-    const particles: Particle[] = [];
-    const particleCount = Math.min(150, Math.floor((width * height) / 9000));
-
-    const createParticle = (initYAtTop = false): Particle => {
-      const baseOpacity = Math.random() * 0.5 + 0.35;
-      const chosenColor = particleColors[Math.floor(Math.random() * particleColors.length)];
-      const maxDepth = height * 0.35;
-      const yVal = initYAtTop 
-        ? 0 
-        : Math.pow(Math.random(), 2.4) * maxDepth;
-      
-      return {
-        x: Math.random() * width,
-        y: yVal,
-        size: Math.random() * 3 + 2,
-        speedX: (Math.random() - 0.5) * 0.5 - 0.15,
-        speedY: (Math.random() - 0.5) * 0.2,
-        baseOpacity,
-        opacity: baseOpacity,
-        type: Math.random() > 0.4 ? 'cross' : 'circle',
-        angle: Math.random() * Math.PI * 2,
-        spinSpeed: (Math.random() - 0.5) * 0.03,
-        pulseSpeed: Math.random() * 0.02 + 0.005,
-        pulseTime: Math.random() * 100,
-        color: chosenColor,
-        update(mouseX: number, mouseY: number) {
-          this.x += this.speedX;
-          this.y += this.speedY;
-          this.angle += this.spinSpeed;
-          this.pulseTime += this.pulseSpeed;
-
-          // Wrap horizontally
-          if (this.x < -10) this.x = width + 10;
-          if (this.x > width + 10) this.x = -10;
-
-          // Respawn at top if it drifts below maxDepth or above -10
-          if (this.y > maxDepth || this.y < -10) {
-            this.y = 0;
-            this.x = Math.random() * width;
-            this.speedX = (Math.random() - 0.5) * 0.5 - 0.15;
-            this.speedY = Math.random() * 0.15;
-          }
-
-          const depthFade = Math.max(0, 1 - (this.y / maxDepth));
-          this.opacity = (this.baseOpacity + Math.sin(this.pulseTime) * 0.15) * depthFade;
-
-          // Dynamic Cursor magnetic attraction & interaction
-          if (mouseX > 0 && mouseY > 0) {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const maxDistance = 140;
-
-            if (dist < maxDistance) {
-              const force = (maxDistance - dist) / maxDistance;
-              this.x += (dx / dist) * force * 1.5;
-              this.y += (dy / dist) * force * 1.5;
-            }
-          }
-        },
-        draw(context: CanvasRenderingContext2D) {
-          if (this.opacity <= 0.01) return;
-          context.save();
-          context.globalAlpha = Math.min(1, Math.max(0.1, this.opacity));
-          
-          if (this.type === 'circle') {
-            context.fillStyle = this.color;
-            context.beginPath();
-            context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            context.fill();
-          } else {
-            context.translate(this.x, this.y);
-            context.rotate(this.angle);
-            context.strokeStyle = this.color;
-            context.lineWidth = 1.8;
-            context.beginPath();
-            context.moveTo(-this.size, 0);
-            context.lineTo(this.size, 0);
-            context.moveTo(0, -this.size);
-            context.lineTo(0, this.size);
-            context.stroke();
-          }
-          context.restore();
-        }
-      };
-    };
-
-    for (let i = 0; i < particleCount; i++) {
-      particles.push(createParticle());
-    }
-
-    let mouseX = -1000;
-    let mouseY = -1000;
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    };
-    const handleMouseLeave = () => {
-      mouseX = -1000;
-      mouseY = -1000;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
-
-    const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    };
-    window.addEventListener('resize', handleResize);
-
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // Draw connecting lines between particles near the cursor
-      if (mouseX > 0 && mouseY > 0) {
-        for (let i = 0; i < particles.length; i++) {
-          const p1 = particles[i];
-          const distToMouse = Math.hypot(mouseX - p1.x, mouseY - p1.y);
-          if (distToMouse < 150) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(mouseX, mouseY);
-            ctx.strokeStyle = `rgba(45, 212, 191, ${0.35 * (1 - distToMouse / 150)})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-
-            for (let j = i + 1; j < particles.length; j++) {
-              const p2 = particles[j];
-              const distBetween = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-              if (distBetween < 100) {
-                ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = `rgba(26, 177, 199, ${0.25 * (1 - distBetween / 100)})`;
-                ctx.lineWidth = 0.6;
-                ctx.stroke();
-              }
-            }
-          }
-        }
-      }
-
-      particles.forEach((p) => {
-        p.update(mouseX, mouseY);
-        p.draw(ctx);
-      });
-      animationFrameId = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [authLoading]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const cleanEmail = normalizeEmail(loginEmail);
+    const emailValidation = validateEmail(cleanEmail);
+    if (!emailValidation.isValid) {
+      toast.error(emailValidation.error || 'Please enter a valid email address');
+      return;
+    }
+
     try {
-      emailSchema.parse(loginEmail);
       passwordSchema.parse(loginPassword);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -273,29 +107,28 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = await signIn(cleanEmail, loginPassword);
     setIsLoading(false);
 
     if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Invalid email or password');
-      } else if (error.message.includes('Email not confirmed')) {
-        toast.error('Please confirm your email before logging in');
-      } else {
-        toast.error(error.message);
-      }
+      toast.error(error.message);
     } else {
       toast.success('Welcome back!');
-      navigate('/');
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const cleanEmail = normalizeEmail(signupEmail);
+    const emailValidation = validateEmail(cleanEmail);
+    if (!emailValidation.isValid) {
+      toast.error(emailValidation.error || 'Please enter a valid email address');
+      return;
+    }
+
     try {
       nameSchema.parse(signupName);
-      emailSchema.parse(signupEmail);
       passwordSchema.parse(signupPassword);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -309,60 +142,74 @@ export default function Auth() {
       return;
     }
 
+    const phoneError = validateOptionalPhone(signupPhone);
+    if (phoneError) {
+      toast.error(phoneError);
+      return;
+    }
+
+    const telegramError = validateOptionalTelegram(signupTelegram);
+    if (telegramError) {
+      toast.error(telegramError);
+      return;
+    }
+
+    const cleanTelegram = normalizeTelegram(signupTelegram);
+    const cleanPhone = signupPhone.trim();
+
     setIsLoading(true);
-    const result = await signUp(signupEmail, signupPassword, signupName, signupTelegram, signupPhone);
+    const result = await signUp(
+      cleanEmail,
+      signupPassword,
+      signupName.trim(),
+      cleanTelegram || undefined,
+      cleanPhone || undefined,
+    );
     setIsLoading(false);
 
     if (result.error) {
-      if (result.error.message.includes('User already registered')) {
-        toast.error('An account with this email already exists');
-      } else {
-        toast.error(result.error.message);
-      }
+      toast.error(result.error.message);
     } else if (result.isPending) {
-      setSuccessMessage(result.message || 'Registration successful! Awaiting admin approval.');
+      setSuccessDialogVariant('pending');
+      setSuccessMessage(
+        result.message ||
+          'Your registration was submitted. An administrator will review your account shortly.',
+      );
       setShowSuccessDialog(true);
-      
-      // Clear form
-      setSignupName('');
-      setSignupEmail('');
-      setSignupPassword('');
-      setSignupConfirmPassword('');
-      setSignupTelegram('');
+      resetSignupForm();
     } else {
-      setSuccessMessage('Account created successfully!');
+      setSuccessDialogVariant('active');
+      setSuccessMessage('Your account is ready. You can sign in now.');
       setShowSuccessDialog(true);
+      resetSignupForm();
     }
   };
 
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: brandPrimaryLight }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-gradient-to-tr from-[#063b46] via-[#0d5968] to-[#167b8f]">
-      {/* Dynamic Interactive Particle Canvas */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-80" />
-
-      {/* Bright Ambient Radial Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[55%] h-[55%] rounded-full bg-teal-300/25 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[55%] rounded-full bg-cyan-300/25 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[30%] right-[25%] w-[40%] h-[40%] rounded-full bg-[#1AB1C7]/20 blur-[100px] pointer-events-none" />
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
+      <AuthBackground active={!authLoading} />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo/Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white border border-white/10 mb-3 p-2 shadow-xl shadow-teal-950/20">
-            <img src={eeccLogo} alt="EEEC Logo" className="h-full w-full object-contain" />
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border border-[#1AB1C7]/40 mb-3 p-2 shadow-xl backdrop-blur-md"
+            style={{ backgroundColor: `${brandPrimary}18`, boxShadow: `0 12px 28px -8px ${brandPrimary}55` }}
+          >
+            <img src={eeccLogo} alt={`${productName} logo`} className="h-full w-full object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
-            EEC
+            {productName}
           </h1>
-          <p className="text-teal-200/60 text-sm mt-1">IT Ticket System</p>
+          <p className="text-teal-200/60 text-sm mt-1">{productTagline}</p>
         </div>
 
         <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
@@ -395,19 +242,17 @@ export default function Auth() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
-                    />
-                  </div>
+                  <ProfessionalEmailInput
+                    id="login-email"
+                    label="Email"
+                    placeholder="you@company.com"
+                    value={loginEmail}
+                    onChange={setLoginEmail}
+                    required
+                    disabled={isLoading}
+                    labelClassName="text-slate-700"
+                    inputClassName="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11"
+                  />
                   <div className="space-y-2">
                     <Label htmlFor="login-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
                     <div className="relative">
@@ -424,6 +269,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showLoginPassword ? (
@@ -433,12 +279,21 @@ export default function Auth() {
                         )}
                       </button>
                     </div>
+                    <div className="flex justify-end">
+                      <a
+                        href={supportMailto}
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: brandPrimaryDark }}
+                      >
+                        Forgot password? Contact IT support
+                      </a>
+                    </div>
                   </div>
                 </CardContent>
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    className={brandButtonClass}
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -476,19 +331,17 @@ export default function Auth() {
                       className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@company.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                      disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
-                    />
-                  </div>
+                  <ProfessionalEmailInput
+                    id="signup-email"
+                    label="Email"
+                    placeholder="you@company.com"
+                    value={signupEmail}
+                    onChange={setSignupEmail}
+                    required
+                    disabled={isLoading}
+                    labelClassName="text-slate-700"
+                    inputClassName="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11"
+                  />
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
                       Phone Number <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
@@ -502,7 +355,7 @@ export default function Auth() {
                       disabled={isLoading}
                       className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       Used for SMS notifications when available
                     </p>
                   </div>
@@ -519,7 +372,7 @@ export default function Auth() {
                       disabled={isLoading}
                       className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                     />
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-xs text-slate-400">
                       Receive instant approval notifications
                     </p>
                   </div>
@@ -539,6 +392,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showSignupPassword ? (
@@ -548,6 +402,7 @@ export default function Auth() {
                         )}
                       </button>
                     </div>
+                    <p className="text-xs text-slate-500">Use at least 8 characters.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Confirm Password</Label>
@@ -565,6 +420,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                        aria-label={showSignupConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
                       >
                         {showSignupConfirmPassword ? (
@@ -579,7 +435,7 @@ export default function Auth() {
                 <CardFooter className="pt-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold h-11 rounded-xl shadow-lg shadow-teal-600/10 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]"
+                    className={brandButtonClass}
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -600,23 +456,23 @@ export default function Auth() {
         {/* Features */}
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
           <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Shield className="h-5 w-5 mx-auto mb-2 text-teal-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Secure Access</p>
+            <Shield className="h-5 w-5 mx-auto mb-2" style={{ color: brandPrimaryLight }} />
+            <p className="text-xs font-semibold tracking-wider text-teal-200/80 uppercase">Secure Access</p>
           </div>
           <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Wrench className="h-5 w-5 mx-auto mb-2 text-emerald-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Track Tickets</p>
+            <Wrench className="h-5 w-5 mx-auto mb-2" style={{ color: brandPrimary }} />
+            <p className="text-xs font-semibold tracking-wider text-teal-200/80 uppercase">Track Tickets</p>
           </div>
           <div className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/10">
-            <Users className="h-5 w-5 mx-auto mb-2 text-cyan-400 animate-pulse" />
-            <p className="text-[10px] font-semibold tracking-wider text-teal-200/80 uppercase">Team Collab</p>
+            <Users className="h-5 w-5 mx-auto mb-2" style={{ color: brandPrimaryLight }} />
+            <p className="text-xs font-semibold tracking-wider text-teal-200/80 uppercase">Team Collab</p>
           </div>
         </div>
       </div>
 
       {/* Watermark Logo (Bottom-Right) - Logo Icon Only in Crisp White */}
       <div className="absolute bottom-8 right-8 z-0 pointer-events-none select-none flex items-center">
-        <svg className="w-12 h-12 text-white opacity-85" viewBox="0 0 100 100" fill="currentColor">
+        <svg className="w-12 h-12 opacity-90" style={{ color: brandPrimaryLight }} viewBox="0 0 100 100" fill="currentColor">
           <rect x="42" y="0" width="16" height="96" rx="8" />
           <rect x="42" y="0" width="58" height="16" rx="8" />
           <rect x="42" y="32" width="58" height="16" rx="8" />
@@ -631,14 +487,14 @@ export default function Auth() {
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="sm:max-w-md text-center p-8 border border-slate-100 bg-white shadow-2xl rounded-2xl animate-scale-up text-slate-800">
           <DialogHeader className="flex flex-col items-center justify-center space-y-4">
-            <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 text-emerald-600">
-              <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping opacity-75" />
-              <svg className="w-12 h-12 text-emerald-600 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full" style={{ backgroundColor: `${brandPrimary}18`, color: brandPrimary }}>
+              <span className="absolute inset-0 rounded-full animate-ping opacity-75" style={{ backgroundColor: `${brandPrimary}33` }} />
+              <svg className="w-12 h-12 relative z-10" style={{ color: brandPrimary }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-checkmark-draw" />
               </svg>
             </div>
             <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
-              Registration Successful!
+              {successDialogVariant === 'pending' ? 'Application submitted' : 'Account created'}
             </DialogTitle>
             <DialogDescription className="text-slate-500 text-sm max-w-sm">
               {successMessage}
@@ -648,8 +504,11 @@ export default function Auth() {
             <Button 
               onClick={() => {
                 setShowSuccessDialog(false);
+                if (successDialogVariant === 'pending') {
+                  setActiveTab('login');
+                }
               }}
-              className="w-full max-w-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+              className={`${brandButtonClass} max-w-xs py-6`}
             >
               Close
             </Button>

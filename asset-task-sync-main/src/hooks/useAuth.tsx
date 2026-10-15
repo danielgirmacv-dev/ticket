@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import laravelClient, { User, Profile } from '@/integrations/laravel/client';
 import { getApiErrorMessage } from '@/lib/api-error';
+import { toAuthUserMessage } from '@/lib/auth-messages';
 
 type AppRole = 'super_admin' | 'admin' | 'technician' | 'requester';
 
@@ -46,8 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : 'requester';
 
       setRole(userRole);
-    } catch (error) {
-      console.error('Error checking auth:', error);
+    } catch {
       localStorage.removeItem('auth_token');
       setUser(null);
       setProfile(null);
@@ -76,9 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null };
     } catch (error) {
-      console.error('Error signing in:', error);
       return {
-        error: new Error(getApiErrorMessage(error, 'Failed to sign in'))
+        error: new Error(
+          toAuthUserMessage(getApiErrorMessage(error, 'Failed to sign in')),
+        ),
       };
     }
   };
@@ -125,10 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return { error: null, isPending: false };
     } catch (error) {
-      console.error('Error signing up:', error);
       return {
-        error: new Error(getApiErrorMessage(error, 'Failed to sign up')),
-        isPending: false
+        error: new Error(
+          toAuthUserMessage(getApiErrorMessage(error, 'Failed to sign up')),
+        ),
+        isPending: false,
       };
     }
   };
@@ -136,8 +138,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await laravelClient.post('/logout');
-    } catch (error) {
-      console.error('Error signing out:', error);
+    } catch {
+      // Ignore network errors on logout; clear local session regardless.
     } finally {
       localStorage.removeItem('auth_token');
       setUser(null);

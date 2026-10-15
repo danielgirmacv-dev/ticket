@@ -26,8 +26,10 @@ laravelClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
-      // Optional: Redirect to login or dispatch logout event
-      window.location.href = '/auth';
+      const onAuthPage = window.location.pathname === '/auth' || window.location.pathname.endsWith('/auth');
+      if (!onAuthPage) {
+        window.location.href = '/auth';
+      }
     }
     return Promise.reject(error);
   }

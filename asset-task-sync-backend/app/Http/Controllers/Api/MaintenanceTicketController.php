@@ -744,7 +744,7 @@ class MaintenanceTicketController extends Controller
 
         $categoryNames = [
             'it_support' => 'IT Support',
-            'sap'        => 'SAP System',
+            'sap'        => 'System Related Issue',
             'general'    => 'General Support',
         ];
         $oldLabel = $categoryNames[$oldCategory] ?? $oldCategory;

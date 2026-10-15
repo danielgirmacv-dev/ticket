@@ -17,9 +17,13 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'email' => 'required|string|email:rfc,filter|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:30',
             'telegram_username' => 'nullable|string|max:255',
@@ -80,8 +84,12 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
+        }
+
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required|string|email:rfc,filter',
             'password' => 'required',
         ]);
 
@@ -175,9 +183,13 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
+        }
+
         $validated = $request->validate([
             'name'        => 'required|string|max:255',
-            'email'       => 'required|string|email|max:255|unique:users',
+            'email'       => 'required|string|email:rfc,filter|max:255|unique:users',
             'password'    => 'required|string|min:8',
             'role'        => 'required|in:super_admin,admin,technician,requester',
             'department'  => 'nullable|string|max:255',

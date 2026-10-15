@@ -57,7 +57,7 @@ const priorityStyles = {
 
 const categoryLabels = {
     it_support: 'IT Support',
-    sap: 'SAP System',
+    sap: 'System Related Issue',
     general: 'General Support',
 };
 
@@ -194,20 +194,20 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {ticket.images.attachments.map((file, idx) => {
                                         const isImage = file.mime.startsWith('image/');
-                                        const fileSize = file.size 
-                                            ? `${(file.size / 1024).toFixed(1)} KB` 
+                                        const fileSize = file.size
+                                            ? `${(file.size / 1024).toFixed(1)} KB`
                                             : '';
                                         return (
-                                            <div 
-                                                key={idx} 
+                                            <div
+                                                key={idx}
                                                 className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3 overflow-hidden">
                                                     {isImage ? (
                                                         <div className="h-10 w-10 rounded border overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
-                                                            <img 
-                                                                src={file.url} 
-                                                                alt={file.name} 
+                                                            <img
+                                                                src={file.url}
+                                                                alt={file.name}
                                                                 className="h-full w-full object-cover"
                                                                 onError={(e) => {
                                                                     (e.target as HTMLElement).style.display = 'none';
@@ -230,15 +230,15 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                                         )}
                                                     </div>
                                                 </div>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
-                                                    asChild 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    asChild
                                                     className="flex-shrink-0 hover:bg-muted"
                                                 >
-                                                    <a 
-                                                        href={file.url} 
-                                                        target="_blank" 
+                                                    <a
+                                                        href={file.url}
+                                                        target="_blank"
                                                         rel="noopener noreferrer"
                                                         title="Open / Download"
                                                     >

@@ -128,7 +128,7 @@ const Requests = () => {
       if (match) {
         return {
           target: 'sap' as const,
-          label: 'SAP System',
+          label: 'System Related Issue',
           keyword: match,
           icon: Database,
           colorClass: 'border-teal-500/40 bg-teal-500/10 text-teal-900 dark:text-teal-200',
@@ -440,7 +440,7 @@ const Requests = () => {
                   },
                   {
                     value: 'sap',
-                    label: 'SAP System',
+                    label: 'System-Related Issue',
                     desc: 'SAP ERP, modules & access',
                     icon: Database,
                     normalStyle: 'border-teal-200 dark:border-teal-800/60 bg-teal-50/70 dark:bg-teal-950/30 text-teal-950 dark:text-teal-100 hover:bg-teal-100/70 dark:hover:bg-teal-900/40',

@@ -54,8 +54,12 @@ class ProfileController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ];
 
+        if ($request->has('email')) {
+            $request->merge(['email' => strtolower(trim($request->email))]);
+        }
+
         if (auth()->user()->hasAnyRole(['admin', 'super_admin'])) {
-            $rules['email'] = 'sometimes|string|email|max:255|unique:users,email,'.$profile->user_id;
+            $rules['email'] = 'sometimes|string|email:rfc,filter|max:255|unique:users,email,'.$profile->user_id;
         }
 
         $validated = $request->validate($rules);

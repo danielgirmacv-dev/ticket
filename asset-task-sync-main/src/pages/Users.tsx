@@ -33,6 +33,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ProfessionalEmailInput } from '@/components/ui/professional-email-input';
+import { validateEmail, normalizeEmail, isEmailValid } from '@/lib/email-validation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,7 +147,15 @@ const Users = () => {
         if (row.length < 2 || !row[emailIdx]) continue;
 
         const name = row[nameIdx] || '';
-        const email = row[emailIdx] || '';
+        const rawEmail = row[emailIdx] || '';
+        const email = normalizeEmail(rawEmail);
+
+        if (!isEmailValid(email)) {
+          failedCount++;
+          errors.push(`Row ${i + 1} (${rawEmail}): Invalid email address format`);
+          continue;
+        }
+
         const roleStr = (row[roleIdx] || 'requester').toLowerCase();
         const role = (ALL_ASSIGNABLE_ROLES.includes(roleStr as AppRole) ? roleStr : 'requester') as AppRole;
         const department = row[deptIdx] || '';
@@ -205,9 +215,17 @@ const Users = () => {
   });
 
   const handleCreateUser = async () => {
+    const cleanEmail = normalizeEmail(newUser.email);
+    const emailValidation = validateEmail(cleanEmail);
+    if (!emailValidation.isValid) {
+      toast.error(emailValidation.error || 'Please enter a valid email address');
+      return;
+    }
+
     try {
       await createUser.mutateAsync({
         ...newUser,
+        email: cleanEmail,
         location_id: newUser.location_id === 'none' ? undefined : newUser.location_id,
         phone: newUser.phone || undefined,
       });
@@ -256,7 +274,15 @@ const Users = () => {
         location_id?: string | null;
       } = {};
       if (editFormData.name !== editingUser.name) profileUpdates.name = editFormData.name;
-      if (editFormData.email !== editingUser.email) profileUpdates.email = editFormData.email;
+      if (editFormData.email !== editingUser.email) {
+        const cleanEmail = normalizeEmail(editFormData.email);
+        const emailValidation = validateEmail(cleanEmail);
+        if (!emailValidation.isValid) {
+          toast.error(emailValidation.error || 'Please enter a valid email address');
+          return;
+        }
+        profileUpdates.email = cleanEmail;
+      }
       if (editFormData.department !== (editingUser.department || '')) {
         profileUpdates.department = editFormData.department;
       }
@@ -521,16 +547,14 @@ const Users = () => {
                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="e.g., john@company.com"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  />
-                </div>
+                <ProfessionalEmailInput
+                  id="email"
+                  label="Email Address"
+                  placeholder="e.g., john@company.com"
+                  value={newUser.email}
+                  onChange={(email) => setNewUser({ ...newUser, email })}
+                  required
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label>Role</Label>
@@ -796,15 +820,15 @@ const Users = () => {
                 disabled={!editingUser || !canManageUser(editingUser)}
               />
             </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={editFormData.email}
-                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                disabled={!editingUser || !canManageUser(editingUser)}
-              />
-            </div>
+            <ProfessionalEmailInput
+              id="edit-email"
+              label="Email"
+              placeholder="user@company.com"
+              value={editFormData.email}
+              onChange={(email) => setEditFormData({ ...editFormData, email })}
+              required
+              disabled={!editingUser || !canManageUser(editingUser)}
+            />
             <div>
               <Label>Role</Label>
               <Select
