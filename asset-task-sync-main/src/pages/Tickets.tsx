@@ -73,13 +73,51 @@ const Tickets = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState<string>('monthly');
 
-  const { role } = useAuth();
+  const { role, profile } = useAuth();
+  const isSuperAdmin = role === 'super_admin';
 
   const { data: tickets, isLoading: isLoadingTickets } = useTickets();
   const { data: assets } = useAssets();
   const { data: users } = useUsers();
   const createTicket = useCreateTicket();
   const { ticketId } = useParams();
+
+  const isSapEntity = (dept?: string | null, name?: string | null, email?: string | null) => {
+    const text = `${dept || ''} ${name || ''} ${email || ''}`.toLowerCase();
+    return text.includes('sap') || text.includes('erp');
+  };
+
+  const getTechniciansForTicket = (ticket: MaintenanceTicket | null) => {
+    const allTechs = users?.filter(u => u.role === 'technician') || [];
+    const isManagerSap = isSapEntity(profile?.department, profile?.name, profile?.email);
+
+    if (!ticket) {
+      if (isManagerSap) {
+        return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+      }
+      if (role === 'admin') {
+        return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+      }
+      return allTechs.map(u => ({ id: u.id, name: u.name }));
+    }
+
+    const category = ticket.support_category || (isManagerSap ? 'sap' : 'it_support');
+    if (category === 'sap') {
+      return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+    }
+    if (category === 'it_support') {
+      return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+    }
+
+    // General tickets:
+    if (isManagerSap) {
+      return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+    }
+    if (role === 'admin') {
+      return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+    }
+    return allTechs.map(u => ({ id: u.id, name: u.name }));
+  };
 
   useEffect(() => {
     if (ticketId && tickets) {
@@ -225,10 +263,7 @@ const Tickets = () => {
         <div className="mt-4 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
           <TicketWorkflow
             ticket={ticket}
-            technicians={users?.filter(u => u.role === 'technician').map(u => ({
-              id: u.id,
-              name: u.name
-            })) || []}
+            technicians={getTechniciansForTicket(ticket)}
             onApprove={() => {
               setTicketToAssign(ticket);
               setIsAssignDialogOpen(true);
@@ -474,10 +509,7 @@ const Tickets = () => {
         ticket={selectedTicket}
         open={isDetailsOpen}
         onOpenChange={setIsDetailsOpen}
-        technicians={users?.filter(u => u.role === 'technician').map(u => ({
-          id: u.id,
-          name: u.name
-        })) || []}
+        technicians={getTechniciansForTicket(selectedTicket)}
         onApprove={() => {
           setTicketToAssign(selectedTicket);
           setIsAssignDialogOpen(true);
@@ -488,10 +520,7 @@ const Tickets = () => {
         open={isAssignDialogOpen}
         onOpenChange={setIsAssignDialogOpen}
         ticket={ticketToAssign}
-        technicians={users?.filter(u => u.role === 'technician').map(u => ({
-          id: u.id,
-          name: u.name
-        })) || []}
+        technicians={getTechniciansForTicket(ticketToAssign)}
       />
     </DashboardLayout >
   );

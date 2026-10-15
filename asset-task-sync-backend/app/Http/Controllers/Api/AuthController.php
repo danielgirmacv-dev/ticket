@@ -222,23 +222,54 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'status' => 'active',
-        ]);
+        // Managers only create technicians for their own department team
+        if ($admin->hasRole('admin') && ! $admin->hasRole('super_admin')) {
+            $adminDept = $admin->profile?->department;
+            $adminName = strtolower($admin->name ?? '');
+            $adminEmail = strtolower($admin->email ?? '');
+            $isSapManager = str_contains(strtolower($adminDept ?? ''), 'sap')
+                || str_contains(strtolower($adminDept ?? ''), 'erp')
+                || str_contains($adminName, 'sap')
+                || str_contains($adminEmail, 'sap')
+                || str_contains($adminName, 'deployment');
 
-        Profile::create([
-            'user_id'     => $user->id,
-            'name'        => $validated['name'],
-            'email'       => $validated['email'],
-            'phone'       => $validated['phone'] ?? null,
-            'department'  => $validated['department'] ?? null,
-            'location_id' => $validated['location_id'] ?? null,
-        ]);
+            if ($validated['role'] === 'technician') {
+                if (empty($validated['department'])) {
+                    $validated['department'] = $adminDept ?: ($isSapManager ? 'SAP Deployment' : 'IT Support');
+                } else {
+                    $selectedDept = strtolower($validated['department']);
+                    $isSapDept = str_contains($selectedDept, 'sap') || str_contains($selectedDept, 'erp');
+                    if ($isSapManager && ! $isSapDept) {
+                        return response()->json(['message' => 'SAP managers can only create technicians for the SAP team.'], 422);
+                    }
+                    if (! $isSapManager && $isSapDept) {
+                        return response()->json(['message' => 'IT Support managers cannot create technicians for the SAP team.'], 422);
+                    }
+                }
+            }
+        }
 
-        $user->assignRole($validated['role']);
+        $user = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'status' => 'active',
+            ]);
+
+            Profile::create([
+                'user_id'     => $user->id,
+                'name'        => $validated['name'],
+                'email'       => $validated['email'],
+                'phone'       => $validated['phone'] ?? null,
+                'department'  => $validated['department'] ?? null,
+                'location_id' => $validated['location_id'] ?? null,
+            ]);
+
+            $user->assignRole($validated['role']);
+
+            return $user;
+        });
 
         // Refresh cached manager-routing so new managers are picked up immediately
         MaintenanceTicketController::forgetRoutingCache();

@@ -368,6 +368,23 @@ class MaintenanceTicketController extends Controller
             return response()->json(['message' => 'Ticket cannot be assigned in current status'], 400);
         }
 
+        // Domain isolation: ensure SAP tickets are assigned to SAP technicians, and IT tickets to IT technicians
+        $technician = Profile::find($validated['assigned_technician_id']);
+        if ($technician) {
+            $techDept = strtolower($technician->department ?? '');
+            $techName = strtolower($technician->name ?? '');
+            $techEmail = strtolower($technician->email ?? '');
+            $isSapTech = str_contains($techDept, 'sap') || str_contains($techDept, 'erp') || str_contains($techName, 'sap') || str_contains($techEmail, 'sap');
+
+            $category = $ticket->support_category ?? 'general';
+            if ($category === 'sap' && ! $isSapTech) {
+                return response()->json(['message' => 'This technician does not belong to the SAP support team.'], 422);
+            }
+            if ($category === 'it_support' && $isSapTech) {
+                return response()->json(['message' => 'This technician belongs to the SAP team and cannot be assigned to IT Support tickets.'], 422);
+            }
+        }
+
         $ticket->update([
             'status' => 'assigned',
             'assigned_technician_id' => $validated['assigned_technician_id'],

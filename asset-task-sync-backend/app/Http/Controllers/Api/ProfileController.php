@@ -15,9 +15,11 @@ class ProfileController extends Controller
     /**
      * Display a listing of profiles.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $profiles = Profile::with([
+        $user = $request->user();
+
+        $query = Profile::with([
             'user' => function ($query) {
                 $query->select('id', 'name', 'email', 'status', 'created_at', 'updated_at');
             },
@@ -31,8 +33,50 @@ class ProfileController extends Controller
                 AND users.status = 'pending'
             ) THEN 0 ELSE 1 END
         ")
-        ->latest()
-        ->get();
+        ->latest();
+
+        // If the authenticated user is a manager (admin) but not super_admin,
+        // isolate technicians by department so each manager only sees their own team.
+        if ($user && $user->hasRole('admin') && ! $user->hasRole('super_admin')) {
+            $dept = strtolower($user->profile?->department ?? '');
+            $name = strtolower($user->name ?? '');
+            $email = strtolower($user->email ?? '');
+            $isSapManager = str_contains($dept, 'sap')
+                || str_contains($dept, 'erp')
+                || str_contains($name, 'sap')
+                || str_contains($email, 'sap')
+                || str_contains($name, 'deployment');
+
+            $query->where(function ($q) use ($isSapManager) {
+                // Non-technicians (managers, requesters) remain visible
+                $q->whereDoesntHave('user.roles', function ($rq) {
+                    $rq->where('name', 'technician');
+                })->orWhere(function ($tq) use ($isSapManager) {
+                    if ($isSapManager) {
+                        // SAP Manager only sees SAP technicians
+                        $tq->where(function ($sub) {
+                            $sub->where('department', 'like', '%sap%')
+                                ->orWhere('department', 'like', '%erp%')
+                                ->orWhere('name', 'like', '%sap%')
+                                ->orWhere('email', 'like', '%sap%');
+                        });
+                    } else {
+                        // IT Support Manager only sees non-SAP technicians
+                        $tq->where(function ($sub) {
+                            $sub->whereNull('department')
+                                ->orWhere(function ($inner) {
+                                    $inner->where('department', 'not like', '%sap%')
+                                          ->where('department', 'not like', '%erp%');
+                                });
+                        })
+                        ->where('name', 'not like', '%sap%')
+                        ->where('email', 'not like', '%sap%');
+                    }
+                });
+            });
+        }
+
+        $profiles = $query->get();
 
         return response()->json($profiles);
     }

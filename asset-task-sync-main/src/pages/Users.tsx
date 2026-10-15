@@ -69,6 +69,13 @@ const Users = () => {
   const isManager = currentRole === 'admin';
   const assignableRoles = isSuperAdmin ? ALL_ASSIGNABLE_ROLES : MANAGER_ASSIGNABLE_ROLES;
 
+  const isSapEntity = (dept?: string | null, name?: string | null, email?: string | null) => {
+    const text = `${dept || ''} ${name || ''} ${email || ''}`.toLowerCase();
+    return text.includes('sap') || text.includes('erp');
+  };
+  const isSapManager = isSapEntity(profile?.department, profile?.name, profile?.email);
+  const managerDepartment = profile?.department || (isSapManager ? 'SAP Deployment' : 'IT Support');
+
   const canManageUser = (user: UserWithRole) =>
     isSuperAdmin || (user.role !== 'admin' && user.role !== 'super_admin');
   const [searchQuery, setSearchQuery] = useState('');
@@ -339,7 +346,16 @@ const Users = () => {
     }
   };
 
-  const filteredUsers = (users?.filter(user => {
+  const visibleUsers = users?.filter(user => {
+    if (isManager && !isSuperAdmin && user.role === 'technician') {
+      const isTechSap = isSapEntity(user.department, user.name, user.email);
+      if (isSapManager && !isTechSap) return false;
+      if (!isSapManager && isTechSap) return false;
+    }
+    return true;
+  }) || [];
+
+  const filteredUsers = (visibleUsers.filter(user => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -348,7 +364,7 @@ const Users = () => {
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesLocation = locationFilter === 'all' || user.location_id === locationFilter;
     return matchesSearch && matchesRole && matchesStatus && matchesLocation;
-  }) || []).sort((a, b) => {
+  })).sort((a, b) => {
     // Pending users always at top
     if (a.status === 'pending' && b.status !== 'pending') return -1;
     if (b.status === 'pending' && a.status !== 'pending') return 1;
@@ -357,10 +373,10 @@ const Users = () => {
   });
 
   const usersByRole = {
-    super_admin: users?.filter(u => u.role === 'super_admin').length || 0,
-    admin: users?.filter(u => u.role === 'admin').length || 0,
-    technician: users?.filter(u => u.role === 'technician').length || 0,
-    requester: users?.filter(u => u.role === 'requester').length || 0,
+    super_admin: visibleUsers.filter(u => u.role === 'super_admin').length,
+    admin: visibleUsers.filter(u => u.role === 'admin').length,
+    technician: visibleUsers.filter(u => u.role === 'technician').length,
+    requester: visibleUsers.filter(u => u.role === 'requester').length,
   };
 
   if (isLoading) {
@@ -566,7 +582,13 @@ const Users = () => {
                     <Label>Role</Label>
                     <Select
                       value={newUser.role}
-                      onValueChange={(val: AppRole) => setNewUser({ ...newUser, role: val })}
+                      onValueChange={(val: AppRole) => {
+                        const updates: Partial<typeof newUser> = { role: val };
+                        if (isManager && val === 'technician') {
+                          updates.department = managerDepartment;
+                        }
+                        setNewUser({ ...newUser, ...updates });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
