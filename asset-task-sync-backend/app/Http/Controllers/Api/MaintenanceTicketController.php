@@ -10,6 +10,7 @@ use App\Jobs\SendTicketRejectedNotification;
 use App\Jobs\SendTicketSubmittedNotification;
 use App\Models\MaintenanceTicket;
 use App\Services\ActivityLogger;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -189,7 +190,15 @@ class MaintenanceTicketController extends Controller
             default      => 'General',
         };
 
-        // Dispatch notifications to background queue — API returns instantly ⚡
+        // ✅ Save in-app notifications SYNCHRONOUSLY (no queue needed)
+        NotificationService::ticketSubmitted(
+            $ticket,
+            $assignedManager?->id,
+            $categoryLabel,
+            auth()->id(),
+        );
+
+        // Queue only Telegram (network I/O) — safe to be async
         SendTicketSubmittedNotification::dispatch(
             $ticket,
             $assignedManager?->id,
@@ -314,7 +323,10 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('approved', 'Ticket', $ticket->id, "Approved ticket: {$ticket->title}");
 
-        // Dispatch background jobs — API returns instantly ⚡
+        // ✅ Save in-app notification synchronously
+        NotificationService::ticketApproved($ticket);
+
+        // Queue Telegram + email (network I/O)
         SendTicketApprovedNotification::dispatch($ticket, auth()->user()->name ?? 'Administrator');
         SendTicketApprovalNotification::dispatch($ticket); // Microsoft Graph email
 
@@ -345,7 +357,10 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('rejected', 'Ticket', $ticket->id, "Rejected ticket: {$ticket->title}");
 
-        // Dispatch background job — API returns instantly ⚡
+        // ✅ Save in-app notification synchronously
+        NotificationService::ticketRejected($ticket, $validated['rejection_reason']);
+
+        // Queue Telegram (network I/O)
         SendTicketRejectedNotification::dispatch($ticket, $validated['rejection_reason']);
 
         return response()->json($ticket->load('requester'));
@@ -396,7 +411,10 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('assigned', 'Ticket', $ticket->id, "Assigned ticket: {$ticket->title}");
 
-        // Dispatch background job — API returns instantly ⚡
+        // ✅ Save in-app notifications synchronously
+        NotificationService::ticketAssigned($ticket, $validated['assigned_technician_id']);
+
+        // Queue Telegram (network I/O)
         SendTicketAssignedNotification::dispatch($ticket, $validated['assigned_technician_id']);
 
         return response()->json($ticket->load('assignedTechnician', 'requester'));
@@ -471,18 +489,8 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('completed', 'Ticket', $ticket->id, "Completed ticket: {$ticket->title}");
 
-        // Notify Admin (and Requester optionally)
-        // Find admins to notify? For now, maybe just log it or rely on admin checking dashboard.
-        // But we should notify the Requester that it's done pending review.
-        if ($ticket->requester && $ticket->requester->user_id) {
-            $this->createNotification(
-                $ticket->requester->user_id,
-                'Ticket Completed (Pending Review)',
-                "Ticket '{$ticket->title}' has been marked as completed and is pending review.",
-                'info',
-                "/tickets/{$ticket->id}"
-            );
-        }
+        // ✅ Notify manager + super_admins synchronously that ticket needs review
+        NotificationService::ticketCompletedPendingReview($ticket, auth()->id());
 
         return response()->json($ticket);
     }
@@ -518,9 +526,9 @@ class MaintenanceTicketController extends Controller
             ]);
             ActivityLogger::log('reviewed', 'Ticket', $ticket->id, "Approved completion for ticket: {$ticket->title}");
 
-            // Notify Technician
+            // ✅ Notify technician synchronously
             if ($ticket->assignedTechnician && $ticket->assignedTechnician->user_id) {
-                $this->createNotification(
+                NotificationService::create(
                     $ticket->assignedTechnician->user_id,
                     'Ticket Completion Approved',
                     "Great job! The completion of ticket '{$ticket->title}' has been approved.",
@@ -535,16 +543,8 @@ class MaintenanceTicketController extends Controller
             ]);
             ActivityLogger::log('reopened', 'Ticket', $ticket->id, "Reopened ticket: {$ticket->title}");
 
-            // Notify Technician
-            if ($ticket->assignedTechnician && $ticket->assignedTechnician->user_id) {
-                $this->createNotification(
-                    $ticket->assignedTechnician->user_id,
-                    'Ticket Reopened',
-                    "Ticket '{$ticket->title}' has been reopened. Please check review notes.",
-                    'warning',
-                    "/tickets/{$ticket->id}"
-                );
-            }
+            // ✅ Notify technician + managers synchronously
+            NotificationService::ticketReopened($ticket, auth()->id());
         }
 
         return response()->json($ticket->load('reviewedBy', 'assignedTechnician'));
@@ -575,9 +575,9 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('feedback', 'Ticket', $ticket->id, "Submitted feedback for ticket: {$ticket->title}");
 
-        // Notify Technician
+        // ✅ Notify technician synchronously
         if ($ticket->assignedTechnician && $ticket->assignedTechnician->user_id) {
-            $this->createNotification(
+            NotificationService::create(
                 $ticket->assignedTechnician->user_id,
                 'New Feedback Received',
                 "You received a {$validated['feedback_rating']}-star rating for ticket '{$ticket->title}'.",

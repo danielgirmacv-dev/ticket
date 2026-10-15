@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\MaintenanceTicket;
-use App\Models\Notification;
 use App\Models\Profile;
 use App\Models\User;
 use App\Services\TelegramService;
@@ -36,20 +35,8 @@ class SendTicketAssignedNotification implements ShouldQueue
             return;
         }
 
-        // --- Notify Technician ---
-        try {
-            Notification::create([
-                'user_id' => $technicianProfile->user_id,
-                'title'   => 'New Ticket Assigned',
-                'message' => "You have been assigned to ticket '{$this->ticket->title}'.",
-                'type'    => 'info',
-                'link'    => "/tickets/{$this->ticket->id}",
-                'is_read' => false,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Notification create failed (technician): ' . $e->getMessage());
-        }
-
+        // --- Telegram: Technician ---
+        // (in-app DB notification handled synchronously by NotificationService)
         try {
             $technicianUser = User::find($technicianProfile->user_id);
             $chatId = $technicianUser?->profile?->telegram_chat_id ?? null;
@@ -72,19 +59,7 @@ class SendTicketAssignedNotification implements ShouldQueue
             return;
         }
 
-        try {
-            Notification::create([
-                'user_id' => $this->ticket->requester->user_id,
-                'title'   => 'Technician Assigned',
-                'message' => "A technician has been assigned to your ticket '{$this->ticket->title}'.",
-                'type'    => 'info',
-                'link'    => "/tickets/{$this->ticket->id}",
-                'is_read' => false,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Notification create failed (requester): ' . $e->getMessage());
-        }
-
+        // --- Telegram: Requester ---
         try {
             $requesterUser = User::find($this->ticket->requester->user_id);
             $chatId = $requesterUser?->profile?->telegram_chat_id ?? null;

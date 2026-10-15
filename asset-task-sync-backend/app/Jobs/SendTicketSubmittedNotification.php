@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\MaintenanceTicket;
-use App\Models\Notification;
 use App\Models\User;
 use App\Services\TelegramService;
 use Illuminate\Bus\Queueable;
@@ -13,6 +12,10 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Sends Telegram notifications only — in-app DB notifications are handled
+ * synchronously by NotificationService before this job is dispatched.
+ */
 class SendTicketSubmittedNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -22,7 +25,7 @@ class SendTicketSubmittedNotification implements ShouldQueue
 
     public function __construct(
         public MaintenanceTicket $ticket,
-        public ?int $assignedManagerId,   // User ID of the manager (not profile ID)
+        public ?int $assignedManagerId,
         public string $categoryLabel,
         public int $submittedByUserId,
     ) {}
@@ -31,16 +34,8 @@ class SendTicketSubmittedNotification implements ShouldQueue
     {
         $this->ticket->load('requester');
 
-        // --- Notify assigned manager ---
+        // --- Telegram: assigned manager ---
         if ($this->assignedManagerId && $this->assignedManagerId !== $this->submittedByUserId) {
-            $this->createNotification(
-                $this->assignedManagerId,
-                "New {$this->categoryLabel} Request",
-                "A new {$this->categoryLabel} ticket '{$this->ticket->title}' has been routed to you.",
-                'info',
-                "/tickets/{$this->ticket->id}"
-            );
-
             $manager = User::find($this->assignedManagerId);
             $this->sendTelegram($telegram, $manager,
                 "📋 *New {$this->categoryLabel} Ticket Submitted*\n\n"
@@ -51,20 +46,9 @@ class SendTicketSubmittedNotification implements ShouldQueue
             );
         }
 
-        // --- Notify super_admins (oversight) ---
-        // Super admins ALWAYS receive oversight notifications — even if they ended up as the assigned
-        // manager (routing now prefers admin-role users first, so this is a rare edge case).
-        // Only skip if the super admin is the one who submitted the ticket.
+        // --- Telegram: super_admins ---
         User::role('super_admin')->each(function ($superAdmin) use ($telegram) {
             if ($superAdmin->id === $this->submittedByUserId) return;
-
-            $this->createNotification(
-                $superAdmin->id,
-                'New Maintenance Request',
-                "Ticket '{$this->ticket->title}' submitted — routed to assigned manager.",
-                'info',
-                "/tickets/{$this->ticket->id}"
-            );
 
             $this->sendTelegram($telegram, $superAdmin,
                 "📋 *New Ticket Submitted*\n\n"
@@ -73,22 +57,6 @@ class SendTicketSubmittedNotification implements ShouldQueue
                 . "Priority: " . strtoupper($this->ticket->priority ?? 'medium')
             );
         });
-    }
-
-    private function createNotification($userId, $title, $message, $type, $link = null): void
-    {
-        try {
-            Notification::create([
-                'user_id'  => $userId,
-                'title'    => $title,
-                'message'  => $message,
-                'type'     => $type,
-                'link'     => $link,
-                'is_read'  => false,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Notification create failed: ' . $e->getMessage());
-        }
     }
 
     private function sendTelegram(TelegramService $telegram, ?User $user, string $message): void

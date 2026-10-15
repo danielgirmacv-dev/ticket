@@ -3,7 +3,6 @@
 namespace App\Jobs;
 
 use App\Models\MaintenanceTicket;
-use App\Models\Notification;
 use App\Models\User;
 use App\Services\TelegramService;
 use Illuminate\Bus\Queueable;
@@ -35,21 +34,7 @@ class SendTicketApprovedNotification implements ShouldQueue
 
         $userId = $this->ticket->requester->user_id;
 
-        // In-app notification
-        try {
-            Notification::create([
-                'user_id' => $userId,
-                'title'   => 'Ticket Approved',
-                'message' => "Your ticket '{$this->ticket->title}' has been approved.",
-                'type'    => 'success',
-                'link'    => "/tickets/{$this->ticket->id}",
-                'is_read' => false,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Notification create failed: ' . $e->getMessage());
-        }
-
-        // Telegram notification
+        // Telegram notification (in-app DB notification handled synchronously by NotificationService)
         try {
             $requester = User::find($userId);
             $chatId = $requester?->profile?->telegram_chat_id ?? null;
