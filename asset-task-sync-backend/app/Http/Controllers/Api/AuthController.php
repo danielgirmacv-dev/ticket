@@ -206,13 +206,14 @@ class AuthController extends Controller
         }
 
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|string|email:rfc,filter|max:255|unique:users',
-            'password'    => 'required|string|min:8',
-            'role'        => 'required|in:super_admin,admin,technician,requester',
-            'department'  => 'nullable|string|max:255',
-            'phone'       => 'nullable|string|max:30',
-            'location_id' => 'nullable|exists:locations,id',
+            'name'             => 'required|string|max:255',
+            'email'            => 'required|string|email:rfc,filter|max:255|unique:users',
+            'password'         => 'required|string|min:8',
+            'role'             => 'required|in:super_admin,admin,technician,requester',
+            'department'       => 'nullable|string|max:255',
+            'support_category' => 'nullable|in:it_support,sap,general',
+            'phone'            => 'nullable|string|max:30',
+            'location_id'      => 'nullable|exists:locations,id',
         ]);
 
         // Managers cannot create other managers or super admins
@@ -227,11 +228,16 @@ class AuthController extends Controller
             $adminDept = $admin->profile?->department;
             $adminName = strtolower($admin->name ?? '');
             $adminEmail = strtolower($admin->email ?? '');
-            $isSapManager = str_contains(strtolower($adminDept ?? ''), 'sap')
-                || str_contains(strtolower($adminDept ?? ''), 'erp')
-                || str_contains($adminName, 'sap')
-                || str_contains($adminEmail, 'sap')
-                || str_contains($adminName, 'deployment');
+            // Use explicit support_category first; fall back to keyword detection for legacy data
+            $adminCategory = $admin->profile?->support_category;
+            $isSapManager = $adminCategory === 'sap'
+                || (! $adminCategory && (
+                    str_contains(strtolower($adminDept ?? ''), 'sap')
+                    || str_contains(strtolower($adminDept ?? ''), 'erp')
+                    || str_contains($adminName, 'sap')
+                    || str_contains($adminEmail, 'sap')
+                    || str_contains($adminName, 'deployment')
+                ));
 
             if ($validated['role'] === 'technician') {
                 if (empty($validated['department'])) {
@@ -258,12 +264,13 @@ class AuthController extends Controller
             ]);
 
             Profile::create([
-                'user_id'     => $user->id,
-                'name'        => $validated['name'],
-                'email'       => $validated['email'],
-                'phone'       => $validated['phone'] ?? null,
-                'department'  => $validated['department'] ?? null,
-                'location_id' => $validated['location_id'] ?? null,
+                'user_id'          => $user->id,
+                'name'             => $validated['name'],
+                'email'            => $validated['email'],
+                'phone'            => $validated['phone'] ?? null,
+                'department'       => $validated['department'] ?? null,
+                'support_category' => $validated['support_category'] ?? null,
+                'location_id'      => $validated['location_id'] ?? null,
             ]);
 
             $user->assignRole($validated['role']);

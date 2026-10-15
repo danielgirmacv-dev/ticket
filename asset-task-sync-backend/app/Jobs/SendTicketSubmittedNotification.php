@@ -52,9 +52,11 @@ class SendTicketSubmittedNotification implements ShouldQueue
         }
 
         // --- Notify super_admins (oversight) ---
+        // Super admins ALWAYS receive oversight notifications — even if they ended up as the assigned
+        // manager (routing now prefers admin-role users first, so this is a rare edge case).
+        // Only skip if the super admin is the one who submitted the ticket.
         User::role('super_admin')->each(function ($superAdmin) use ($telegram) {
             if ($superAdmin->id === $this->submittedByUserId) return;
-            if ($this->assignedManagerId && $superAdmin->id === $this->assignedManagerId) return;
 
             $this->createNotification(
                 $superAdmin->id,

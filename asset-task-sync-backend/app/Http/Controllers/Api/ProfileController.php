@@ -126,12 +126,17 @@ class ProfileController extends Controller
         }
 
         $rules = [
-            'name' => 'sometimes|string|max:255',
-            'phone' => 'nullable|string|max:30',
-            'avatar_url' => 'nullable|string',
-            'department' => 'nullable|string',
-            'location_id' => 'nullable|exists:locations,id',
+            'name'             => 'sometimes|string|max:255',
+            'phone'            => 'nullable|string|max:30',
+            'avatar_url'       => 'nullable|string',
+            'department'       => 'nullable|string',
+            'location_id'      => 'nullable|exists:locations,id',
         ];
+
+        // Only admins/super_admins can set the support_category routing tag
+        if (auth()->user()->hasAnyRole(['admin', 'super_admin'])) {
+            $rules['support_category'] = 'nullable|in:it_support,sap,general';
+        }
 
         if ($request->has('email')) {
             $request->merge(['email' => strtolower(trim($request->email))]);
@@ -154,6 +159,11 @@ class ProfileController extends Controller
         }
         if (! empty($userUpdates)) {
             $profile->user->update($userUpdates);
+        }
+
+        // Flush routing cache so the new support_category takes effect immediately
+        if (isset($validated['support_category'])) {
+            \App\Http\Controllers\Api\MaintenanceTicketController::forgetRoutingCache();
         }
 
         ActivityLogger::log('updated', 'Profile', $profile->id, "Updated profile for user: {$profile->name}");

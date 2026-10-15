@@ -212,6 +212,7 @@ const Users = () => {
     email: '',
     role: 'requester' as AppRole,
     department: '',
+    support_category: '' as '' | 'it_support' | 'sap' | 'general',
     location_id: 'none',
     password: '',
     phone: '',
@@ -223,6 +224,7 @@ const Users = () => {
     email: '',
     role: 'requester' as AppRole,
     department: '',
+    support_category: '' as '' | 'it_support' | 'sap' | 'general',
     location_id: 'none',
   });
 
@@ -240,6 +242,7 @@ const Users = () => {
         email: cleanEmail,
         location_id: newUser.location_id === 'none' ? undefined : newUser.location_id,
         phone: newUser.phone || undefined,
+        support_category: newUser.support_category || undefined,
       });
       setIsDialogOpen(false);
       setNewUser({
@@ -247,6 +250,7 @@ const Users = () => {
         email: '',
         role: 'requester',
         department: '',
+        support_category: '',
         location_id: 'none',
         password: '',
         phone: '',
@@ -267,6 +271,7 @@ const Users = () => {
       email: user.email,
       role: user.role,
       department: user.department || '',
+      support_category: (user as any).support_category || '',
       location_id: user.location_id || 'none',
     });
   };
@@ -283,6 +288,7 @@ const Users = () => {
         name?: string;
         email?: string;
         department?: string;
+        support_category?: string | null;
         location_id?: string | null;
       } = {};
       if (editFormData.name !== editingUser.name) profileUpdates.name = editFormData.name;
@@ -297,6 +303,10 @@ const Users = () => {
       }
       if (editFormData.department !== (editingUser.department || '')) {
         profileUpdates.department = editFormData.department;
+      }
+      const existingSupportCat = (editingUser as any).support_category || '';
+      if (editFormData.support_category !== existingSupportCat) {
+        profileUpdates.support_category = editFormData.support_category || null;
       }
       if (editFormData.location_id !== (editingUser.location_id || 'none')) {
         profileUpdates.location_id = editFormData.location_id === 'none' ? null : editFormData.location_id;
@@ -633,6 +643,34 @@ const Users = () => {
                     </Select>
                   </div>
                 </div>
+                {/* Support Category — only visible when creating an admin/manager */}
+                {newUser.role === 'admin' && (
+                  <div className="grid gap-2">
+                    <Label>
+                      Support Category
+                      <span className="ml-1 text-xs text-amber-500 font-medium">(Required for managers)</span>
+                    </Label>
+                    <Select
+                      value={newUser.support_category || 'none'}
+                      onValueChange={(val) =>
+                        setNewUser({ ...newUser, support_category: val === 'none' ? '' : val as any })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select support category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— Not assigned —</SelectItem>
+                        <SelectItem value="it_support">🖥️ IT Support</SelectItem>
+                        <SelectItem value="sap">⚙️ SAP / ERP</SelectItem>
+                        <SelectItem value="general">🏢 General / Facility</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Determines which ticket category routes to this manager.
+                    </p>
+                  </div>
+                )}
                 <div className="grid gap-2">
                   <Label>Location</Label>
                   <Select
@@ -911,6 +949,31 @@ const Users = () => {
                 </SelectContent>
               </Select>
             </div>
+            {/* Support Category — only for manager/admin accounts */}
+            {(editFormData.role === 'admin' || editingUser?.role === 'admin') && (
+              <div>
+                <Label>
+                  Support Category
+                  <span className="ml-1 text-xs text-amber-500 font-medium">(Determines ticket routing)</span>
+                </Label>
+                <Select
+                  value={editFormData.support_category || 'none'}
+                  onValueChange={(val) =>
+                    setEditFormData({ ...editFormData, support_category: val === 'none' ? '' : val as any })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select support category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Not assigned —</SelectItem>
+                    <SelectItem value="it_support">🖥️ IT Support</SelectItem>
+                    <SelectItem value="sap">⚙️ SAP / ERP</SelectItem>
+                    <SelectItem value="general">🏢 General / Facility</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Location</Label>
               <Select

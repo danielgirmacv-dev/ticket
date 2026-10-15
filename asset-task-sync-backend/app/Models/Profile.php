@@ -19,6 +19,7 @@ class Profile extends Model
         'phone',
         'avatar_url',
         'department',
+        'support_category',
         'telegram_username',
         'telegram_chat_id',
         'location_id',
