@@ -633,10 +633,10 @@ class MaintenanceTicketController extends Controller
     private function resolveManagerForCategory(string $category): ?\App\Models\User
     {
         // -----------------------------------------------------------------------
-        // Step 1: Explicit match — admin whose profile.support_category = category
-        // This is the primary, production-safe routing method. No keyword guessing.
+        // Step 1: Explicit match — manager whose profile.support_category = category
+        // Matches both 'admin' (Manager) and 'super_admin' roles.
         // -----------------------------------------------------------------------
-        $explicit = \App\Models\User::role('admin')
+        $explicit = \App\Models\User::role(['admin', 'super_admin'])
             ->whereHas('profile', fn($q) => $q->where('support_category', $category))
             ->with(['profile', 'roles'])
             ->first();
@@ -646,60 +646,105 @@ class MaintenanceTicketController extends Controller
         }
 
         // -----------------------------------------------------------------------
-        // Step 2: Keyword fallback — for legacy admins whose support_category is null.
-        // Uses heuristics but ONLY as a secondary path.
+        // Step 2: Intelligent heuristic fallback for managers with unassigned category
         // -----------------------------------------------------------------------
-        $legacyManagers = \App\Models\User::role('admin')
-            ->whereHas('profile', fn($q) => $q->whereNull('support_category'))
+        $managers = \App\Models\User::role(['admin', 'super_admin'])
+            ->whereHas('profile')
             ->with(['profile', 'roles'])
             ->get();
 
-        if ($legacyManagers->isNotEmpty()) {
+        if ($managers->isNotEmpty()) {
             $isSapUser = fn(\App\Models\User $user): bool =>
                 str_contains(strtolower($user->profile?->department ?? ''), 'sap')
                 || str_contains(strtolower($user->profile?->department ?? ''), 'erp')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'deployment')
                 || str_contains(strtolower($user->name ?? ''), 'sap')
+                || str_contains(strtolower($user->profile?->name ?? ''), 'sap')
                 || str_contains(strtolower($user->email ?? ''), 'sap')
                 || str_contains(strtolower($user->name ?? ''), 'deployment');
 
-            $fallback = null;
+            $isFacilityUser = fn(\App\Models\User $user): bool =>
+                str_contains(strtolower($user->profile?->department ?? ''), 'facility')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'facilities')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'maintenance')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'general')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'workplace')
+                || str_contains(strtolower($user->profile?->department ?? ''), 'operations')
+                || str_contains(strtolower($user->name ?? ''), 'facility')
+                || str_contains(strtolower($user->email ?? ''), 'facility');
+
+            $isItUser = fn(\App\Models\User $user): bool =>
+                !$isSapUser($user) && (
+                    str_contains(strtolower($user->profile?->department ?? ''), 'it')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'tech')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'information technology')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'helpdesk')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'system')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'network')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'ict')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'computer')
+                    || str_contains(strtolower($user->profile?->department ?? ''), 'support')
+                    || str_contains(strtolower($user->name ?? ''), 'it')
+                    || str_contains(strtolower($user->email ?? ''), 'it_')
+                    || str_contains(strtolower($user->email ?? ''), 'it.')
+                    || str_contains(strtolower($user->email ?? ''), 'it@')
+                    || str_contains(strtolower($user->email ?? ''), 'tech')
+                );
+
+            $resolved = null;
 
             if ($category === 'sap') {
-                $fallback = $legacyManagers->first(fn($u) => $isSapUser($u));
+                $resolved = $managers->first(fn($u) => $isSapUser($u));
             } elseif ($category === 'it_support') {
-                $fallback = $legacyManagers->first(function ($u) use ($isSapUser) {
-                    if ($isSapUser($u)) return false;
-                    $dept = strtolower($u->profile?->department ?? '');
-                    return str_contains($dept, 'it') || str_contains($dept, 'tech')
-                        || str_contains($dept, 'information technology')
-                        || str_contains($dept, 'helpdesk') || str_contains($dept, 'system admin');
-                });
+                // Prioritize explicit IT manager match
+                $resolved = $managers->first(fn($u) => $isItUser($u));
+
+                // Fallback for IT: any admin who is NOT SAP and NOT Facility
+                if (!$resolved) {
+                    $resolved = $managers->first(fn($u) => $u->hasRole('admin') && !$isSapUser($u) && !$isFacilityUser($u));
+                }
+
+                // Super admin fallback if no dedicated IT admin exists
+                if (!$resolved) {
+                    $resolved = $managers->first(fn($u) => $u->hasRole('super_admin') && !$isSapUser($u));
+                }
             } else {
                 // general / facility
-                $fallback = $legacyManagers->first(function ($u) use ($isSapUser) {
-                    if ($isSapUser($u)) return false;
-                    $dept = strtolower($u->profile?->department ?? '');
-                    return str_contains($dept, 'facility') || str_contains($dept, 'maintenance')
-                        || str_contains($dept, 'general') || str_contains($dept, 'operations');
+                $resolved = $managers->first(fn($u) => $isFacilityUser($u));
+
+                if (!$resolved) {
+                    $resolved = $managers->first(fn($u) => $u->hasRole('admin') && !$isSapUser($u));
+                }
+            }
+
+            if ($resolved) {
+                // Auto-backfill support_category on the profile so future lookups are immediate
+                if ($resolved->profile && empty($resolved->profile->support_category)) {
+                    $resolved->profile->update(['support_category' => $category]);
+                }
+                return $resolved;
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // Step 3: Absolute fallback (excludes SAP manager for IT tickets)
+        // -----------------------------------------------------------------------
+        $fallback = \App\Models\User::role('admin')
+            ->whereHas('profile')
+            ->with('profile')
+            ->when($category === 'it_support', function ($q) {
+                $q->whereDoesntHave('profile', function ($pq) {
+                    $pq->where('department', 'like', '%sap%')
+                       ->orWhere('department', 'like', '%erp%')
+                       ->orWhere('name', 'like', '%sap%');
                 });
-            }
+            })
+            ->first();
 
-            if ($fallback) {
-                return $fallback;
-            }
+        if ($fallback) {
+            return $fallback;
         }
 
-        // -----------------------------------------------------------------------
-        // Step 3: Any admin with a profile (avoids assigning super_admin)
-        // -----------------------------------------------------------------------
-        $anyAdmin = \App\Models\User::role('admin')->whereHas('profile')->with('profile')->first();
-        if ($anyAdmin) {
-            return $anyAdmin;
-        }
-
-        // -----------------------------------------------------------------------
-        // Step 4: Absolute last resort — super_admin (system has no admins at all)
-        // -----------------------------------------------------------------------
         return \App\Models\User::role('super_admin')->whereHas('profile')->with('profile')->first();
     }
 

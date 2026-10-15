@@ -12,6 +12,7 @@ export interface UserWithRole {
   email: string;
   avatar_url: string | null;
   department: string | null;
+  support_category?: string | null;
   location_id?: string | null;
   location?: Location | null;
   created_at: string;
@@ -35,6 +36,7 @@ export function useUsers() {
           email: profile.email,
           avatar_url: profile.avatar_url,
           department: profile.department,
+          support_category: (profile as any).support_category || null,
           location_id: profile.location_id,
           location: profile.location,
           created_at: profile.created_at,

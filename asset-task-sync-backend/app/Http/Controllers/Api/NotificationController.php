@@ -23,7 +23,13 @@ class NotificationController extends Controller
         // Keep payload small even after months of use — latest 200 only
         $notifications = $query->orderBy('created_at', 'desc')->limit(200)->get();
 
-        return response()->json($notifications);
+        // Extra safety: deduplicate any identical notifications created within the same minute
+        $unique = $notifications->unique(function ($item) {
+            $minute = $item->created_at ? $item->created_at->format('Y-m-d H:i') : $item->id;
+            return $item->title . '|' . $item->message . '|' . $minute;
+        })->values();
+
+        return response()->json($unique);
     }
 
     /**

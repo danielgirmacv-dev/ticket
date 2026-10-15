@@ -32,6 +32,22 @@ class NotificationService
         ?string $link = null,
     ): void {
         try {
+            // Deduplication guard: ignore identical notification sent to the same user within the last 60 seconds
+            $recentDuplicate = Notification::where('user_id', $userId)
+                ->where('title', $title)
+                ->where('created_at', '>=', now()->subSeconds(60))
+                ->where(function ($q) use ($message, $link) {
+                    $q->where('message', $message);
+                    if ($link) {
+                        $q->orWhere('link', $link);
+                    }
+                })
+                ->exists();
+
+            if ($recentDuplicate) {
+                return;
+            }
+
             Notification::create([
                 'user_id' => $userId,
                 'title'   => $title,
@@ -68,9 +84,10 @@ class NotificationService
             );
         }
 
-        // Notify ALL super_admins (oversight) — always, unless they submitted it
-        User::role('super_admin')->each(function ($superAdmin) use ($ticket, $submittedByUserId) {
+        // Notify ALL super_admins (oversight) — unless they submitted it or are the assigned manager
+        User::role('super_admin')->each(function ($superAdmin) use ($ticket, $submittedByUserId, $assignedManagerUserId) {
             if ($superAdmin->id === $submittedByUserId) return;
+            if ($superAdmin->id === $assignedManagerUserId) return; // Prevent duplicate notification
 
             self::create(
                 $superAdmin->id,
@@ -177,9 +194,10 @@ class NotificationService
             );
         }
 
-        // Notify super_admins
-        User::role('super_admin')->each(function ($sa) use ($ticket, $completedByUserId) {
+        // Notify super_admins (oversight) — unless they completed it or are the assigned manager
+        User::role('super_admin')->each(function ($sa) use ($ticket, $completedByUserId, $managerUserId) {
             if ($sa->id === $completedByUserId) return;
+            if ($sa->id === $managerUserId) return; // Prevent duplicate
             self::create(
                 $sa->id,
                 'Ticket Completed (Pending Review)',
@@ -211,8 +229,9 @@ class NotificationService
             );
         }
 
-        User::role('super_admin')->each(function ($sa) use ($ticket, $reopenedByUserId) {
+        User::role('super_admin')->each(function ($sa) use ($ticket, $reopenedByUserId, $managerUserId) {
             if ($sa->id === $reopenedByUserId) return;
+            if ($sa->id === $managerUserId) return; // Prevent duplicate
             self::create(
                 $sa->id,
                 'Ticket Reopened',
