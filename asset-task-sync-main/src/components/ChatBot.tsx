@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, X, Send, Bot, User, Sparkles, Minimize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { fetchChatAssist } from '@/hooks/useChatAssist';
@@ -206,7 +206,7 @@ const ChatBot = () => {
                         )}
                       >
                         {message.sender === 'bot' ? (
-                          <Sparkles className="h-3.5 w-3.5 text-[hsl(186,100%,39%)]" />
+                          <Bot className="h-3.5 w-3.5 text-[hsl(186,100%,39%)]" />
                         ) : (
                           <User className="h-3.5 w-3.5 text-primary" />
                         )}
@@ -258,7 +258,7 @@ const ChatBot = () => {
                   {isTyping && (
                     <div className="flex gap-2.5 animate-fade-in">
                       <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[hsl(186,100%,39%)]/10 flex items-center justify-center mt-0.5">
-                        <Sparkles className="h-3.5 w-3.5 text-[hsl(186,100%,39%)]" />
+                        <Bot className="h-3.5 w-3.5 text-[hsl(186,100%,39%)]" />
                       </div>
                       <div className="bg-muted/80 rounded-2xl rounded-bl-md px-4 py-3">
                         <div className="flex gap-1.5">

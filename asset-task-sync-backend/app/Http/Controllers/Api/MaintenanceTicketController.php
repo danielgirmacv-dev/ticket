@@ -71,7 +71,14 @@ class MaintenanceTicketController extends Controller
             $query->where('asset_id', $request->asset_id);
         }
 
-        $tickets = $query->orderBy('scheduled_date', 'asc')->get();
+        $tickets = $query
+            ->orderByRaw("CASE
+                WHEN status = 'submitted' THEN 0
+                WHEN status = 'completed_pending_review' THEN 1
+                ELSE 2
+            END")
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return response()->json($tickets);
     }

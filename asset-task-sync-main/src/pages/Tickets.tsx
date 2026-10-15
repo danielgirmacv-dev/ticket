@@ -105,7 +105,7 @@ const Tickets = () => {
     });
   };
 
-  const filteredTickets = tickets?.filter(ticket => {
+  const filteredTickets = (tickets?.filter(ticket => {
     const matchesSearch =
       ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ticket.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
@@ -114,7 +114,13 @@ const Tickets = () => {
 
     // Status filtering is handled by tabs
     return matchesSearch && matchesPriority;
-  }) || [];
+  }) || []).sort((a, b) => {
+    const order = (s: string) =>
+      s === 'submitted' ? 0 : s === 'completed_pending_review' ? 1 : 2;
+    const diff = order(a.status) - order(b.status);
+    if (diff !== 0) return diff;
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
 
   const ticketsByStatus = {
     all: filteredTickets,

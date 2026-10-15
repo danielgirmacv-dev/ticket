@@ -20,8 +20,7 @@ import { useAssets } from '@/hooks/useAssets';
 import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateTicket } from '@/hooks/useTickets';
-import { MaintenanceTicket } from '@/integrations/laravel/client';
-import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Sparkles, Activity, Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, Calendar as CalendarIcon, Repeat } from 'lucide-react';
+import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Activity, Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, Calendar as CalendarIcon, Repeat, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -377,7 +376,6 @@ const Requests = () => {
                 <span className="bg-gradient-to-r from-teal-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
                   New Support Request
                 </span>
-                <Sparkles className="h-5 w-5 text-teal-500 animate-pulse" />
               </CardTitle>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 text-xs font-semibold self-start sm:self-auto">
@@ -507,7 +505,7 @@ const Requests = () => {
                 )}>
                   <div className="flex items-start sm:items-center gap-2.5">
                     <div className="p-1.5 rounded-lg bg-background/80 shadow-2xs shrink-0 mt-0.5 sm:mt-0">
-                      <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <Activity className="h-4 w-4 text-teal-600 dark:text-teal-400" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold">
@@ -734,7 +732,7 @@ const Requests = () => {
             )}
             {isUrgent && (
               <p className="text-xs text-teal-800 dark:text-teal-300 rounded-lg border border-teal-500/20 bg-teal-50/50 dark:bg-teal-950/20 px-3.5 py-2.5 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                <Info className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
                 Preferred date is hidden for High/Critical requests — our team will prioritize this immediately.
               </p>
             )}

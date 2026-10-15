@@ -339,7 +339,7 @@ const Users = () => {
     }
   };
 
-  const filteredUsers = users?.filter(user => {
+  const filteredUsers = (users?.filter(user => {
     const matchesSearch =
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -348,7 +348,13 @@ const Users = () => {
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesLocation = locationFilter === 'all' || user.location_id === locationFilter;
     return matchesSearch && matchesRole && matchesStatus && matchesLocation;
-  }) || [];
+  }) || []).sort((a, b) => {
+    // Pending users always at top
+    if (a.status === 'pending' && b.status !== 'pending') return -1;
+    if (b.status === 'pending' && a.status !== 'pending') return 1;
+    // Then newest first
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+  });
 
   const usersByRole = {
     super_admin: users?.filter(u => u.role === 'super_admin').length || 0,

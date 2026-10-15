@@ -23,9 +23,16 @@ const priorityStyles = {
 const TicketsOverview = () => {
   const { data: tickets, isLoading } = useTickets();
 
-  // Get upcoming and in-progress tickets
+  // Get upcoming and in-progress tickets — submitted/pending-review first, then newest
   const activeTickets = tickets
     ?.filter(ticket => ticket.status !== 'completed' && ticket.status !== 'cancelled')
+    .sort((a, b) => {
+      const order = (s: string) =>
+        s === 'submitted' ? 0 : s === 'completed_pending_review' ? 1 : 2;
+      const diff = order(a.status) - order(b.status);
+      if (diff !== 0) return diff;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    })
     .slice(0, 5) || [];
 
   if (isLoading) {

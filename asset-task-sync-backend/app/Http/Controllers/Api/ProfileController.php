@@ -23,7 +23,16 @@ class ProfileController extends Controller
             },
             'user.roles',
             'location',
-        ])->get();
+        ])
+        ->orderByRaw("
+            CASE WHEN EXISTS (
+                SELECT 1 FROM users
+                WHERE users.id = profiles.user_id
+                AND users.status = 'pending'
+            ) THEN 0 ELSE 1 END
+        ")
+        ->latest()
+        ->get();
 
         return response()->json($profiles);
     }

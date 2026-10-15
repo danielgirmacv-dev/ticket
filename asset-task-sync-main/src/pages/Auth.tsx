@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Wrench, Shield, Users, Eye, EyeOff, Lock, User as UserIcon, Phone, Send, Check, Clock, Sparkles } from 'lucide-react';
+import { Loader2, Wrench, Shield, Users, Eye, EyeOff, Lock, User as UserIcon, Phone, Send, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import {
