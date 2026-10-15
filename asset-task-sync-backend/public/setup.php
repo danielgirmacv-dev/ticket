@@ -66,10 +66,12 @@ function run(string $label, string $command, bool $force = true): void
     $cmd  = array_shift($args);
 
     // Build input array
-    $input = ['command' => $cmd];
+    $input = [];
     foreach ($args as $arg) {
         if (str_starts_with($arg, '--')) {
-            $input[ltrim($arg, '-')] = true;
+            $input[$arg] = true;
+        } else {
+            $input[] = $arg;
         }
     }
     if ($force) {
@@ -79,7 +81,7 @@ function run(string $label, string $command, bool $force = true): void
     $output = new \Symfony\Component\Console\Output\BufferedOutput();
 
     try {
-        $exitCode = $kernel->call($cmd, array_merge($input, $force ? ['--force' => true] : []), $output);
+        $exitCode = $kernel->call($cmd, $input, $output);
         $out = trim($output->fetch());
         if ($exitCode === 0) {
             echo "<span class='ok'>✅ Done</span>\n";
@@ -87,7 +89,7 @@ function run(string $label, string $command, bool $force = true): void
             echo "<span class='err'>❌ Exit {$exitCode}</span>\n";
         }
         if ($out) {
-            echo "  <span class='info'>{$out}</span>\n";
+            echo "  <span class='info'>" . htmlspecialchars($out) . "</span>\n";
         }
     } catch (\Throwable $e) {
         echo "<span class='err'>❌ ERROR: " . htmlspecialchars($e->getMessage()) . "</span>\n";
@@ -138,7 +140,34 @@ flush(); ob_flush();
 run('1/8  Clear config cache',  'config:clear',   false);
 run('2/8  Clear route cache',   'route:clear',    false);
 run('3/8  Clear view cache',    'view:clear',     false);
-run('4/8  Run migrations',      'migrate --seed', true);
+run('4/8  Run migrations',      'migrate',        true);
+
+// ── Step 4.5: Check & repair missing user profiles & default roles ────────────
+echo "▶ 4.5/8 Check & repair user profiles & roles... ";
+flush(); ob_flush();
+try {
+    $repairedProfiles = 0;
+    $repairedRoles = 0;
+    foreach (\App\Models\User::all() as $u) {
+        if (!$u->profile) {
+            \App\Models\Profile::create([
+                'user_id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+            ]);
+            $repairedProfiles++;
+        }
+        if ($u->roles()->count() === 0) {
+            $u->assignRole('requester');
+            $repairedRoles++;
+        }
+    }
+    echo "<span class='ok'>✅ Done ({$repairedProfiles} profiles created, {$repairedRoles} roles assigned)</span>\n";
+} catch (\Throwable $e) {
+    echo "<span class='err'>❌ " . htmlspecialchars($e->getMessage()) . "</span>\n";
+}
+flush(); ob_flush();
+
 run('5/8  Cache config',        'config:cache',   false);
 run('6/8  Cache routes',        'route:cache',    false);
 

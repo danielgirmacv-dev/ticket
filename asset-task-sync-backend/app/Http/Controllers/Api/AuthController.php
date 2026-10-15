@@ -8,7 +8,9 @@ use App\Models\Profile;
 use App\Models\User;
 use App\Services\UserApprovalService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -31,25 +33,29 @@ class AuthController extends Controller
             'location_id' => 'nullable|exists:locations,id',
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'status' => 'pending',
-        ]);
+        $user = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'status' => 'pending',
+            ]);
 
-        // Create profile for the user
-        Profile::create([
-            'user_id' => $user->id,
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'telegram_username' => $validated['telegram_username'] ?? null,
-            'location_id' => $validated['location_id'] ?? null,
-        ]);
+            // Create profile for the user
+            Profile::create([
+                'user_id' => $user->id,
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'telegram_username' => $validated['telegram_username'] ?? null,
+                'location_id' => $validated['location_id'] ?? null,
+            ]);
 
-        // Assign default role
-        $user->assignRole('requester');
+            // Assign default role
+            $user->assignRole('requester');
+
+            return $user;
+        });
 
         // Notify Admins (managers) and Super Admins
         try {
@@ -64,16 +70,23 @@ class AuthController extends Controller
                     'is_read' => false,
                 ]);
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // Log error but don't fail registration
-            \Illuminate\Support\Facades\Log::error('Failed to notify admins of new user: '.$e->getMessage());
+            Log::error('Failed to notify admins of new user: '.$e->getMessage());
         }
 
         // Don't auto-login pending users
         $autoApproveMinutes = (int) config('registration.auto_approve_after_minutes');
 
+        $pendingMessage = 'Registration successful! Your account is pending admin approval. You will receive a notification once approved.';
+        try {
+            $pendingMessage = UserApprovalService::registrationPendingMessage();
+        } catch (\Throwable $e) {
+            Log::warning('UserApprovalService message error: '.$e->getMessage());
+        }
+
         return response()->json([
-            'message' => UserApprovalService::registrationPendingMessage(),
+            'message' => $pendingMessage,
             'status' => 'pending',
             'auto_approve_after_minutes' => $autoApproveMinutes > 0 ? $autoApproveMinutes : null,
             'support_email' => config('registration.support_email'),
