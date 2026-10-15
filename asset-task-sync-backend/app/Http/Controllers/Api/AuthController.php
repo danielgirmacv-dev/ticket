@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
+use App\Services\UserApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -69,9 +70,13 @@ class AuthController extends Controller
         }
 
         // Don't auto-login pending users
+        $autoApproveMinutes = (int) config('registration.auto_approve_after_minutes');
+
         return response()->json([
-            'message' => 'Registration successful! Your account is pending admin approval. You will receive a notification once approved.',
+            'message' => UserApprovalService::registrationPendingMessage(),
             'status' => 'pending',
+            'auto_approve_after_minutes' => $autoApproveMinutes > 0 ? $autoApproveMinutes : null,
+            'support_email' => config('registration.support_email'),
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,
@@ -248,37 +253,11 @@ class AuthController extends Controller
             return response()->json(['message' => 'User is not pending approval'], 400);
         }
 
-        $user->update(['status' => 'active']);
-
-        // Refresh cached manager-routing in case the user now qualifies as a manager
-        MaintenanceTicketController::forgetRoutingCache();
-
-        // Notify the user
-        try {
-            \App\Models\Notification::create([
-                'user_id' => $user->id,
-                'title' => 'Account Approved',
-                'message' => 'Your account has been approved! You can now log in and access the system.',
-                'type' => 'success',
-                'link' => '/auth',
-                'is_read' => false,
-            ]);
-
-            // Send Telegram notification
-            if ($user->profile->telegram_username) {
-                $telegram = new \App\Services\TelegramService;
-                $telegram->sendApprovalNotification($user);
-            }
-
-            // Send email notification (queued)
-            \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\AccountApproved($user));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to notify user of approval: '.$e->getMessage());
-        }
+        app(UserApprovalService::class)->approveIfPending($user->fresh(['profile']));
 
         return response()->json([
             'message' => 'User approved successfully',
-            'user' => $user,
+            'user' => $user->fresh(['profile', 'roles']),
         ]);
     }
 

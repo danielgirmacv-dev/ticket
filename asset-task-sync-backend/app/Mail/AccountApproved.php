@@ -24,7 +24,8 @@ class AccountApproved extends Mailable implements ShouldQueue
     public function __construct(User $user)
     {
         $this->user = $user;
-        $this->loginUrl = env('APP_URL', 'http://localhost:5173').'/auth';
+        $frontend = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/');
+        $this->loginUrl = $frontend.'/auth';
     }
 
     /**
@@ -33,7 +34,7 @@ class AccountApproved extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '🎉 Your Account Has Been Approved!',
+            subject: 'Your EEC IT account is ready to use',
         );
     }
 

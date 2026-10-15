@@ -11,7 +11,13 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string, telegram?: string, phone?: string) => Promise<{ error: Error | null; isPending?: boolean; message?: string }>;
+  signUp: (email: string, password: string, name: string, telegram?: string, phone?: string) => Promise<{
+    error: Error | null;
+    isPending?: boolean;
+    message?: string;
+    autoApproveAfterMinutes?: number | null;
+    supportEmail?: string;
+  }>;
   signOut: () => Promise<void>;
 }
 
@@ -106,7 +112,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return {
           error: null,
           isPending: true,
-          message: response.data.message
+          message: response.data.message,
+          autoApproveAfterMinutes: response.data.auto_approve_after_minutes ?? null,
+          supportEmail: response.data.support_email,
         };
       }
 

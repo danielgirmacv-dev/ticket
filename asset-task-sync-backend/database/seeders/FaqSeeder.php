@@ -12,7 +12,7 @@ class FaqSeeder extends Seeder
         $faqs = [
             [
                 'question' => 'How do I reset my password?',
-                'answer' => "Go to Settings → Security, enter your current password, then set a new password (at least 8 characters). If you cannot sign in, contact your IT admin to reset your account.",
+                'answer' => "If you are signed in, go to Settings → Security to change your password (at least 8 characters). If you forgot your password, use “Forgot password? Contact IT support” on the sign-in page or email it-support@eecproducts.com.",
                 'category' => 'Account',
                 'sort_order' => 1,
             ],

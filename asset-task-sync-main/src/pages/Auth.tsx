@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Wrench, Shield, Users, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Wrench, Shield, Users, Eye, EyeOff, Lock, User as UserIcon, Phone, Send, Check, Clock, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { z } from 'zod';
 import {
   Dialog,
@@ -48,7 +49,8 @@ export default function Auth() {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [successDialogVariant, setSuccessDialogVariant] = useState<SuccessDialogVariant>('pending');
-  
+  const [pendingAutoApproveMinutes, setPendingAutoApproveMinutes] = useState<number | null>(null);
+
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
@@ -171,10 +173,8 @@ export default function Auth() {
       toast.error(result.error.message);
     } else if (result.isPending) {
       setSuccessDialogVariant('pending');
-      setSuccessMessage(
-        result.message ||
-          'Your registration was submitted. An administrator will review your account shortly.',
-      );
+      setPendingAutoApproveMinutes(result.autoApproveAfterMinutes ?? null);
+      setSuccessMessage(result.message || 'Your registration was submitted successfully.');
       setShowSuccessDialog(true);
       resetSignupForm();
     } else {
@@ -197,7 +197,7 @@ export default function Auth() {
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
       <AuthBackground active={!authLoading} />
 
-      <div className="w-full max-w-md relative z-10">
+      <div className={cn("w-full relative z-10 transition-all duration-300 ease-in-out", activeTab === 'signup' ? 'max-w-xl sm:max-w-2xl' : 'max-w-md')}>
         {/* Logo/Brand */}
         <div className="text-center mb-6">
           <div
@@ -212,22 +212,22 @@ export default function Auth() {
           <p className="text-teal-200/60 text-sm mt-1">{productTagline}</p>
         </div>
 
-        <Card className="border border-white/20 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
+        <Card className="border border-white/20 shadow-2xl bg-white/95 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="w-full p-2"
+            className="w-full p-2 sm:p-3"
           >
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100/80 p-1 border border-slate-200/40 rounded-xl">
-              <TabsTrigger 
+              <TabsTrigger
                 value="login"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm font-semibold"
               >
                 Sign In
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="signup"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 text-slate-500 hover:text-slate-800 rounded-lg transition-all duration-200 shadow-sm font-semibold"
               >
                 Sign Up
               </TabsTrigger>
@@ -256,6 +256,7 @@ export default function Auth() {
                   <div className="space-y-2">
                     <Label htmlFor="login-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
                     <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input
                         id="login-password"
                         type={showLoginPassword ? "text" : "password"}
@@ -264,7 +265,7 @@ export default function Auth() {
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
                         disabled={isLoading}
-                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
+                        className="pl-10 pr-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
                       />
                       <button
                         type="button"
@@ -290,9 +291,9 @@ export default function Auth() {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-2">
-                  <Button 
-                    type="submit" 
+                <CardFooter className="pt-2 flex flex-col gap-3">
+                  <Button
+                    type="submit"
                     className={brandButtonClass}
                     disabled={isLoading}
                   >
@@ -305,136 +306,211 @@ export default function Auth() {
                       'Sign In'
                     )}
                   </Button>
+                  <p className="text-xs text-center text-slate-500">
+                    Don&apos;t have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('signup')}
+                      className="font-semibold text-teal-600 hover:text-teal-700 hover:underline transition-colors focus:outline-none"
+                    >
+                      Create an account
+                    </button>
+                  </p>
                 </CardFooter>
               </form>
             </TabsContent>
 
             <TabsContent value="signup">
               <form onSubmit={handleSignup}>
-                <CardHeader className="pt-0">
-                  <CardTitle className="text-slate-900 font-bold text-xl">Create Account</CardTitle>
-                  <CardDescription className="text-slate-500 text-sm">
-                    Register to submit maintenance requests
-                  </CardDescription>
+                <CardHeader className="pt-0 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-slate-900 font-bold text-xl flex items-center gap-2">
+                        Create Account
+
+                      </CardTitle>
+                      <CardDescription className="text-slate-500 text-xs sm:text-sm mt-0.5">
+                        Register for IT ticketing & asset support. Fast automated or manager verification.
+                      </CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Full Name"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
+                  {/* Compact Quick-Verification Note */}
+                  <div className="rounded-xl border border-teal-500/20 bg-teal-50/70 dark:bg-teal-950/20 px-3.5 py-2.5 flex items-start gap-2.5 text-xs text-teal-900 dark:text-teal-200">
+                    <Clock className="h-4 w-4 text-teal-600 dark:text-teal-400 mt-0.5 shrink-0" />
+                    <p className="leading-snug">
+                      <span className="font-semibold">Quick Verification:</span> Once submitted, your account will be activated by a manager or approved automatically after a brief confirmation.
+                    </p>
+                  </div>
+
+                  {/* Row 1: Full Name & Email */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-name" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center justify-between">
+                        <span>Full Name <span className="text-destructive font-bold">*</span></span>
+                      </Label>
+                      <div className="relative">
+                        <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="signup-name"
+                          type="text"
+                          placeholder="e.g. John Doe"
+                          value={signupName}
+                          onChange={(e) => setSignupName(e.target.value)}
+                          required
+                          disabled={isLoading}
+                          className="pl-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                        />
+                      </div>
+                    </div>
+
+                    <ProfessionalEmailInput
+                      id="signup-email"
+                      label="Work Email"
+                      placeholder="you@company.com"
+                      value={signupEmail}
+                      onChange={setSignupEmail}
                       required
                       disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                      labelClassName="text-slate-700"
+                      inputClassName="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11"
                     />
                   </div>
-                  <ProfessionalEmailInput
-                    id="signup-email"
-                    label="Email"
-                    placeholder="you@company.com"
-                    value={signupEmail}
-                    onChange={setSignupEmail}
-                    required
-                    disabled={isLoading}
-                    labelClassName="text-slate-700"
-                    inputClassName="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11"
-                  />
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-phone" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
-                      Phone Number <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
-                    </Label>
-                    <Input
-                      id="signup-phone"
-                      type="tel"
-                      placeholder="+251911223344"
-                      value={signupPhone}
-                      onChange={(e) => setSignupPhone(e.target.value)}
-                      disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
-                    />
-                    <p className="text-xs text-slate-400">
-                      Used for SMS notifications when available
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-telegram" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
-                      Telegram Username <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
-                    </Label>
-                    <Input
-                      id="signup-telegram"
-                      type="text"
-                      placeholder="@username or username"
-                      value={signupTelegram}
-                      onChange={(e) => setSignupTelegram(e.target.value)}
-                      disabled={isLoading}
-                      className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
-                    />
-                    <p className="text-xs text-slate-400">
-                      Receive instant approval notifications
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showSignupPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={signupPassword}
-                        onChange={(e) => setSignupPassword(e.target.value)}
-                        required
-                        disabled={isLoading}
-                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignupPassword(!showSignupPassword)}
-                        aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
-                      >
-                        {showSignupPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
+
+                  {/* Row 2: Phone & Telegram (Optional Notifications) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-phone" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
+                        <span>Phone Number</span>
+                        <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
+                      </Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="signup-phone"
+                          type="tel"
+                          placeholder="+251 911 223 344"
+                          value={signupPhone}
+                          onChange={(e) => setSignupPhone(e.target.value)}
+                          disabled={isLoading}
+                          className="pl-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400">Used for SMS alerts when enabled</p>
                     </div>
-                    <p className="text-xs text-slate-500">Use at least 8 characters.</p>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-telegram" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center gap-1">
+                        <span>Telegram</span>
+                        <span className="text-[10px] text-slate-400 font-normal lowercase">(Optional)</span>
+                      </Label>
+                      <div className="relative">
+                        <Send className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="signup-telegram"
+                          type="text"
+                          placeholder="@username"
+                          value={signupTelegram}
+                          onChange={(e) => setSignupTelegram(e.target.value)}
+                          disabled={isLoading}
+                          className="pl-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                        />
+                      </div>
+                      <p className="text-[11px] text-slate-400">Receive instant ticket notifications</p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase">Confirm Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-confirm-password"
-                        type={showSignupConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={signupConfirmPassword}
-                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                        required
-                        disabled={isLoading}
-                        className="bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 pr-10 transition-all duration-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
-                        aria-label={showSignupConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
-                      >
-                        {showSignupConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
+
+                  {/* Row 3: Password & Confirm Password */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center justify-between">
+                        <span>Password <span className="text-destructive font-bold">*</span></span>
+                        {signupPassword.length > 0 && (
+                          <span className={cn(
+                            "text-[10px] normal-case font-semibold transition-colors",
+                            signupPassword.length >= 8 ? "text-emerald-600" : "text-amber-600"
+                          )}>
+                            {signupPassword.length >= 8 ? "Valid length" : `${8 - signupPassword.length} more chars`}
+                          </span>
                         )}
-                      </button>
+                      </Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="signup-password"
+                          type={showSignupPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          required
+                          disabled={isLoading}
+                          className="pl-10 pr-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupPassword(!showSignupPassword)}
+                          aria-label={showSignupPassword ? 'Hide password' : 'Show password'}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                        >
+                          {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400">Use at least 8 characters</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="signup-confirm-password" className="text-slate-700 font-medium text-xs tracking-wider uppercase flex items-center justify-between">
+                        <span>Confirm Password <span className="text-destructive font-bold">*</span></span>
+                        {signupConfirmPassword.length > 0 && (
+                          <span className={cn(
+                            "text-[10px] normal-case font-semibold flex items-center gap-1 transition-colors",
+                            signupPassword === signupConfirmPassword ? "text-emerald-600" : "text-rose-600"
+                          )}>
+                            {signupPassword === signupConfirmPassword ? (
+                              <>
+                                <Check className="h-3 w-3 stroke-[2.5]" />
+                                Passwords match
+                              </>
+                            ) : (
+                              "Passwords do not match"
+                            )}
+                          </span>
+                        )}
+                      </Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="signup-confirm-password"
+                          type={showSignupConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signupConfirmPassword}
+                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                          required
+                          disabled={isLoading}
+                          className={cn(
+                            "pl-10 pr-10 bg-slate-50/50 border-slate-200 focus-visible:border-teal-500/50 focus-visible:ring-teal-500/20 text-slate-900 placeholder:text-slate-400 rounded-xl h-11 transition-all duration-200",
+                            signupConfirmPassword.length > 0 && signupPassword !== signupConfirmPassword && "border-rose-400 focus-visible:border-rose-400 focus-visible:ring-rose-400/20"
+                          )}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                          aria-label={showSignupConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+                        >
+                          {showSignupConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-400">Re-enter your password</p>
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-2">
-                  <Button 
-                    type="submit" 
+
+                <CardFooter className="pt-2 flex flex-col gap-3">
+                  <Button
+                    type="submit"
                     className={brandButtonClass}
                     disabled={isLoading}
                   >
@@ -447,6 +523,16 @@ export default function Auth() {
                       'Create Account'
                     )}
                   </Button>
+                  <p className="text-xs text-center text-slate-500">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('login')}
+                      className="font-semibold text-teal-600 hover:text-teal-700 hover:underline transition-colors focus:outline-none"
+                    >
+                      Sign In
+                    </button>
+                  </p>
                 </CardFooter>
               </form>
             </TabsContent>
@@ -496,12 +582,32 @@ export default function Auth() {
             <DialogTitle className="text-2xl font-bold tracking-tight text-slate-900">
               {successDialogVariant === 'pending' ? 'Application submitted' : 'Account created'}
             </DialogTitle>
-            <DialogDescription className="text-slate-500 text-sm max-w-sm">
-              {successMessage}
+            <DialogDescription asChild>
+              <div className="text-slate-500 text-sm max-w-sm space-y-3 text-left">
+                <p>{successMessage}</p>
+                {successDialogVariant === 'pending' && (
+                  <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
+                    <li>Check your email for confirmation when you can sign in.</li>
+                    {pendingAutoApproveMinutes ? (
+                      <li>
+                        If no manager is available, your account is activated automatically within about{' '}
+                        {pendingAutoApproveMinutes} minutes.
+                      </li>
+                    ) : null}
+                    <li>
+                      Need urgent access? Email{' '}
+                      <a href={supportMailto} className="font-medium underline" style={{ color: brandPrimaryDark }}>
+                        IT support
+                      </a>
+                      .
+                    </li>
+                  </ul>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="mt-6 flex justify-center">
-            <Button 
+            <Button
               onClick={() => {
                 setShowSuccessDialog(false);
                 if (successDialogVariant === 'pending') {
