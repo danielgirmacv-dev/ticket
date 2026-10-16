@@ -599,7 +599,7 @@ class MaintenanceTicketController extends Controller
         $cacheKey = "ticket_routing.manager.{$category}";
 
         // Cache::remember cannot persist null, so store a sentinel for "no manager"
-        $managerId = Cache::remember($cacheKey, now()->addMinutes(5), fn () =>
+        $managerId = Cache::remember($cacheKey, now()->addMinutes(1), fn () =>
             $this->resolveManagerForCategory($category)?->id ?? 0
         );
 
@@ -673,23 +673,35 @@ class MaintenanceTicketController extends Controller
                 || str_contains(strtolower($user->name ?? ''), 'facility')
                 || str_contains(strtolower($user->email ?? ''), 'facility');
 
-            $isItUser = fn(\App\Models\User $user): bool =>
-                !$isSapUser($user) && (
-                    str_contains(strtolower($user->profile?->department ?? ''), 'it')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'tech')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'information technology')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'helpdesk')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'system')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'network')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'ict')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'computer')
-                    || str_contains(strtolower($user->profile?->department ?? ''), 'support')
-                    || str_contains(strtolower($user->name ?? ''), 'it')
-                    || str_contains(strtolower($user->email ?? ''), 'it_')
-                    || str_contains(strtolower($user->email ?? ''), 'it.')
-                    || str_contains(strtolower($user->email ?? ''), 'it@')
-                    || str_contains(strtolower($user->email ?? ''), 'tech')
-                );
+            $isItUser = function (\App\Models\User $user) use ($isSapUser): bool {
+                if ($isSapUser($user)) {
+                    return false;
+                }
+                $dept  = strtolower($user->profile?->department ?? '');
+                $name  = strtolower($user->name ?? '');
+                $email = strtolower($user->email ?? '');
+
+                // Multi-word phrases matched as substrings.
+                $itPhrases = ['it support', 'information technology', 'tech support', 'helpdesk', 'help desk', 'system admin', 'system administrator', 'ict department', 'ict support', 'computer services', 'computer service'];
+                foreach ($itPhrases as $kw) {
+                    if (str_contains($dept, $kw)) {
+                        return true;
+                    }
+                }
+
+                // Single-word tokens require word boundaries — avoids matching
+                // unrelated words such as "citrix", "limited", or a generic
+                // "support" department that isn't IT.
+                $singleWords = ['it', 'tech', 'ict', 'system', 'network', 'computer', 'telecom'];
+                $haystack = $dept . ' ' . $name . ' ' . $email;
+                foreach ($singleWords as $kw) {
+                    if (preg_match('/\b' . preg_quote($kw, '/') . '\b/i', $haystack)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
 
             $resolved = null;
 

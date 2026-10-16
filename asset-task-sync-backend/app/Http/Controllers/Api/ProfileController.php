@@ -150,6 +150,11 @@ class ProfileController extends Controller
 
         $profile->update($validated);
 
+        // Changing a manager's department/support category affects ticket routing
+        if (isset($validated['department']) || isset($validated['support_category'])) {
+            MaintenanceTicketController::forgetRoutingCache();
+        }
+
         $userUpdates = [];
         if (isset($validated['name'])) {
             $userUpdates['name'] = $validated['name'];
