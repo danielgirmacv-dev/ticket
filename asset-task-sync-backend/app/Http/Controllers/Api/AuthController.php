@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
-use App\Services\UserApprovalService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -73,6 +73,19 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             // Log error but don't fail registration
             Log::error('Failed to notify admins of new user: '.$e->getMessage());
+        }
+
+        // Welcome notification to the new user
+        try {
+            NotificationService::create(
+                $user->id,
+                'Account Created',
+                "Welcome {$validated['name']}! Your account has been created and is pending approval.",
+                'info',
+                '/auth'
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Welcome notification failed: '.$e->getMessage());
         }
 
         // Don't auto-login pending users
@@ -278,10 +291,41 @@ class AuthController extends Controller
             return $user;
         });
 
-        // Refresh cached manager-routing so new managers are picked up immediately
-        MaintenanceTicketController::forgetRoutingCache();
+            // Refresh cached manager-routing so new managers are picked up immediately
+            MaintenanceTicketController::forgetRoutingCache();
 
-        return response()->json([
+            // Welcome notification to the new user
+            try {
+                NotificationService::create(
+                    $user->id,
+                    'Account Created',
+                    "Welcome {$validated['name']}! Your account ({$validated['role']}) has been created.",
+                    'info',
+                    '/auth'
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Welcome notification failed: '.$e->getMessage());
+            }
+
+            // Notify managers/super admins of the new signup
+            try {
+                foreach (User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))->get() as $admin) {
+                    if ($admin->id === $user->id) {
+                        continue;
+                    }
+                    NotificationService::create(
+                        $admin->id,
+                        'New User Signed Up',
+                        "A new user {$validated['name']} ({$validated['email']}) has been created as {$validated['role']}.",
+                        'info',
+                        '/users'
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('New-user signup notification failed: '.$e->getMessage());
+            }
+
+            return response()->json([
             'message' => 'User created successfully',
             'user' => $user->load('profile', 'roles'),
         ], 201);

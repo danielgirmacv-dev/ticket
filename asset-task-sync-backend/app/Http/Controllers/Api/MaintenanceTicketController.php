@@ -326,6 +326,30 @@ class MaintenanceTicketController extends Controller
         // ✅ Save in-app notification synchronously
         NotificationService::ticketApproved($ticket);
 
+        // Notify assigned manager and technician that the ticket was approved
+        $ticket->loadMissing('assignedManager', 'assignedTechnician');
+        $approverId = auth()->id();
+
+        if ($ticket->assignedManager && $ticket->assignedManager->user_id && $ticket->assignedManager->user_id !== $approverId) {
+            NotificationService::create(
+                $ticket->assignedManager->user_id,
+                'Ticket Approved',
+                "Ticket '{$ticket->title}' has been approved.",
+                'info',
+                "/tickets/{$ticket->id}"
+            );
+        }
+
+        if ($ticket->assignedTechnician && $ticket->assignedTechnician->user_id && $ticket->assignedTechnician->user_id !== $approverId) {
+            NotificationService::create(
+                $ticket->assignedTechnician->user_id,
+                'Ticket Approved',
+                "Ticket '{$ticket->title}' has been approved.",
+                'info',
+                "/tickets/{$ticket->id}"
+            );
+        }
+
         // Queue Telegram + email (network I/O)
         SendTicketApprovedNotification::dispatch($ticket, auth()->user()->name ?? 'Administrator');
         SendTicketApprovalNotification::dispatch($ticket); // Microsoft Graph email
@@ -492,6 +516,17 @@ class MaintenanceTicketController extends Controller
         // ✅ Notify manager + super_admins synchronously that ticket needs review
         NotificationService::ticketCompletedPendingReview($ticket, auth()->id());
 
+        // Notify the requester that their ticket is pending review
+        if ($ticket->requester && $ticket->requester->user_id) {
+            NotificationService::create(
+                $ticket->requester->user_id,
+                'Ticket Completed — Pending Review',
+                "Your ticket '{$ticket->title}' has been marked as completed and is pending review.",
+                'info',
+                "/tickets/{$ticket->id}"
+            );
+        }
+
         return response()->json($ticket);
     }
 
@@ -545,6 +580,17 @@ class MaintenanceTicketController extends Controller
 
             // ✅ Notify technician + managers synchronously
             NotificationService::ticketReopened($ticket, auth()->id());
+
+            // Notify the requester that completion was rejected
+            if ($ticket->requester && $ticket->requester->user_id) {
+                NotificationService::create(
+                    $ticket->requester->user_id,
+                    'Ticket Reopened',
+                    "The completion of ticket '{$ticket->title}' was rejected. It has been reopened — please check the review notes.",
+                    'warning',
+                    "/tickets/{$ticket->id}"
+                );
+            }
         }
 
         return response()->json($ticket->load('reviewedBy', 'assignedTechnician'));
