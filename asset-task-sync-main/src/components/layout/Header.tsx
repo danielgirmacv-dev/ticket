@@ -41,22 +41,24 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
   const [isDark, setIsDark] = useState(() => {
+    // Default to light mode; only go dark if the user explicitly saved 'dark'
     if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+      return localStorage.getItem('theme') === 'dark';
     }
     return false;
   });
   const [open, setOpen] = useState(false);
 
-  /* ── Sync dark mode on mount ── */
+  /* ── Sync dark mode on mount (default = light) ── */
   useEffect(() => {
     const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && prefersDark)) {
+    if (saved === 'dark') {
       document.documentElement.classList.add('dark');
       setIsDark(true);
     } else {
+      // Ensure light mode is always the default
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
       setIsDark(false);
     }
   }, []);
