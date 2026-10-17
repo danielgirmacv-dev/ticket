@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { useActivityLogs } from '@/hooks/useActivityLogs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const actionColors = {
-  created: 'bg-success',
-  started: 'bg-info',
-  completed: 'bg-accent',
-  updated: 'bg-warning',
-  deleted: 'bg-destructive',
+const actionColors: Record<string, string> = {
+  created: 'bg-emerald-500',
+  started: 'bg-blue-600',
+  completed: 'bg-teal-500',
+  updated: 'bg-amber-500',
+  deleted: 'bg-rose-500',
 };
 
 const ITEMS_PER_PAGE = 5;
@@ -23,12 +24,20 @@ const RecentActivity = () => {
 
   if (isLoading) {
     return (
-      <Card className="h-full">
+      <Card className="h-full border border-border/80 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+          <Skeleton className="h-5 w-32" />
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-[300px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CardContent className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+              <div className="space-y-1.5 flex-1">
+                <Skeleton className="h-3.5 w-3/4" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
     );
@@ -39,10 +48,13 @@ const RecentActivity = () => {
   const currentLogs = logs?.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE) || [];
 
   return (
-    <Card className="h-full flex flex-col justify-between">
+    <Card className="h-full flex flex-col justify-between border border-border/80 shadow-sm">
       <div>
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+        <CardHeader className="pb-3.5 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Audit Trail</CardTitle>
+            <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Recent system events</CardDescription>
+          </div>
           {totalLogs > 0 && (
             <span className="text-xs text-muted-foreground font-medium">
               Page {currentPage} of {totalPages}
@@ -59,7 +71,7 @@ const RecentActivity = () => {
               >
                 <div className="relative shrink-0">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-muted text-xs font-medium">
+                    <AvatarFallback className="bg-muted text-xs font-semibold">
                       {log.user?.name ? log.user.name.split(' ').map(n => n[0]).join('') : 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -71,15 +83,15 @@ const RecentActivity = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm">
-                    <span className="font-medium">{log.user?.name || 'System'}</span>
+                  <p className="text-[14px] leading-snug">
+                    <span className="font-semibold text-foreground">{log.user?.name || 'System'}</span>
                     <span className="text-muted-foreground"> {log.action} </span>
-                    <span className="font-medium">{log.entity_type}</span>
+                    <span className="font-medium text-foreground">{log.entity_type}</span>
                   </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  <p className="text-[13px] text-muted-foreground truncate mt-0.5">
                     {log.details}
                   </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
+                  <p className="text-[12px] text-muted-foreground/70 mt-1">
                     {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                   </p>
                 </div>

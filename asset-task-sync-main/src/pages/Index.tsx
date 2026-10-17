@@ -60,73 +60,81 @@ const Index = () => {
       title="Dashboard"
       subtitle="Welcome back. Here's what's happening today."
     >
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <Link to="/assets">
-          <StatCard
-            title="Total Assets"
-            value={totalAssets}
-            icon={<Monitor className="h-6 w-6" />}
-            trend={{ value: 0, isPositive: true }} // We don't have trend data yet
-          />
-        </Link>
-        <Link to="/assets?status=active">
-          <StatCard
-            title="Active Assets"
-            value={activeAssets}
-            icon={<CheckCircle className="h-6 w-6" />}
-            variant="success"
-          />
-        </Link>
-        <Link to="/tickets">
-          <StatCard
-            title="Total Tickets"
-            value={totalTickets}
-            icon={<ClipboardList className="h-6 w-6" />}
-            trend={{ value: 0, isPositive: true }} // We don't have trend data yet
-          />
-        </Link>
-        <Link to="/tickets?status=pending">
-          <StatCard
-            title="Pending Tickets"
-            value={pendingTickets}
-            icon={<Clock className="h-6 w-6" />}
-            variant="warning"
-          />
-        </Link>
-        <Link to="/tickets?status=in_progress">
-          <StatCard
-            title="In Progress"
-            value={inProgressTickets}
-            icon={<Wrench className="h-6 w-6" />}
-            variant="info"
-          />
-        </Link>
-        <Link to="/tickets?status=completed">
-          <StatCard
-            title="Completed"
-            value={completedTickets}
-            icon={<CheckCircle className="h-6 w-6" />}
-            variant="accent"
-          />
-        </Link>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <TicketStatusChart />
-        <AssetTypeChart />
-        <TopTechnicians />
-        <MonthlyTicketsChart className="col-span-1 md:col-span-2 lg:col-span-3" />
-      </div>
-
-      {/* Content Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="lg:col-span-2">
-          <TicketsOverview />
+      <div className="space-y-5">
+        {/* Stats Row - Consistent 16-20px gaps */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-5">
+          <Link to="/assets" className="block focus:outline-none">
+            <StatCard
+              title="Total Assets"
+              value={totalAssets}
+              icon={<Monitor className="h-5 w-5" />}
+              subtitle="Hardware inventory"
+              variant="primary"
+            />
+          </Link>
+          <Link to="/assets?status=active" className="block focus:outline-none">
+            <StatCard
+              title="Active Assets"
+              value={activeAssets}
+              icon={<CheckCircle className="h-5 w-5" />}
+              subtitle="Currently operational"
+              variant="success"
+            />
+          </Link>
+          <Link to="/tickets" className="block focus:outline-none">
+            <StatCard
+              title="Total Tickets"
+              value={totalTickets}
+              icon={<ClipboardList className="h-5 w-5" />}
+              subtitle="All logged tickets"
+              variant="primary"
+            />
+          </Link>
+          <Link to="/tickets?status=pending" className="block focus:outline-none">
+            <StatCard
+              title="Pending Tickets"
+              value={pendingTickets}
+              icon={<Clock className="h-5 w-5" />}
+              subtitle="Awaiting technician"
+              variant="warning"
+            />
+          </Link>
+          <Link to="/tickets?status=in_progress" className="block focus:outline-none">
+            <StatCard
+              title="In Progress"
+              value={inProgressTickets}
+              icon={<Wrench className="h-5 w-5" />}
+              subtitle="Active maintenance"
+              variant="info"
+            />
+          </Link>
+          <Link to="/tickets?status=completed" className="block focus:outline-none">
+            <StatCard
+              title="Completed"
+              value={completedTickets}
+              icon={<CheckCircle className="h-5 w-5" />}
+              subtitle="Successfully closed"
+              variant="accent"
+            />
+          </Link>
         </div>
-        <div>
-          <RecentActivity />
+
+        {/* Charts Row - Consistent 16-20px gaps */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <TicketStatusChart />
+          <AssetTypeChart />
+          <TopTechnicians />
+          <MonthlyTicketsChart className="col-span-1 md:col-span-2 lg:col-span-3" />
+        </div>
+
+        {/* Content Row - Consistent 16-20px gaps */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div className="lg:col-span-2">
+            <TicketsOverview />
+          </div>
+          <div>
+            <RecentActivity />
+          </div>
         </div>
       </div>
     </DashboardLayout>

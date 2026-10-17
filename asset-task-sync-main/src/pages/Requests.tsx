@@ -424,21 +424,19 @@ const Requests = () => {
       title="Submit Request"
       subtitle="Create a new IT support request"
     >
-      <Card className="max-w-2xl mx-auto overflow-hidden border-t-4 border-t-teal-600 dark:border-t-teal-500 shadow-xl bg-card">
-        <CardHeader className="relative overflow-hidden bg-gradient-to-b from-teal-500/5 via-transparent to-transparent pb-6">
+      <Card className="max-w-2xl mx-auto overflow-hidden border-t-4 border-t-primary shadow-lg bg-card rounded-2xl border-border/80">
+        <CardHeader className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-transparent to-transparent pb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/75 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
               </div>
-              <CardTitle className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-                <span className="bg-gradient-to-r from-teal-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-                  New Support Request
-                </span>
+              <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+                New Support Request
               </CardTitle>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 text-xs font-semibold self-start sm:self-auto">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold self-start sm:self-auto border border-primary/20">
               <Activity className="h-3 w-3 animate-pulse" />
               Live Assistance
             </div>
@@ -447,17 +445,17 @@ const Requests = () => {
             Submit a request for IT support. Our team will review it and respond based on priority.
           </CardDescription>
           {showHelpBanner && (
-            <div className="mt-4 rounded-lg border border-teal-500/20 bg-teal-50/50 dark:bg-teal-950/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 relative pr-10">
-              <p className="text-sm text-teal-800 dark:text-teal-300 flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
+            <div className="mt-4 rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 relative pr-10">
+              <p className="text-sm text-foreground flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 shrink-0 text-secondary" />
                 Check the Help Center first — your question may already be answered.
               </p>
-              <Button variant="outline" size="sm" asChild className="border-teal-500/30 text-teal-700 hover:bg-teal-500/10 dark:text-teal-300 self-start sm:self-auto">
+              <Button variant="outline" size="sm" asChild className="border-secondary/30 text-secondary hover:bg-secondary/10 self-start sm:self-auto text-xs font-semibold">
                 <Link to="/help">Browse FAQ</Link>
               </Button>
               <button
                 type="button"
-                className="absolute right-3 top-3.5 text-teal-600/60 hover:text-teal-600 dark:text-teal-400/60 dark:hover:text-teal-400"
+                className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowHelpBanner(false)}
                 title="Dismiss banner"
               >
@@ -867,7 +865,7 @@ const Requests = () => {
               <Button type="button" variant="outline" className="w-full sm:w-auto rounded-xl" onClick={() => window.history.back()}>
                 Cancel
               </Button>
-              <Button type="submit" className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-teal-600 via-cyan-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white font-bold shadow-lg shadow-teal-500/20 hover:shadow-teal-500/35 transition-all duration-300 transform hover:-translate-y-0.5" disabled={createTicket.isPending}>
+              <Button type="submit" className="w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:shadow-primary/30 transition-all duration-200" disabled={createTicket.isPending}>
                 {createTicket.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

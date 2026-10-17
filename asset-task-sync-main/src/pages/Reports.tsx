@@ -60,20 +60,13 @@ const Reports = () => {
 
     return (
         <DashboardLayout title="Reports">
-            <div className="space-y-6">
-                {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Generate and export detailed reports for tickets and assets
-                    </p>
-                </div>
+        <div className="space-y-5">
 
                 {/* Filters Card */}
                 <Card className="print:hidden">
-                    <CardHeader>
-                        <CardTitle>Filters</CardTitle>
-                        <CardDescription>Configure report parameters</CardDescription>
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Filters</CardTitle>
+                        <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Configure report parameters</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -391,50 +384,50 @@ const Reports = () => {
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                                <Card className="border border-border/80 shadow-xs">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-[14px] font-medium text-muted-foreground">Total Tickets</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-2xl font-bold">{performanceData?.summary?.total_tickets || 0}</div>
+                                            <div className="text-[30px] font-bold tracking-tight text-foreground leading-none">{performanceData?.summary?.total_tickets || 0}</div>
                                         </CardContent>
                                     </Card>
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                                    <Card className="border border-border/80 shadow-xs">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-[14px] font-medium text-muted-foreground">Completed</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-2xl font-bold text-success">{performanceData?.summary?.completed_tickets || 0}</div>
-                                            <p className="text-xs text-muted-foreground mt-1">
+                                            <div className="text-[30px] font-bold tracking-tight text-emerald-600 dark:text-emerald-400 leading-none">{performanceData?.summary?.completed_tickets || 0}</div>
+                                            <p className="text-[13px] text-muted-foreground mt-1">
                                                 {performanceData?.summary?.completion_rate || 0}% completion rate
                                             </p>
                                         </CardContent>
                                     </Card>
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                                    <Card className="border border-border/80 shadow-xs">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-[14px] font-medium text-muted-foreground">Overdue</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-2xl font-bold text-destructive">{performanceData?.summary?.overdue_tickets || 0}</div>
+                                            <div className="text-[30px] font-bold tracking-tight text-rose-600 dark:text-rose-400 leading-none">{performanceData?.summary?.overdue_tickets || 0}</div>
                                         </CardContent>
                                     </Card>
-                                    <Card>
-                                        <CardHeader className="pb-3">
-                                            <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
+                                    <Card className="border border-border/80 shadow-xs">
+                                        <CardHeader className="pb-2">
+                                            <CardTitle className="text-[14px] font-medium text-muted-foreground">Avg Completion</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <div className="text-2xl font-bold">{performanceData?.summary?.avg_completion_days || 0}</div>
-                                            <p className="text-xs text-muted-foreground mt-1">days</p>
+                                            <div className="text-[30px] font-bold tracking-tight text-foreground leading-none">{performanceData?.summary?.avg_completion_days || 0}</div>
+                                            <p className="text-[13px] text-muted-foreground mt-1">days</p>
                                         </CardContent>
                                     </Card>
                                 </div>
 
                                 {/* Technician Performance Table */}
                                 <Card>
-                                    <CardHeader>
-                                        <CardTitle>Technician Performance</CardTitle>
-                                        <CardDescription>Detailed performance metrics by technician</CardDescription>
+                                <CardHeader className="pb-3">
+                                        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Technician Performance</CardTitle>
+                                        <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Detailed performance metrics by technician</CardDescription>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="overflow-x-auto">

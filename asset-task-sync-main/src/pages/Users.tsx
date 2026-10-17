@@ -44,10 +44,30 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const roleStyles = {
-  super_admin: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', icon: Shield },
-  admin: { bg: 'bg-destructive/10', text: 'text-destructive', icon: Shield },
-  technician: { bg: 'bg-info/10', text: 'text-info', icon: Wrench },
-  requester: { bg: 'bg-success/10', text: 'text-success', icon: UserIcon },
+  super_admin: {
+    bg: 'bg-indigo-50 dark:bg-indigo-950/40',
+    text: 'text-indigo-700 dark:text-indigo-400',
+    border: 'border-indigo-200/80 dark:border-indigo-800/60',
+    icon: Shield,
+  },
+  admin: {
+    bg: 'bg-teal-50 dark:bg-teal-950/40',
+    text: 'text-teal-700 dark:text-teal-400',
+    border: 'border-teal-200/80 dark:border-teal-800/60',
+    icon: Shield,
+  },
+  technician: {
+    bg: 'bg-blue-50 dark:bg-blue-950/40',
+    text: 'text-blue-700 dark:text-blue-400',
+    border: 'border-blue-200/80 dark:border-blue-800/60',
+    icon: Wrench,
+  },
+  requester: {
+    bg: 'bg-slate-100 dark:bg-slate-800/60',
+    text: 'text-slate-700 dark:text-slate-300',
+    border: 'border-slate-200 dark:border-slate-700',
+    icon: UserIcon,
+  },
 };
 
 const roleLabel = (role: AppRole): string => {
@@ -417,7 +437,7 @@ const Users = () => {
       subtitle="Manage users and their roles"
     >
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-5 mb-5">
         {Object.entries(usersByRole).map(([role, count]) => {
           const style = roleStyles[role as AppRole];
           const Icon = style.icon;
@@ -426,18 +446,20 @@ const Users = () => {
             <Card 
               key={role} 
               className={cn(
-                'relative overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-md hover:border-primary/50',
-                isSelected ? 'ring-2 ring-primary border-transparent bg-muted/30' : 'hover:bg-muted/10'
+                'relative overflow-hidden cursor-pointer rounded-xl border transition-all duration-200 bg-card shadow-xs hover:shadow-md',
+                isSelected 
+                  ? 'ring-2 ring-primary border-primary/60 bg-primary/5 dark:bg-primary/10 shadow-sm' 
+                  : 'border-border/70 hover:border-primary/40'
               )}
               onClick={() => setRoleFilter(isSelected ? 'all' : role)}
             >
-              <CardContent className="flex items-center gap-4 p-6">
-                <div className={cn('flex h-12 w-12 items-center justify-center rounded-lg transition-transform duration-200', style.bg, isSelected && 'scale-110')}>
-                  <Icon className={cn('h-6 w-6', style.text)} />
+              <CardContent className="flex items-center gap-3.5 p-4 sm:p-5">
+                <div className={cn('flex h-11 w-11 items-center justify-center rounded-xl border transition-all duration-200 shrink-0', style.bg, style.border)}>
+                  <Icon className={cn('h-5 w-5', style.text)} />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{count}</p>
-                  <p className="text-sm text-muted-foreground">{roleLabel(role as AppRole)}s</p>
+                <div className="min-w-0">
+                  <p className="text-[28px] sm:text-[30px] font-bold tracking-tight text-foreground leading-none">{count}</p>
+                  <p className="text-[13px] font-medium text-muted-foreground truncate mt-0.5">{roleLabel(role as AppRole)}s</p>
                 </div>
               </CardContent>
             </Card>
@@ -446,7 +468,7 @@ const Users = () => {
       </div>
 
       {/* Header Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -768,7 +790,7 @@ const Users = () => {
                         {canManageUser(user) ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Badge className={cn('gap-1.5 cursor-pointer hover:opacity-80', roleStyle.bg, roleStyle.text)}>
+                              <Badge className={cn('gap-1.5 border cursor-pointer hover:opacity-85 font-medium shadow-2xs', roleStyle.bg, roleStyle.text, roleStyle.border)}>
                                 <RoleIcon className="h-3 w-3" />
                                 <span className="capitalize">{roleLabel(user.role)}</span>
                               </Badge>
@@ -782,7 +804,7 @@ const Users = () => {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         ) : (
-                          <Badge className={cn('gap-1.5', roleStyle.bg, roleStyle.text)}>
+                          <Badge className={cn('gap-1.5 border font-medium shadow-2xs', roleStyle.bg, roleStyle.text, roleStyle.border)}>
                             <RoleIcon className="h-3 w-3" />
                             <span className="capitalize">{roleLabel(user.role)}</span>
                           </Badge>
@@ -790,37 +812,37 @@ const Users = () => {
                       </td>
                       <td>
                         {user.status === 'pending' && (
-                          <Badge className="gap-1.5 bg-warning/10 text-warning">
-                            <Clock className="h-3 w-3" />
-                            <span>Pending</span>
-                          </Badge>
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            Pending
+                          </span>
                         )}
                         {user.status === 'active' && (
-                          <Badge className="gap-1.5 bg-success/10 text-success">
-                            <CheckCircle className="h-3 w-3" />
-                            <span>Active</span>
-                          </Badge>
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Active
+                          </span>
                         )}
                         {user.status === 'rejected' && (
-                          <Badge className="gap-1.5 bg-destructive/10 text-destructive">
-                            <XCircle className="h-3 w-3" />
-                            <span>Rejected</span>
-                          </Badge>
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:border-rose-800/60 dark:bg-rose-950/40 dark:text-rose-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                            Rejected
+                          </span>
                         )}
                       </td>
                       <td>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Building2 className="h-4 w-4" />
-                          {user.department || '-'}
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[140px]">{user.department || '—'}</span>
                         </div>
                       </td>
                       <td>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <MapPin className="h-4 w-4" />
-                          {user.location?.name || '-'}
+                        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[140px]">{user.location?.name || '—'}</span>
                         </div>
                       </td>
-                      <td className="text-muted-foreground">
+                      <td className="text-muted-foreground text-xs">
                         {format(new Date(user.created_at), 'MMM d, yyyy')}
                       </td>
                       <td className="text-right">
@@ -830,10 +852,10 @@ const Users = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 px-2.5 text-xs text-success border-success/30 hover:bg-success/10 hover:text-success"
+                                className="h-7 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 shadow-2xs"
                                 onClick={() => handleApproveUser(user.user_id.toString())}
                               >
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                <CheckCircle className="h-3 w-3 mr-1 text-emerald-600 dark:text-emerald-400" />
                                 Approve
                               </Button>
                             )}

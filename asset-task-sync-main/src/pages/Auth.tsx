@@ -227,7 +227,7 @@ export default function Auth() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#012229] via-[#043e49] to-[#075362]">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#0B1120] via-[#111C35] to-[#1E293B]">
         <Loader2 className="h-8 w-8 animate-spin" style={{ color: brandPrimaryLight }} />
       </div>
     );
@@ -241,15 +241,15 @@ export default function Auth() {
         {/* Logo/Brand */}
         <div className="text-center mb-6">
           <div
-            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border border-[#1AB1C7]/40 mb-3 p-2 shadow-xl backdrop-blur-md"
-            style={{ backgroundColor: `${brandPrimary}18`, boxShadow: `0 12px 28px -8px ${brandPrimary}55` }}
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl border border-white/20 mb-3 p-2.5 shadow-xl backdrop-blur-md bg-white/10"
+            style={{ boxShadow: `0 12px 28px -8px rgba(37, 99, 235, 0.45)` }}
           >
             <img src={eeccLogo} alt={`${productName} logo`} className="h-full w-full object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
             {productName}
           </h1>
-          <p className="text-teal-200/60 text-sm mt-1">{productTagline}</p>
+          <p className="text-blue-200/70 text-sm mt-1">{productTagline}</p>
         </div>
 
         <Card className="border border-white/20 shadow-2xl bg-white/95 backdrop-blur-xl rounded-2xl overflow-hidden transition-all duration-300">
@@ -381,13 +381,13 @@ export default function Auth() {
                     <div
                       className={cn(
                         'h-1.5 flex-1 rounded-full transition-colors',
-                        signupStep >= 1 ? 'bg-[#1AB1C7]' : 'bg-slate-200',
+                        signupStep >= 1 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700',
                       )}
                     />
                     <div
                       className={cn(
                         'h-1.5 flex-1 rounded-full transition-colors',
-                        signupStep >= 2 ? 'bg-[#1AB1C7]' : 'bg-slate-200',
+                        signupStep >= 2 ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700',
                       )}
                     />
                   </div>

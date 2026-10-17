@@ -59,8 +59,8 @@ export function TicketListRow({
       </div>
 
       <div className="lg:col-span-3 min-w-0">
-        <p className="text-sm font-semibold truncate group-hover:text-[#148FA3]">{ticket.title}</p>
-        <p className="text-xs text-muted-foreground truncate lg:hidden">
+        <p className="text-[15px] font-semibold truncate group-hover:text-primary transition-colors text-foreground">{ticket.title}</p>
+        <p className="text-[13px] text-muted-foreground truncate lg:hidden mt-0.5">
           {format(new Date(ticket.scheduled_date), 'MMM d, yyyy')}
           {ticket.asset?.name ? ` · ${ticket.asset.name}` : ''}
         </p>
@@ -79,14 +79,14 @@ export function TicketListRow({
         </span>
       </div>
 
-      <div className="hidden lg:block lg:col-span-2 text-xs text-muted-foreground truncate">
+      <div className="hidden lg:block lg:col-span-2 text-[14px] text-muted-foreground truncate">
         {format(new Date(ticket.scheduled_date), 'MMM d, yyyy')}
       </div>
 
-      <div className="hidden lg:block lg:col-span-2 text-xs truncate">
+      <div className="hidden lg:block lg:col-span-2 text-[14px] truncate">
         <span className="text-muted-foreground">{ticket.requester?.name || '—'}</span>
         <span className="text-muted-foreground/50 mx-1">→</span>
-        <span className="font-medium">{ticket.assigned_technician?.name || 'Unassigned'}</span>
+        <span className="font-medium text-foreground">{ticket.assigned_technician?.name || 'Unassigned'}</span>
       </div>
 
       <div
@@ -104,13 +104,13 @@ export function TicketListRow({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 rounded-lg"
+          className="h-8 w-8 shrink-0 rounded-lg group-hover:bg-primary/10"
           onClick={(e) => {
             e.stopPropagation();
             onOpen(ticket);
           }}
         >
-          <ArrowUpRight className="h-4 w-4 text-[#148FA3]" />
+          <ArrowUpRight className="h-4 w-4 text-primary" />
         </Button>
       </div>
 
@@ -131,7 +131,7 @@ export function TicketListRow({
 
 export function TicketListHeader() {
   return (
-    <div className="hidden lg:grid grid-cols-12 gap-3 px-4 py-2.5 bg-muted/50 border-b border-border/60 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    <div className="hidden lg:grid grid-cols-12 gap-3 px-4 py-3 bg-muted/40 border-b border-border text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
       <div className="col-span-2">Reference</div>
       <div className="col-span-3">Title</div>
       <div className="col-span-2">Status</div>

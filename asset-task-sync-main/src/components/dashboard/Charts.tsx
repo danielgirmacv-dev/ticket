@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   PieChart,
   Pie,
@@ -14,69 +14,92 @@ import {
 } from 'recharts';
 import { useAssets } from '@/hooks/useAssets';
 import { useTickets } from '@/hooks/useTickets';
-import { Loader2 } from 'lucide-react';
-import { format, subMonths, eachMonthOfInterval, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format, subMonths, eachMonthOfInterval, isSameMonth } from 'date-fns';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+// EEC Brand Palette: Primary #11adc4, Dark Teal #0f5766, plus status colors
+const STATUS_COLORS: Record<string, string> = {
+  Completed: '#10B981', // Emerald
+  'In progress': '#11adc4', // EEC Primary
+  Submitted: '#F59E0B', // Amber
+  Pending: '#F59E0B', // Amber
+  Cancelled: '#EF4444', // Red
+  'Completed pending review': '#0f5766', // EEC Dark Teal
+};
+
+const ASSET_TYPE_COLORS: Record<string, string> = {
+  Computer: '#11adc4', // EEC Primary
+  Server: '#0f5766', // EEC Dark Teal
+  Printer: '#6366F1', // Indigo
+  Network_device: '#10B981', // Emerald
+  Other: '#F59E0B', // Amber
+};
+
+const FALLBACK_COLORS = ['#11adc4', '#0f5766', '#10B981', '#F59E0B', '#6366F1', '#8B5CF6'];
 
 export const TicketStatusChart = () => {
   const { data: tickets, isLoading } = useTickets();
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Ticket Status</CardTitle>
+          <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Skeleton className="h-36 w-36 rounded-full" />
         </CardContent>
       </Card>
     );
   }
 
   const statusCounts = tickets?.reduce((acc, ticket) => {
-    const status = ticket.status.replace('_', ' ');
+    const raw = ticket.status.replace('_', ' ');
+    const status = raw.charAt(0).toUpperCase() + raw.slice(1);
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>) || {};
 
-  const data = Object.entries(statusCounts).map(([name, value], index) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
+  const data = Object.entries(statusCounts).map(([name, value], idx) => ({
+    name,
     value,
-    fill: COLORS[index % COLORS.length],
+    fill: STATUS_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
   }));
 
   if (data.length === 0) {
     return (
-      <Card>
+      <Card className="border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Ticket Status</CardTitle>
+          <CardTitle className="text-base font-semibold">Ticket Status Distribution</CardTitle>
+          <CardDescription className="text-xs">Live status breakdown</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
-          No data available
+        <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+          No ticket data available
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Ticket Status</CardTitle>
+    <Card className="border border-border/80 shadow-xs">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Ticket Status Distribution</CardTitle>
+        <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Active breakdown across all tickets</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-1">
         <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={4}
+                cy="46%"
+                innerRadius={48}
+                outerRadius={74}
+                paddingAngle={3}
                 dataKey="value"
+                stroke="hsl(var(--card))"
+                strokeWidth={2}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -86,14 +109,16 @@ export const TicketStatusChart = () => {
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  fontSize: '12px',
                 }}
               />
               <Legend
                 verticalAlign="bottom"
                 height={36}
                 formatter={(value) => (
-                  <span className="text-xs text-muted-foreground">{value}</span>
+                  <span className="text-[13px] text-muted-foreground font-medium">{value}</span>
                 )}
               />
             </PieChart>
@@ -109,58 +134,64 @@ export const AssetTypeChart = () => {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Assets by Type</CardTitle>
+          <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Skeleton className="h-36 w-36 rounded-full" />
         </CardContent>
       </Card>
     );
   }
 
   const typeCounts = assets?.reduce((acc, asset) => {
-    acc[asset.type] = (acc[asset.type] || 0) + 1;
+    const raw = (asset.type || 'other').replace('_', ' ');
+    const type = raw.charAt(0).toUpperCase() + raw.slice(1);
+    acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>) || {};
 
-  const data = Object.entries(typeCounts).map(([name, value], index) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
+  const data = Object.entries(typeCounts).map(([name, value], idx) => ({
+    name,
     value,
-    fill: COLORS[index % COLORS.length],
+    fill: ASSET_TYPE_COLORS[name] || FALLBACK_COLORS[idx % FALLBACK_COLORS.length],
   }));
 
   if (data.length === 0) {
     return (
-      <Card>
+      <Card className="border border-border/80 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Assets by Type</CardTitle>
+          <CardTitle className="text-base font-semibold">Assets by Category</CardTitle>
+          <CardDescription className="text-xs">Inventory distribution</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground">
-          No data available
+        <CardContent className="flex items-center justify-center h-[200px] text-muted-foreground text-sm">
+          No asset data available
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Assets by Type</CardTitle>
+    <Card className="border border-border/80 shadow-xs">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Assets by Category</CardTitle>
+        <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Inventory hardware composition</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-1">
         <div className="h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={4}
+                cy="46%"
+                innerRadius={48}
+                outerRadius={74}
+                paddingAngle={3}
                 dataKey="value"
+                stroke="hsl(var(--card))"
+                strokeWidth={2}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -170,14 +201,16 @@ export const AssetTypeChart = () => {
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  fontSize: '12px',
                 }}
               />
               <Legend
                 verticalAlign="bottom"
                 height={36}
                 formatter={(value) => (
-                  <span className="text-xs text-muted-foreground">{value}</span>
+                  <span className="text-[13px] text-muted-foreground font-medium">{value}</span>
                 )}
               />
             </PieChart>
@@ -195,10 +228,10 @@ export const MonthlyTicketsChart = ({ className }: { className?: string }) => {
     return (
       <Card className={className}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Monthly Ticket Completion</CardTitle>
+          <Skeleton className="h-5 w-48" />
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Skeleton className="h-36 w-full" />
         </CardContent>
       </Card>
     );
@@ -209,11 +242,11 @@ export const MonthlyTicketsChart = ({ className }: { className?: string }) => {
   const start = subMonths(end, 5);
   const months = eachMonthOfInterval({ start, end });
 
-  const data = months.map(month => {
-    const count = tickets?.filter(ticket =>
+  const data = months.map((month) => {
+    const count = tickets?.filter((ticket) =>
       ticket.status === 'completed' &&
       isSameMonth(new Date(ticket.updated_at), month)
-    ).length || 0;
+    )?.length || 0;
 
     return {
       month: format(month, 'MMM'),
@@ -222,15 +255,24 @@ export const MonthlyTicketsChart = ({ className }: { className?: string }) => {
   });
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Monthly Ticket Completion</CardTitle>
+    <Card className={cn('border border-border/80 shadow-xs', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Monthly Ticket Resolution</CardTitle>
+            <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Resolved tickets over the past 6 months</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#11adc4]" />
+            <span className="text-[13px] font-medium text-muted-foreground">Completed</span>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="h-[200px]">
+      <CardContent className="pt-1">
+        <div className="h-[210px] pt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
               <XAxis
                 dataKey="month"
                 stroke="hsl(var(--muted-foreground))"
@@ -243,19 +285,23 @@ export const MonthlyTicketsChart = ({ className }: { className?: string }) => {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                allowDecimals={false}
               />
               <Tooltip
                 contentStyle={{
                   backgroundColor: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  fontSize: '12px',
                 }}
-                cursor={{ fill: 'hsl(var(--muted))' }}
+                cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
               />
               <Bar
                 dataKey="tickets"
-                fill="hsl(var(--accent))"
-                radius={[4, 4, 0, 0]}
+                fill="#11adc4"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={45}
               />
             </BarChart>
           </ResponsiveContainer>

@@ -23,38 +23,38 @@ const tabs: {
 }[] = [
   {
     value: 'all',
-    label: 'All',
+    label: 'All Tickets',
     icon: LayoutGrid,
     countClass: 'bg-slate-200/80 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
-    activeClass: 'data-[state=active]:bg-slate-900/5 data-[state=active]:text-foreground dark:data-[state=active]:bg-white/10',
+    activeClass: 'data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm',
   },
   {
     value: 'pending',
     label: 'Pending',
     icon: CircleDashed,
-    countClass: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
-    activeClass: 'data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-900 dark:data-[state=active]:text-amber-100',
+    countClass: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+    activeClass: 'data-[state=active]:bg-card data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400 data-[state=active]:shadow-sm',
   },
   {
     value: 'in_progress',
-    label: 'In progress',
+    label: 'In Progress',
     icon: PlayCircle,
-    countClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
-    activeClass: 'data-[state=active]:bg-sky-500/10 data-[state=active]:text-sky-900 dark:data-[state=active]:text-sky-100',
+    countClass: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300',
+    activeClass: 'data-[state=active]:bg-card data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:shadow-sm',
   },
   {
     value: 'review',
-    label: 'In review',
+    label: 'In Review',
     icon: ClipboardCheck,
-    countClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
-    activeClass: 'data-[state=active]:bg-violet-500/10 data-[state=active]:text-violet-900 dark:data-[state=active]:text-violet-100',
+    countClass: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300',
+    activeClass: 'data-[state=active]:bg-card data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-400 data-[state=active]:shadow-sm',
   },
   {
     value: 'completed',
     label: 'Completed',
     icon: CheckCircle2,
-    countClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
-    activeClass: 'data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-900 dark:data-[state=active]:text-emerald-100',
+    countClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+    activeClass: 'data-[state=active]:bg-card data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 data-[state=active]:shadow-sm',
   },
 ];
 
@@ -77,7 +77,7 @@ export function TicketStatusTabs({ counts }: TicketStatusTabsProps) {
               'text-sm sm:text-[15px] font-semibold text-muted-foreground transition-all duration-200',
               'hover:text-foreground hover:bg-background/60',
               'data-[state=active]:border-border/50 data-[state=active]:bg-background data-[state=active]:shadow-md',
-              'focus-visible:ring-2 focus-visible:ring-[#1AB1C7]/40',
+              'focus-visible:ring-2 focus-visible:ring-primary/40',
               activeClass,
             )}
           >

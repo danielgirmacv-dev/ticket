@@ -44,11 +44,27 @@ const assetTypeIcons = {
   other: Monitor,
 };
 
-const statusStyles = {
-  active: 'bg-success/10 text-success border-success/20',
-  maintenance: 'bg-warning/10 text-warning border-warning/20',
-  retired: 'bg-muted text-muted-foreground border-muted',
-  disposed: 'bg-destructive/10 text-destructive border-destructive/20',
+const statusStyles: Record<string, { badge: string; dot: string; label: string }> = {
+  active: {
+    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/60',
+    dot: 'bg-emerald-500',
+    label: 'Active',
+  },
+  maintenance: {
+    badge: 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/60',
+    dot: 'bg-amber-500',
+    label: 'Maintenance',
+  },
+  retired: {
+    badge: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700',
+    dot: 'bg-slate-400',
+    label: 'Retired',
+  },
+  disposed: {
+    badge: 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/60',
+    dot: 'bg-rose-500',
+    label: 'Disposed',
+  },
 };
 
 const Assets = () => {
@@ -446,33 +462,34 @@ const Assets = () => {
       </div>
 
       {/* Assets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {filteredAssets.map((asset, index) => {
           const Icon = assetTypeIcons[asset.type] || Monitor;
+          const statusConfig = statusStyles[asset.status];
           return (
             <Card
               key={asset.id}
-              className="group hover:shadow-lg transition-all duration-300 animate-slide-up"
+              className="group rounded-xl border border-border/70 bg-card shadow-xs hover:shadow-md hover:border-primary/40 transition-all duration-200 animate-slide-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3.5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Icon className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary dark:bg-primary/10 transition-colors shrink-0">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <div>
-                      <CardTitle className="text-base font-semibold group-hover:text-accent transition-colors">
+                    <div className="min-w-0">
+                      <CardTitle className="text-[16px] font-semibold group-hover:text-primary transition-colors text-foreground truncate">
                         {asset.name}
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[13px] text-muted-foreground font-mono truncate mt-0.5">
                         {asset.serial_number}
                       </p>
                     </div>
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -492,32 +509,37 @@ const Assets = () => {
                   </DropdownMenu>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <span className={cn(
-                    'status-badge border',
-                    statusStyles[asset.status]
-                  )}>
-                    {asset.status}
-                  </span>
-                  <span className="text-xs text-muted-foreground capitalize">
+                  {statusConfig ? (
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                      statusConfig.badge
+                    )}>
+                      <span className={cn('h-1.5 w-1.5 rounded-full', statusConfig.dot)} />
+                      {statusConfig.label}
+                    </span>
+                  ) : (
+                    <span className="status-badge border">{asset.status}</span>
+                  )}
+                  <span className="text-[13px] text-muted-foreground capitalize">
                     {asset.type.replace('_', ' ')}
                   </span>
                 </div>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-[14px]">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Location</span>
-                    <span className="font-medium text-right">{asset.location}</span>
+                    <span className="font-medium text-right text-foreground">{asset.location || '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Purchase Date</span>
-                    <span>{asset.purchase_date ? format(new Date(asset.purchase_date), 'MMM d, yyyy') : 'N/A'}</span>
+                    <span className="text-foreground">{asset.purchase_date ? format(new Date(asset.purchase_date), 'MMM d, yyyy') : 'N/A'}</span>
                   </div>
                   {asset.warranty_expiry && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Warranty Until</span>
                       <span className={cn(
-                        new Date(asset.warranty_expiry) < new Date() && 'text-destructive'
+                        new Date(asset.warranty_expiry) < new Date() ? 'text-destructive font-medium' : 'text-foreground'
                       )}>
                         {format(new Date(asset.warranty_expiry), 'MMM d, yyyy')}
                       </span>
@@ -525,7 +547,7 @@ const Assets = () => {
                   )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Assigned To</span>
-                    <span className="font-medium">
+                    <span className="font-medium text-foreground">
                       {asset.assigned_user?.name || 'Unassigned'}
                     </span>
                   </div>

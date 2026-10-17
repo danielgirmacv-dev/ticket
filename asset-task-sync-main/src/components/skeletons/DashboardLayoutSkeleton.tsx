@@ -91,55 +91,55 @@ export function DashboardLayoutSkeleton() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar Skeleton (matching desktop sidebar: w-64) */}
-      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-64 flex-col border-r border-border bg-card p-4 space-y-6">
-        {/* Brand / Logo */}
-        <div className="flex items-center gap-3 px-2 py-1">
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <div className="space-y-1.5">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-2.5 w-16" />
+    <div className="min-h-screen bg-background flex overflow-x-hidden">
+      {/* Sidebar Skeleton (matching desktop dark navy sidebar: w-[256px], #111C35) */}
+      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-[256px] flex-col border-r border-[#1E293B] bg-[#111C35] space-y-0">
+        {/* Brand / Logo - 72px */}
+        <div className="flex h-[72px] items-center gap-3 px-3.5 border-b border-white/10 shrink-0 bg-[#0E172C]">
+          <Skeleton className="h-11 w-11 rounded-xl bg-white/20 shrink-0" />
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <Skeleton className="h-4 w-24 bg-white/20" />
+            <Skeleton className="h-2.5 w-16 bg-white/10" />
           </div>
         </div>
 
-        {/* Navigation Items (10 items) */}
-        <div className="flex-1 space-y-2 py-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-              <Skeleton className="h-5 w-5 rounded shrink-0" />
-              <Skeleton className="h-4 w-28" />
+        {/* Navigation Items (48px height, 6px spacing) */}
+        <div className="flex-1 space-y-1.5 py-3 px-3 overflow-y-auto">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3.5 px-3.5 h-12 rounded-xl bg-white/[0.04]">
+              <Skeleton className="h-5 w-5 rounded-md shrink-0 bg-white/20" />
+              <Skeleton className="h-4 w-28 bg-white/15" />
             </div>
           ))}
         </div>
 
         {/* User Profile Footer */}
-        <div className="pt-4 border-t border-border flex items-center gap-3 px-2">
-          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+        <div className="border-t border-white/10 p-3 shrink-0 bg-[#0E172C]/80 mt-auto flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-full shrink-0 bg-white/20" />
           <div className="space-y-1.5 flex-1 min-w-0">
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-2.5 w-16" />
+            <Skeleton className="h-3.5 w-24 bg-white/20" />
+            <Skeleton className="h-2.5 w-16 bg-white/10" />
           </div>
         </div>
       </aside>
 
       {/* Main Area */}
-      <div className="flex-1 min-w-0 lg:ml-64">
-        {/* Top Header Skeleton (matching h-16) */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6">
-          <div className="space-y-1">
-            <Skeleton className="h-5 w-36 sm:w-48" />
-            <Skeleton className="h-3 w-24 sm:w-32 hidden sm:block" />
+      <div className="flex-1 min-w-0 lg:ml-[256px] flex flex-col">
+        {/* Top Header Skeleton (matching h-[72px]) */}
+        <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border bg-background/95 backdrop-blur px-4 sm:px-6 shrink-0">
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-44 sm:w-56" />
+            <Skeleton className="h-3.5 w-28 sm:w-40 hidden sm:block" />
           </div>
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-9 w-9 rounded-full" />
-            <Skeleton className="h-9 w-9 rounded-full" />
+          <div className="flex items-center gap-2.5">
+            <Skeleton className="h-9 w-9 rounded-xl" />
+            <Skeleton className="h-9 w-9 rounded-xl" />
             <Skeleton className="h-9 w-9 rounded-full" />
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="p-4 sm:p-6 max-w-full">
+        <main className="p-4 sm:p-5 lg:p-6 max-w-full flex-1 space-y-5">
           {renderContentSkeleton()}
         </main>
       </div>

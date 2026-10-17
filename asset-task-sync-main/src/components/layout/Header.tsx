@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Moon, Sun, Menu, LogOut, User, Settings, CheckCheck, Trash2, BellOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,17 +31,35 @@ interface HeaderProps {
 }
 
 const TYPE_DOT: Record<string, string> = {
-  warning: 'bg-yellow-400',
+  warning: 'bg-amber-500',
   success: 'bg-emerald-500',
-  error:   'bg-red-500',
-  info:    'bg-blue-500',
+  error:   'bg-rose-500',
+  info:    'bg-blue-600',
 };
 
 const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
   const navigate = useNavigate();
   const { user, profile, role, signOut } = useAuth();
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document !== 'undefined') {
+      return document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+    }
+    return false;
+  });
   const [open, setOpen] = useState(false);
+
+  /* ── Sync dark mode on mount ── */
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) {
+      document.documentElement.classList.add('dark');
+      setIsDark(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDark(false);
+    }
+  }, []);
 
   /* ── Real-time notifications (polls every 5 s) ── */
   const { data: allNotifications = [] } = useNotifications();
@@ -74,8 +92,17 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
 
   /* ── UI helpers ── */
   const toggleDarkMode = () => {
-    setIsDark(p => !p);
-    document.documentElement.classList.toggle('dark');
+    setIsDark((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+      return next;
+    });
   };
 
   const handleLogout = async () => {
@@ -100,16 +127,16 @@ const Header = ({ title, subtitle, onMenuClick }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6 shrink-0">
       {/* Left — title */}
-      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-        <Button variant="ghost" size="icon" className="lg:hidden flex-shrink-0" onClick={onMenuClick}>
+      <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+        <Button variant="ghost" size="icon" className="lg:hidden shrink-0 h-10 w-10 rounded-xl" onClick={onMenuClick}>
           <Menu className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
-          <h2 className="text-base sm:text-xl font-semibold text-foreground truncate">{title}</h2>
+          <h2 className="text-xl sm:text-[24px] font-bold text-foreground tracking-tight leading-tight truncate">{title}</h2>
           {subtitle && (
-            <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">{subtitle}</p>
+            <p className="text-xs sm:text-[14px] text-muted-foreground truncate hidden sm:block mt-0.5 leading-snug">{subtitle}</p>
           )}
         </div>
       </div>

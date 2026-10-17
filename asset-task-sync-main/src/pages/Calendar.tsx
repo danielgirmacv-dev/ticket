@@ -64,12 +64,12 @@ const Calendar = () => {
       title="Calendar"
       subtitle="View scheduled maintenance tickets"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Calendar */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold">
+              <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">
                 {format(currentDate, 'MMMM yyyy')}
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ const Calendar = () => {
         {/* Selected Date Tasks */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">
+            <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">
               {selectedDate
                 ? format(selectedDate, 'EEEE, MMMM d')
                 : 'Select a date'}
@@ -185,7 +185,7 @@ const Calendar = () => {
                           )}>
                             {ticket.priority}
                           </Badge>
-                          <h4 className="font-medium text-sm">{ticket.title}</h4>
+                          <h4 className="font-semibold text-[15px] tracking-tight">{ticket.title}</h4>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2">
@@ -227,7 +227,7 @@ const Calendar = () => {
       </div>
 
       {/* Legend */}
-      <Card className="mt-6">
+      <Card className="mt-5">
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-6">
             <span className="text-sm font-medium text-muted-foreground">Priority Legend:</span>

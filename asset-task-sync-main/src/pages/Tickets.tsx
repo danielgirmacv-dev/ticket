@@ -341,7 +341,7 @@ const Tickets = () => {
         {Object.keys(ticketsByStatus).map((status) => (
           <TabsContent key={status} value={status}>
             {viewMode === 'cards' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
                 {ticketsByStatus[status as keyof typeof ticketsByStatus].map((ticket, index) => (
                   <TicketCard
                     key={ticket.id}

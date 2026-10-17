@@ -86,12 +86,8 @@ export default function Schedules() {
 
     return (
         <DashboardLayout title="IT Schedule" subtitle="Manage scheduled IT tickets">
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h2 className="text-2xl font-bold">IT Schedules</h2>
-                        <p className="text-muted-foreground">Automate recurring IT tickets</p>
-                    </div>
+            <div className="space-y-5">
+                <div className="flex justify-end items-center">
                     <Button onClick={() => setShowCreateDialog(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         New Schedule
@@ -104,7 +100,7 @@ export default function Schedules() {
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <CardTitle className="flex items-center gap-2">
+                                        <CardTitle className="flex items-center gap-2 text-[16px] font-semibold tracking-tight text-foreground">
                                             {schedule.title}
                                             {schedule.is_active ? (
                                                 <Badge variant="default">Active</Badge>
@@ -112,7 +108,7 @@ export default function Schedules() {
                                                 <Badge variant="secondary">Inactive</Badge>
                                             )}
                                         </CardTitle>
-                                        <CardDescription>{schedule.description}</CardDescription>
+                                        <CardDescription className="text-[13px] mt-0.5">{schedule.description}</CardDescription>
                                     </div>
                                     <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" onClick={() => openEdit(schedule)}>
@@ -131,20 +127,20 @@ export default function Schedules() {
                             <CardContent>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                     <div>
-                                        <p className="text-muted-foreground">Asset</p>
-                                        <p className="font-medium">{schedule.asset?.name}</p>
+                                        <p className="text-[13px] text-muted-foreground">Asset</p>
+                                        <p className="text-[14px] font-medium text-foreground">{schedule.asset?.name}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground">Frequency</p>
-                                        <p className="font-medium capitalize">{schedule.frequency}</p>
+                                        <p className="text-[13px] text-muted-foreground">Frequency</p>
+                                        <p className="text-[14px] font-medium capitalize text-foreground">{schedule.frequency}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground">Next Run</p>
-                                        <p className="font-medium">{new Date(schedule.next_run_date).toLocaleDateString()}</p>
+                                        <p className="text-[13px] text-muted-foreground">Next Run</p>
+                                        <p className="text-[14px] font-medium text-foreground">{new Date(schedule.next_run_date).toLocaleDateString()}</p>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground">Last Run</p>
-                                        <p className="font-medium">
+                                        <p className="text-[13px] text-muted-foreground">Last Run</p>
+                                        <p className="text-[14px] font-medium text-foreground">
                                             {schedule.last_run_date
                                                 ? new Date(schedule.last_run_date).toLocaleDateString()
                                                 : 'Never'}
