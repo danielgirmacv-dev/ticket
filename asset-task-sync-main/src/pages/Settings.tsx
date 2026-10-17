@@ -493,7 +493,7 @@ const Settings = () => {
                           your bot
                         </li>
                         <li>
-                          Send <strong>/start {token}</strong> to the bot
+                          Send <strong>/start &lt;token&gt;</strong> to the bot
                         </li>
                         <li>
                           You'll receive a confirmation message — you're connected
