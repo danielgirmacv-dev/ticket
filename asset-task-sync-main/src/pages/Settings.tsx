@@ -485,10 +485,19 @@ const Settings = () => {
                     <div className="p-4 bg-muted/50 rounded-lg space-y-3">
                       <p className="text-sm font-medium">How to connect:</p>
                       <ol className="text-sm text-muted-foreground space-y-2 pl-5 list-decimal">
-                        <li>Click "Link Telegram Account" button below</li>
-                        <li>Open the generated link in Telegram</li>
-                        <li>Press "Start" or send /start to the bot</li>
-                        <li>You'll receive a confirmation message</li>
+                        <li>
+                          Click <strong>"Link Telegram Account"</strong> below to get your code
+                        </li>
+                        <li>
+                          Open the <strong>Telegram app</strong> (desktop or mobile) and search for
+                          your bot
+                        </li>
+                        <li>
+                          Send <strong>/start {token}</strong> to the bot
+                        </li>
+                        <li>
+                          You'll receive a confirmation message — you're connected
+                        </li>
                       </ol>
                     </div>
 
@@ -506,13 +515,13 @@ const Settings = () => {
                       <div className="space-y-3">
                         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                           <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-                            Your Telegram Link:
+                            Your Telegram Link Code:
                           </p>
                           <div className="flex gap-2">
                             <Input
                               value={telegramDeepLink || ''}
                               readOnly
-                              className="text-xs font-mono"
+                              className="text-xs font-mono flex-1"
                             />
                             <Button
                               size="sm"
@@ -523,18 +532,27 @@ const Settings = () => {
                               <Copy className="h-4 w-4" />
                             </Button>
                           </div>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            Copy this link, then open the Telegram app (desktop or mobile) and paste
+                            it — or send <code className="font-mono">/start &lt;token&gt;</code> to the
+                            bot manually using the code after <code className="font-mono">?start=</code>.
+                          </p>
                         </div>
-                        <a
-                          href={telegramDeepLink || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full"
-                        >
-                          <Button variant="accent" className="w-full gap-2">
-                            <ExternalLink className="h-4 w-4" />
-                            Open in Telegram
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (telegramDeepLink) window.open(telegramDeepLink, '_blank');
+                            }}
+                          >
+                            Open Link in New Tab
                           </Button>
-                        </a>
+                          <Button variant="accent" size="sm">
+                            <ExternalLink className="h-4 w-4" />
+                            Desktop App
+                          </Button>
+                        </div>
                         <p className="text-xs text-muted-foreground text-center">
                           Link expires in 15 minutes
                         </p>
