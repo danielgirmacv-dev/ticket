@@ -3,7 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\MaintenanceTicket;
-use App\Services\MicrosoftGraphService;
+use App\Models\User;
+use App\Mail\TicketApprovalMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -11,6 +12,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendTicketApprovalNotification implements ShouldQueue
 {
@@ -26,28 +28,33 @@ class SendTicketApprovalNotification implements ShouldQueue
         $this->ticket = $ticket;
     }
 
-    public function handle(MicrosoftGraphService $graphService): void
+    public function handle(): void
     {
-        // Microsoft Graph not configured (e.g. local dev) — skip instead of
-        // retrying a call that can never succeed
-        if (empty(config('services.azure_graph.tenant_id'))
-            || empty(config('services.azure_graph.client_id'))
-            || empty(config('services.azure_graph.client_secret'))) {
-            Log::info("Microsoft Graph not configured — skipping approval email for Ticket #{$this->ticket->id}.");
+        // Send approval email via SMTP (e.g. itsupport@eecproducts.com on cPanel)
+        // instead of Microsoft Graph — no Azure credentials required.
+        $this->ticket->load(['requester.user', 'approvedBy.user', 'asset', 'assignedManager', 'assignedTechnician']);
+
+        $recipients = [];
+
+        if ($this->ticket->requester?->user?->email) {
+            $recipients[$this->ticket->requester->user->email] = 'requester';
+        }
+
+        if ($this->ticket->assignedManager?->user?->email) {
+            $recipients[$this->ticket->assignedManager->user->email] = 'manager';
+        }
+
+        if ($this->ticket->assignedTechnician?->user?->email
+            && $this->ticket->assignedTechnician->user->email !== ($this->ticket->assignedManager?->user->email ?? null)) {
+            $recipients[$this->ticket->assignedTechnician->user->email] = 'technician';
+        }
+
+        if (empty($recipients)) {
+            Log::warning("Skipping approval email for Ticket #{$this->ticket->id}: no recipient emails.");
             return;
         }
 
-        // Load ticket relationships safely
-        $this->ticket->load(['requester.user', 'approvedBy.user', 'asset']);
-
-        $recipientEmail = $this->ticket->requester?->user?->email;
-
-        if (! $recipientEmail) {
-            Log::warning("Skipping approval email for Ticket #{$this->ticket->id}: Requester has no valid email address.");
-            return;
-        }
-
-        // Prevent Duplicate Email Notifications via Cache Lock
+        // Prevent duplicate emails within 24 hours
         $cacheKey = "ticket_approval_email_sent_{$this->ticket->id}";
         if (Cache::has($cacheKey)) {
             Log::info("Approval notification for Ticket #{$this->ticket->id} was already sent recently.");
@@ -55,19 +62,21 @@ class SendTicketApprovalNotification implements ShouldQueue
         }
 
         $subject = "IT Ticket Approved - #{$this->ticket->id}";
-        $htmlBody = $this->buildEmailHtml();
+        $html = $this->buildEmailHtml();
 
-        try {
-            $graphService->sendEmail($recipientEmail, $subject, $htmlBody);
-
-            // Lock cache key for 24 hours to prevent duplicate triggers
-            Cache::put($cacheKey, true, now()->addHours(24));
-
-            Log::info("Ticket approval notification email successfully sent via Graph API to {$recipientEmail} for Ticket #{$this->ticket->id}");
-        } catch (\Exception $e) {
-            Log::error("Failed sending approval email for Ticket #{$this->ticket->id}: " . $e->getMessage());
-            throw $e;
+        $sent = 0;
+        foreach ($recipients as $email => $role) {
+            try {
+                Mail::to($email)->send(new TicketApprovalMail($this->ticket, $subject, $html, $role));
+                $sent++;
+            } catch (\Exception $e) {
+                Log::warning("Failed sending approval email to {$email} for Ticket #{$this->ticket->id}: " . $e->getMessage());
+            }
         }
+
+        Cache::put($cacheKey, true, now()->addHours(24));
+
+        Log::info("Ticket approval email sent to {$sent} recipient(s) for Ticket #{$this->ticket->id} via SMTP.");
     }
 
     protected function buildEmailHtml(): string
@@ -75,8 +84,8 @@ class SendTicketApprovalNotification implements ShouldQueue
         $ticketId     = htmlspecialchars($this->ticket->id);
         $title        = htmlspecialchars($this->ticket->title);
         $description  = htmlspecialchars($this->ticket->description ?? 'N/A');
-        $requester    = htmlspecialchars($this->ticket->requester?->name ?? 'Requester');
-        $approver     = htmlspecialchars($this->ticket->approvedBy?->name ?? 'System Administrator');
+        $requester    = htmlspecialchars($this->ticket->requester?->user?->name ?? $this->ticket->requester?->name ?? 'Requester');
+        $approver     = htmlspecialchars($this->ticket->approvedBy?->user?->name ?? $this->ticket->approvedBy?->name ?? 'System Administrator');
         $approvedAt   = $this->ticket->approved_at ? $this->ticket->approved_at->format('M d, Y h:i A') : now()->format('M d, Y h:i A');
 
         return "
@@ -85,7 +94,7 @@ class SendTicketApprovalNotification implements ShouldQueue
         <head>
             <style>
                 body { font-family: Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; }
-                .card { max-width: 600px; background: #ffffff; margin: 0 auto; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+                .card { max-width: 600px; background: #ffffff; margin: 0 auto; border-radius: 8px; border: 1px solid #e2e8f4; overflow: hidden; }
                 .header { background-color: #1AB1C7; color: #ffffff; padding: 20px; text-align: center; }
                 .content { padding: 24px; color: #334155; line-height: 1.6; }
                 .badge { background-color: #22c55e; color: #ffffff; padding: 4px 10px; border-radius: 9999px; font-weight: bold; font-size: 12px; }
@@ -103,7 +112,7 @@ class SendTicketApprovalNotification implements ShouldQueue
                 <div class='content'>
                     <p>Hello <strong>{$requester}</strong>,</p>
                     <p>Your IT Support request has been reviewed and <span class='badge'>APPROVED</span>.</p>
-                    
+
                     <table class='table'>
                         <tr><td class='label'>Ticket Number:</td><td>#{$ticketId}</td></tr>
                         <tr><td class='label'>Subject:</td><td>{$title}</td></tr>
