@@ -38,7 +38,7 @@ class UserApprovalService
 
             $user->loadMissing('profile');
 
-            if ($user->profile?->telegram_username) {
+            if ($user->profile?->telegram_chat_id || $user->profile?->telegram_username) {
                 (new TelegramService)->sendApprovalNotification($user);
             }
 

@@ -12,6 +12,7 @@ use App\Models\MaintenanceTicket;
 use App\Models\Profile;
 use App\Services\ActivityLogger;
 use App\Services\NotificationService;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
@@ -318,7 +319,7 @@ class MaintenanceTicketController extends Controller
 
         $ticket->update([
             'status' => 'approved',
-            'approved_by' => auth()->user()->profile->id,
+            'approved_by' => auth()->user()->profile?->id,
             'approved_at' => now(),
         ]);
 
@@ -557,7 +558,7 @@ class MaintenanceTicketController extends Controller
         if ($validated['approved']) {
             $ticket->update([
                 'status' => 'completed',
-                'reviewed_by' => auth()->user()->profile->id,
+                'reviewed_by' => auth()->user()->profile?->id,
                 'reviewed_at' => now(),
             ]);
             ActivityLogger::log('reviewed', 'Ticket', $ticket->id, "Approved completion for ticket: {$ticket->title}");

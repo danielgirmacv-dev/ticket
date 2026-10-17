@@ -330,7 +330,7 @@ const Users = () => {
       toast.success('User approved successfully');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
-      toast.error('Failed to approve user');
+      toast.error(getApiErrorMessage(error, 'Failed to approve user'));
       console.error(error);
     }
   };
@@ -341,7 +341,7 @@ const Users = () => {
       toast.success('User rejected');
       queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
-      toast.error('Failed to reject user');
+      toast.error(getApiErrorMessage(error, 'Failed to reject user'));
       console.error(error);
     }
   };
@@ -826,35 +826,48 @@ const Users = () => {
                       </td>
                       <td className="text-right">
                         {canManageUser(user) ? (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
+                          <div className="flex items-center justify-end gap-1.5">
+                            {user.status === 'pending' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 px-2.5 text-xs text-success border-success/30 hover:bg-success/10 hover:text-success"
+                                onClick={() => handleApproveUser(user.user_id.toString())}
+                              >
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Approve
                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {user.status === 'pending' && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleApproveUser(user.user_id.toString())} className="text-success">
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Approve User
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleRejectUser(user.user_id.toString())} className="text-destructive">
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Reject User
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {user.status === 'pending' && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleApproveUser(user.user_id.toString())} className="text-success">
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Approve User
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRejectUser(user.user_id.toString())} className="text-destructive">
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Reject User
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit User
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete User
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 px-2 py-1 rounded-md border border-dashed border-muted-foreground/20">
                             <Shield className="h-3 w-3" />

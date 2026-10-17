@@ -13,15 +13,14 @@ class TicketApprovalMail extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public MaintenanceTicket $ticket;
-    public string $subject;
-    public string $html;
+    public string $emailHtml;
     public string $role;
 
-    public function __construct(MaintenanceTicket $ticket, string $subject, string $html, string $role)
+    public function __construct(MaintenanceTicket $ticket, string $subject, string $emailHtml, string $role)
     {
         $this->ticket = $ticket;
         $this->subject = $subject;
-        $this->html = $html;
+        $this->emailHtml = $emailHtml;
         $this->role = $role;
     }
 
@@ -30,6 +29,6 @@ class TicketApprovalMail extends Mailable implements ShouldQueue
         return $this
             ->subject($this->subject)
             ->from(config('mail.from.address', 'itsupport@eecproducts.com'), config('mail.from.name', 'EEIG IT Service Desk'))
-            ->html($this->html);
+            ->html($this->emailHtml);
     }
 }
