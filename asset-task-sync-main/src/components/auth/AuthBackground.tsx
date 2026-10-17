@@ -48,11 +48,11 @@ export function AuthBackground({ active = true }: AuthBackgroundProps) {
     }
 
     const particleColors = [
-      'rgba(37, 99, 235, 0.85)',
-      'rgba(8, 145, 178, 0.85)',
-      'rgba(59, 130, 246, 0.85)',
+      'rgba(17, 173, 196, 0.85)',
+      'rgba(15, 87, 102, 0.85)',
+      'rgba(44, 212, 236, 0.85)',
+      'rgba(14, 146, 166, 0.85)',
       'rgba(6, 182, 212, 0.85)',
-      'rgba(99, 102, 241, 0.85)',
     ];
 
     const particles: Particle[] = [];
@@ -211,12 +211,12 @@ export function AuthBackground({ active = true }: AuthBackgroundProps) {
 
   return (
     <>
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0B1120] via-[#111C35] to-[#1E293B]" />
-      <div className="absolute top-[-15%] left-[-12%] w-[65%] h-[65%] rounded-full bg-[#2563EB]/25 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-12%] right-[-10%] w-[60%] h-[60%] rounded-full bg-[#0891B2]/20 blur-[130px] pointer-events-none" />
-      <div className="absolute top-[25%] right-[10%] w-[45%] h-[45%] rounded-full bg-[#1E40AF]/25 blur-[110px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[5%] w-[50%] h-[45%] rounded-full bg-cyan-500/15 blur-[120px] pointer-events-none" />
-      <div className="absolute inset-0 bg-[#111C35]/25 backdrop-blur-[6px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#061e24] via-[#0f5766] to-[#0a3f4d]" />
+      <div className="absolute top-[-15%] left-[-12%] w-[65%] h-[65%] rounded-full bg-[#11adc4]/25 blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-[-12%] right-[-10%] w-[60%] h-[60%] rounded-full bg-[#0f5766]/30 blur-[130px] pointer-events-none" />
+      <div className="absolute top-[25%] right-[10%] w-[45%] h-[45%] rounded-full bg-[#11adc4]/20 blur-[110px] pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[5%] w-[50%] h-[45%] rounded-full bg-teal-400/15 blur-[120px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[#0f5766]/20 backdrop-blur-[6px] pointer-events-none" />
       {animateCanvas ? (
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none opacity-90" />
       ) : null}

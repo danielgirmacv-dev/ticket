@@ -159,7 +159,7 @@ export function TicketWorkflow({
         if (ticket.status === 'submitted') {
             return (
                 <div className={rowClass}>
-                    <Button onClick={handleApprove} size="sm" variant="default" className={btnClass}>
+                    <Button onClick={handleApprove} size="sm" variant="success" className={btnClass}>
                         <CheckCircle className={iconClass} />
                         Approve
                     </Button>
@@ -242,7 +242,7 @@ export function TicketWorkflow({
         if (ticket.status === 'completed_pending_review') {
             return (
                 <div>
-                    <Button onClick={() => setShowReviewDialog(true)} size="sm">
+                    <Button onClick={() => setShowReviewDialog(true)} size="sm" variant="info">
                         <CheckCheck className="h-4 w-4 mr-2" />
                         Review Completion
                     </Button>
@@ -268,7 +268,7 @@ export function TicketWorkflow({
                                 <Button variant="destructive" onClick={() => handleReview(false)}>
                                     Request Revision
                                 </Button>
-                                <Button onClick={() => handleReview(true)}>Approve Completion</Button>
+                                <Button variant="success" onClick={() => handleReview(true)}>Approve Completion</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -309,7 +309,7 @@ export function TicketWorkflow({
                         <Wrench className="h-4 w-4 mr-2" />
                         Update Progress
                     </Button>
-                    <Button onClick={() => setShowCompleteDialog(true)} size="sm" variant="default">
+                    <Button onClick={() => setShowCompleteDialog(true)} size="sm" variant="success">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         {ticket.status === 'reopened' ? 'Resubmit Ticket' : 'Complete Ticket'}
                     </Button>

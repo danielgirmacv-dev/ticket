@@ -9,16 +9,25 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent/10 hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-        accent: "bg-accent text-accent-foreground hover:bg-accent/90 shadow-md hover:shadow-lg hover:shadow-accent/20",
-        success: "bg-success text-success-foreground hover:bg-success/90 shadow-md",
-        info: "bg-info text-info-foreground hover:bg-info/90 shadow-md",
-        warning: "bg-warning text-warning-foreground hover:bg-warning/90 shadow-md",
+        default:
+          "bg-gradient-to-r from-[#11adc4] via-[#10a1b7] to-[#0e92a6] text-white font-semibold shadow-md shadow-[#11adc4]/25 hover:shadow-lg hover:shadow-[#11adc4]/35 hover:brightness-105 active:scale-[0.98]",
+        destructive:
+          "bg-gradient-to-r from-rose-500 to-red-600 text-white font-semibold shadow-md shadow-rose-500/25 hover:shadow-lg hover:shadow-rose-500/35 hover:brightness-105 active:scale-[0.98]",
+        outline:
+          "border-2 border-[#11adc4]/40 bg-card text-[#0f5766] dark:text-[#11adc4] font-semibold hover:bg-[#11adc4]/15 hover:border-[#11adc4] shadow-xs active:scale-[0.98]",
+        secondary:
+          "bg-gradient-to-r from-[#0f5766] to-[#093d4a] text-white font-semibold shadow-md shadow-[#0f5766]/25 hover:shadow-lg hover:shadow-[#0f5766]/35 hover:brightness-110 active:scale-[0.98]",
+        ghost:
+          "text-[#0f5766] dark:text-[#11adc4] hover:bg-[#11adc4]/15 hover:text-[#0c7484] font-medium",
+        link: "text-[#11adc4] underline-offset-4 hover:underline font-semibold",
+        accent:
+          "bg-gradient-to-r from-teal-400 to-[#11adc4] text-white font-semibold shadow-md shadow-teal-500/25 hover:shadow-lg hover:shadow-teal-500/35 hover:brightness-105 active:scale-[0.98]",
+        success:
+          "bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/35 hover:brightness-105 active:scale-[0.98]",
+        info:
+          "bg-gradient-to-r from-[#11adc4] to-[#0f5766] text-white font-semibold shadow-md shadow-[#11adc4]/25 hover:shadow-lg hover:shadow-[#11adc4]/35 hover:brightness-105 active:scale-[0.98]",
+        warning:
+          "bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-md shadow-amber-500/25 hover:shadow-lg hover:shadow-amber-500/35 hover:brightness-105 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",

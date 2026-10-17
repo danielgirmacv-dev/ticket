@@ -5,26 +5,26 @@ export function ticketReference(id: string): string {
 export const ticketPriorityStyles = {
   low: {
     label: 'Low',
-    pill: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-    stripe: 'border-l-slate-400 dark:border-l-slate-600',
+    pill: 'bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 font-semibold',
+    stripe: 'border-l-4 border-l-slate-400 dark:border-l-slate-500',
     dot: 'bg-slate-400',
   },
   medium: {
     label: 'Medium',
-    pill: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/40',
-    stripe: 'border-l-blue-500',
-    dot: 'bg-blue-500',
+    pill: 'bg-[#11adc4]/15 text-[#074b58] dark:text-[#38d8ef] border border-[#11adc4]/35 font-bold',
+    stripe: 'border-l-4 border-l-[#11adc4]',
+    dot: 'bg-[#11adc4]',
   },
   high: {
     label: 'High',
-    pill: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40',
-    stripe: 'border-l-amber-500',
+    pill: 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/35 font-bold',
+    stripe: 'border-l-4 border-l-amber-500',
     dot: 'bg-amber-500',
   },
   critical: {
     label: 'Critical',
-    pill: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/40 font-semibold',
-    stripe: 'border-l-rose-500',
-    dot: 'bg-rose-500',
+    pill: 'bg-rose-500/20 text-rose-800 dark:text-rose-200 border border-rose-500/40 font-black shadow-xs',
+    stripe: 'border-l-4 border-l-rose-500',
+    dot: 'bg-rose-500 animate-ping',
   },
 } as const;

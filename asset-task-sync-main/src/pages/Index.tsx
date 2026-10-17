@@ -7,7 +7,8 @@ import TicketsOverview from '@/components/dashboard/TicketsOverview';
 import TopTechnicians from '@/components/dashboard/TopTechnicians';
 import { TicketStatusChart, AssetTypeChart, MonthlyTicketsChart } from '@/components/dashboard/Charts';
 
-import { Monitor, ClipboardList, Clock, CheckCircle, AlertTriangle, Wrench, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Monitor, ClipboardList, Clock, CheckCircle, AlertTriangle, Wrench, Loader2, Plus, Sparkles } from 'lucide-react';
 import { useAssets } from '@/hooks/useAssets';
 import { useTickets } from '@/hooks/useTickets';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,6 +62,37 @@ const Index = () => {
       subtitle="Welcome back. Here's what's happening today."
     >
       <div className="space-y-5">
+        {/* Colorful Quick Action / Overview Banner */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-[#0f5766]/15 via-[#11adc4]/10 to-card border border-[#11adc4]/30 shadow-xs">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-foreground flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-[#11adc4] shadow-xs shadow-[#11adc4]/50 animate-pulse" />
+              Operational Summary
+            </h3>
+            <p className="text-xs sm:text-[13px] text-muted-foreground mt-0.5">Real-time status of company assets and maintenance tickets</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap self-stretch sm:self-auto">
+            <Link to="/tickets">
+              <Button size="sm" variant="default" className="gap-1.5 shadow-md h-9 text-xs font-semibold">
+                <Plus className="h-4 w-4" />
+                Issue Ticket
+              </Button>
+            </Link>
+            <Link to="/assets">
+              <Button size="sm" variant="accent" className="gap-1.5 shadow-md h-9 text-xs font-semibold">
+                <Monitor className="h-4 w-4" />
+                Assets
+              </Button>
+            </Link>
+            <Link to="/requests">
+              <Button size="sm" variant="secondary" className="gap-1.5 shadow-md h-9 text-xs font-semibold">
+                <Wrench className="h-4 w-4" />
+                Requests
+              </Button>
+            </Link>
+          </div>
+        </div>
+
         {/* Stats Row - Consistent 16-20px gaps */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-5">
           <Link to="/assets" className="block focus:outline-none">
@@ -87,7 +119,7 @@ const Index = () => {
               value={totalTickets}
               icon={<ClipboardList className="h-5 w-5" />}
               subtitle="All logged tickets"
-              variant="primary"
+              variant="secondary"
             />
           </Link>
           <Link to="/tickets?status=pending" className="block focus:outline-none">

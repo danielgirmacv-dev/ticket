@@ -81,6 +81,8 @@ export default {
       },
       boxShadow: {
         'glow': 'var(--shadow-glow)',
+        'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        '2xs': '0 1px 1px 0 rgb(0 0 0 / 0.03)',
       },
       transitionTimingFunction: {
         'bounce-in-out': 'cubic-bezier(0.34, 1.56, 0.64, 1)',

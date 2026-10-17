@@ -56,6 +56,7 @@ interface CreateUserData {
   department?: string;
   phone?: string;
   location_id?: string;
+  support_category?: string;
 }
 
 export function useCreateUser() {

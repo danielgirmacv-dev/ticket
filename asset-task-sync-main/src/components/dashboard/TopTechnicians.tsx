@@ -34,13 +34,17 @@ const TopTechnicians = () => {
     }
 
     return (
-        <Card className="col-span-1 border border-border/80 shadow-xs">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <Card className="col-span-1 border border-border/80 shadow-xs border-t-2 border-t-amber-500 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3.5 bg-muted/20 border-b border-border/40">
                 <div>
-                    <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Top Technicians</CardTitle>
+                    <CardTitle className="text-[18px] font-bold tracking-tight text-foreground flex items-center gap-2">
+                        Top Technicians
+                    </CardTitle>
                     <p className="text-[13px] text-muted-foreground mt-0.5">Performance leaders</p>
                 </div>
-                <Trophy className="h-5 w-5 text-amber-500 shrink-0" />
+                <div className="h-8 w-8 rounded-lg bg-amber-500/15 flex items-center justify-center text-amber-500 border border-amber-500/20">
+                    <Trophy className="h-4 w-4 shrink-0" />
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4 mt-1">

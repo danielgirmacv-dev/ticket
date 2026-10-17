@@ -49,7 +49,7 @@ const Tickets = () => {
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [ticketToAssign, setTicketToAssign] = useState<MaintenanceTicket | null>(null);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringInterval, setRecurringInterval] = useState<string>('monthly');
+  const [recurringInterval, setRecurringInterval] = useState<MaintenanceTicket['recurring_interval']>('monthly');
 
   const { role, profile } = useAuth();
   const isSuperAdmin = role === 'super_admin';
@@ -293,7 +293,7 @@ const Tickets = () => {
                 {isRecurring && (
                   <div className="space-y-2">
                     <Label>Recurring interval</Label>
-                    <Select value={recurringInterval} onValueChange={setRecurringInterval}>
+                    <Select value={recurringInterval || 'monthly'} onValueChange={(val) => setRecurringInterval(val as NonNullable<MaintenanceTicket['recurring_interval']>)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

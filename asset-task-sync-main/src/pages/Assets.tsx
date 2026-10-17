@@ -180,7 +180,7 @@ const Assets = () => {
   if (isLoading) {
     return (
       <DashboardLayout title="Asset Management" subtitle="Manage and track all IT assets">
-        <CardsPageSkeleton searchPlaceholder="Search assets..." hasTabs={false} cardsCount={6} />
+        <CardsPageSkeleton hasTabs={false} cardsCount={6} />
       </DashboardLayout>
     );
   }

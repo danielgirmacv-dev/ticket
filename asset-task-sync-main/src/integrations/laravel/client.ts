@@ -54,6 +54,8 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  status?: 'pending' | 'active' | 'rejected';
+  created_at?: string;
   roles?: Role[];
   profile?: Profile;
 }
@@ -70,8 +72,10 @@ export interface Profile {
   email: string;
   avatar_url?: string | null;
   department?: string | null;
+  support_category?: string | null;
   location_id?: string | null;
   location?: Location | null;
+  created_at?: string;
   user?: User;
 }
 

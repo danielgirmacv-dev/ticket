@@ -4,15 +4,17 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/api-error';
 
 export function useProfilesByLocation(locationId?: string) {
-  return useQuery({
+  return useQuery<Profile[], Error>({
     queryKey: ['profiles', 'byLocation', locationId],
     queryFn: async (): Promise<Profile[]> => {
-      const response = await laravelClient.get(`/locations/${locationId}/profiles`);
-      return response.data;
+      try {
+        const response = await laravelClient.get(`/locations/${locationId}/profiles`);
+        return response.data;
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Failed to load profiles for location'));
+        throw error;
+      }
     },
     enabled: !!locationId,
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Failed to load profiles for location'));
-    }
   });
 }

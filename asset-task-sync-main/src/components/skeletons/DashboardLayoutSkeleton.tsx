@@ -92,10 +92,10 @@ export function DashboardLayoutSkeleton() {
 
   return (
     <div className="min-h-screen bg-background flex overflow-x-hidden">
-      {/* Sidebar Skeleton (matching desktop dark navy sidebar: w-[256px], #111C35) */}
-      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-[256px] flex-col border-r border-[#1E293B] bg-[#111C35] space-y-0">
+      {/* Sidebar Skeleton (matching desktop EEC dark teal sidebar: w-[256px], #0f5766) */}
+      <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-[256px] flex-col border-r border-[#0a3f4d] bg-[#0f5766] space-y-0">
         {/* Brand / Logo - 72px */}
-        <div className="flex h-[72px] items-center gap-3 px-3.5 border-b border-white/10 shrink-0 bg-[#0E172C]">
+        <div className="flex h-[72px] items-center gap-3 px-3.5 border-b border-white/10 shrink-0 bg-[#093d4a]">
           <Skeleton className="h-11 w-11 rounded-xl bg-white/20 shrink-0" />
           <div className="space-y-1.5 flex-1 min-w-0">
             <Skeleton className="h-4 w-24 bg-white/20" />
@@ -114,7 +114,7 @@ export function DashboardLayoutSkeleton() {
         </div>
 
         {/* User Profile Footer */}
-        <div className="border-t border-white/10 p-3 shrink-0 bg-[#0E172C]/80 mt-auto flex items-center gap-3">
+        <div className="border-t border-white/10 p-3 shrink-0 bg-[#093d4a]/80 mt-auto flex items-center gap-3">
           <Skeleton className="h-9 w-9 rounded-full shrink-0 bg-white/20" />
           <div className="space-y-1.5 flex-1 min-w-0">
             <Skeleton className="h-3.5 w-24 bg-white/20" />

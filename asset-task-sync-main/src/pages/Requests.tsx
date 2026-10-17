@@ -23,6 +23,7 @@ import { useCreateTicket } from '@/hooks/useTickets';
 import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Activity, Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, Calendar as CalendarIcon, Repeat, Info } from 'lucide-react';
 import { FormPageSkeleton } from '@/components/skeletons/FormPageSkeleton';
 import { useToast } from '@/hooks/use-toast';
+import type { MaintenanceTicket } from '@/integrations/laravel/client';
 import {
   Dialog,
   DialogContent,

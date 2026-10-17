@@ -16,6 +16,7 @@ import { useAssets } from '@/hooks/useAssets';
 import { useTickets } from '@/hooks/useTickets';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, subMonths, eachMonthOfInterval, isSameMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // EEC Brand Palette: Primary #11adc4, Dark Teal #0f5766, plus status colors
 const STATUS_COLORS: Record<string, string> = {
@@ -81,9 +82,9 @@ export const TicketStatusChart = () => {
   }
 
   return (
-    <Card className="border border-border/80 shadow-xs">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Ticket Status Distribution</CardTitle>
+    <Card className="border border-border/80 shadow-xs border-t-2 border-t-[#11adc4] overflow-hidden">
+      <CardHeader className="pb-3 bg-muted/20 border-b border-border/40">
+        <CardTitle className="text-[18px] font-bold tracking-tight text-foreground">Ticket Status Distribution</CardTitle>
         <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Active breakdown across all tickets</CardDescription>
       </CardHeader>
       <CardContent className="pt-1">
@@ -173,9 +174,9 @@ export const AssetTypeChart = () => {
   }
 
   return (
-    <Card className="border border-border/80 shadow-xs">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Assets by Category</CardTitle>
+    <Card className="border border-border/80 shadow-xs border-t-2 border-t-[#0f5766] overflow-hidden">
+      <CardHeader className="pb-3 bg-muted/20 border-b border-border/40">
+        <CardTitle className="text-[18px] font-bold tracking-tight text-foreground">Assets by Category</CardTitle>
         <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Inventory hardware composition</CardDescription>
       </CardHeader>
       <CardContent className="pt-1">
@@ -255,16 +256,16 @@ export const MonthlyTicketsChart = ({ className }: { className?: string }) => {
   });
 
   return (
-    <Card className={cn('border border-border/80 shadow-xs', className)}>
-      <CardHeader className="pb-3">
+    <Card className={cn('border border-border/80 shadow-xs border-t-2 border-t-[#11adc4] overflow-hidden', className)}>
+      <CardHeader className="pb-3 bg-muted/20 border-b border-border/40">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[18px] font-semibold tracking-tight text-foreground">Monthly Ticket Resolution</CardTitle>
+            <CardTitle className="text-[18px] font-bold tracking-tight text-foreground">Monthly Ticket Resolution</CardTitle>
             <CardDescription className="text-[13px] text-muted-foreground mt-0.5">Resolved tickets over the past 6 months</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#11adc4]" />
-            <span className="text-[13px] font-medium text-muted-foreground">Completed</span>
+            <span className="h-3 w-3 rounded-full bg-[#11adc4] shadow-xs shadow-[#11adc4]/50" />
+            <span className="text-[13px] font-semibold text-foreground">Completed</span>
           </div>
         </div>
       </CardHeader>
