@@ -26,6 +26,7 @@ import { CsvImportResult, useAssets, useCreateAsset, useUpdateAsset, useDeleteAs
 import { useUsers } from '@/hooks/useUsers';
 import { Asset } from '@/integrations/laravel/client';
 import { Plus, Search, Filter, Monitor, Printer, Server, Network, MoreVertical, Edit, Trash2, Loader2, Upload, Download } from 'lucide-react';
+import { CardsPageSkeleton } from '@/components/skeletons/CardsPageSkeleton';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
@@ -163,9 +164,7 @@ const Assets = () => {
   if (isLoading) {
     return (
       <DashboardLayout title="Asset Management" subtitle="Manage and track all IT assets">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <CardsPageSkeleton searchPlaceholder="Search assets..." hasTabs={false} cardsCount={6} />
       </DashboardLayout>
     );
   }

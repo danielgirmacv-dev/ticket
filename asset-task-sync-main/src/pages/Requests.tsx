@@ -21,6 +21,7 @@ import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateTicket } from '@/hooks/useTickets';
 import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Activity, Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, Calendar as CalendarIcon, Repeat, Info } from 'lucide-react';
+import { FormPageSkeleton } from '@/components/skeletons/FormPageSkeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -413,9 +414,7 @@ const Requests = () => {
   if (isLoadingAssets || isLoadingLocations) {
     return (
       <DashboardLayout title="Submit Request" subtitle="Create a new IT support request">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <FormPageSkeleton />
       </DashboardLayout>
     );
   }

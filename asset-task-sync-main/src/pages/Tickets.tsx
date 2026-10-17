@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAssets } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { MaintenanceTicket } from '@/integrations/laravel/client';
+import { CardsPageSkeleton } from '@/components/skeletons/CardsPageSkeleton';
 import { Plus, Search, Calendar, Loader2 } from 'lucide-react';
 import { TicketCard } from '@/components/tickets/TicketCard';
 import { TicketListView } from '@/components/tickets/TicketListView';
@@ -154,9 +155,7 @@ const Tickets = () => {
   if (isLoadingTickets) {
     return (
       <DashboardLayout title="Ticket Management" subtitle="View and manage maintenance tickets">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <CardsPageSkeleton cardsCount={6} hasTabs={true} />
       </DashboardLayout>
     );
   }

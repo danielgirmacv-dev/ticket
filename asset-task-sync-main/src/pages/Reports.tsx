@@ -17,6 +17,7 @@ import {
 import { useAssets } from '@/hooks/useAssets';
 import { useUsers } from '@/hooks/useUsers';
 import { FileDown, Printer, TrendingUp, Package, Wrench, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -223,8 +224,23 @@ const Reports = () => {
                             </CardHeader>
                             <CardContent>
                                 {isLoadingTickets ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <div className="space-y-3 py-2">
+                                        <div className="grid grid-cols-7 gap-3 py-2 border-b border-border/60">
+                                            {['Title', 'Type', 'Status', 'Priority', 'Asset', 'Assigned To', 'Date'].map((h) => (
+                                                <Skeleton key={h} className="h-4 w-16" />
+                                            ))}
+                                        </div>
+                                        {Array.from({ length: 5 }).map((_, r) => (
+                                            <div key={r} className="grid grid-cols-7 gap-3 py-2.5 border-b border-border/40 items-center">
+                                                <Skeleton className="h-4 w-28" />
+                                                <Skeleton className="h-4 w-16" />
+                                                <Skeleton className="h-6 w-20 rounded-full" />
+                                                <Skeleton className="h-4 w-14" />
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-4 w-16" />
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
@@ -280,8 +296,22 @@ const Reports = () => {
                             </CardHeader>
                             <CardContent>
                                 {isLoadingAssets ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    <div className="space-y-3 py-2">
+                                        <div className="grid grid-cols-6 gap-3 py-2 border-b border-border/60">
+                                            {['Name', 'Type', 'Status', 'Serial Number', 'Location', 'Assigned To'].map((h) => (
+                                                <Skeleton key={h} className="h-4 w-16" />
+                                            ))}
+                                        </div>
+                                        {Array.from({ length: 5 }).map((_, r) => (
+                                            <div key={r} className="grid grid-cols-6 gap-3 py-2.5 border-b border-border/40 items-center">
+                                                <Skeleton className="h-4 w-28" />
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-6 w-20 rounded-full" />
+                                                <Skeleton className="h-4 w-24" />
+                                                <Skeleton className="h-4 w-20" />
+                                                <Skeleton className="h-4 w-24" />
+                                            </div>
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
@@ -330,8 +360,34 @@ const Reports = () => {
                     {/* Performance Tab */}
                     <TabsContent value="performance">
                         {isLoadingPerformance ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                        <Card key={i} className="p-4 space-y-2">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-8 w-16" />
+                                            <Skeleton className="h-3 w-28" />
+                                        </Card>
+                                    ))}
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <Card className="p-5 space-y-4">
+                                        <Skeleton className="h-5 w-40" />
+                                        <div className="h-48 flex items-end justify-between gap-3 pt-6">
+                                            {Array.from({ length: 5 }).map((_, j) => (
+                                                <Skeleton key={j} className="flex-1 rounded-t-sm" style={{ height: `${40 + (j * 15) % 55}%` }} />
+                                            ))}
+                                        </div>
+                                    </Card>
+                                    <Card className="p-5 space-y-4">
+                                        <Skeleton className="h-5 w-40" />
+                                        <div className="space-y-3 pt-2">
+                                            {Array.from({ length: 3 }).map((_, k) => (
+                                                <Skeleton key={k} className="h-10 w-full rounded-md" />
+                                            ))}
+                                        </div>
+                                    </Card>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-6">

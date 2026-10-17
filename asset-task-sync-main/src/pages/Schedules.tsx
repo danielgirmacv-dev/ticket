@@ -13,6 +13,7 @@ import { useAssets } from '@/hooks/useAssets';
 import { Calendar, Plus, Trash2, Loader2, Pencil } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { MaintenanceSchedule } from '@/types/schedule';
+import { SchedulesSkeleton } from '@/components/skeletons/SchedulesSkeleton';
 
 export default function Schedules() {
     const { data: schedules, isLoading } = useMaintenanceSchedules();
@@ -78,9 +79,7 @@ export default function Schedules() {
     if (isLoading) {
         return (
             <DashboardLayout title="IT Schedule" subtitle="Manage scheduled IT tickets">
-                <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
+                <SchedulesSkeleton />
             </DashboardLayout>
         );
     }

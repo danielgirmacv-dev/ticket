@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useImportDepartmentsCsv } from '@/hooks/useDepartments';
 import { Department } from '@/integrations/laravel/client';
 import { Loader2, Plus, Upload, Edit, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Departments = () => {
   const { data: departments, isLoading } = useDepartments();
@@ -115,8 +116,22 @@ const Departments = () => {
 
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="space-y-3 py-2">
+              <div className="grid grid-cols-3 gap-4 py-2 border-b border-border/60">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-16 justify-self-end" />
+              </div>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-3 gap-4 py-3 border-b border-border/40 items-center">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-4 w-56" />
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto">

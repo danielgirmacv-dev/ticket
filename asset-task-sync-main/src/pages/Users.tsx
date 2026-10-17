@@ -26,6 +26,7 @@ import { useUsers, useCreateUser, useUpdateUserRole, AppRole, UserWithRole } fro
 import { useLocations } from '@/hooks/useLocations';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
+import { TablePageSkeleton } from '@/components/skeletons/TablePageSkeleton';
 import { Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin, MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock, Upload, Download } from 'lucide-react';
 import laravelClient from '@/integrations/laravel/client';
 import { toast } from 'sonner';
@@ -405,9 +406,7 @@ const Users = () => {
   if (isLoading) {
     return (
       <DashboardLayout title="User Management" subtitle="Manage users and their roles">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <TablePageSkeleton statCardsCount={5} columnsCount={7} rowsCount={7} />
       </DashboardLayout>
     );
   }

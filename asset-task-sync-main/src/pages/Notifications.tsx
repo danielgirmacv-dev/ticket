@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     useNotifications,
@@ -137,9 +138,20 @@ const NotificationsPage = () => {
                 <CardContent className="p-0 flex-1 min-h-0">
                     <ScrollArea className="h-full">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-3 text-muted-foreground">
-                                <RefreshCw className="h-6 w-6 animate-spin" />
-                                <p className="text-sm">Loading notifications...</p>
+                            <div className="divide-y divide-border/40">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="p-4 flex items-start gap-4">
+                                        <Skeleton className="h-9 w-9 rounded-full shrink-0 mt-0.5" />
+                                        <div className="space-y-2 flex-1">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <Skeleton className="h-4 w-44" />
+                                                <Skeleton className="h-3 w-16" />
+                                            </div>
+                                            <Skeleton className="h-3.5 w-full" />
+                                            <Skeleton className="h-3 w-2/3" />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : displayed.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">

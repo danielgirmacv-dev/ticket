@@ -26,6 +26,7 @@ import {
 import { useFaqs, useCreateFaq, useUpdateFaq, useDeleteFaq } from '@/hooks/useFaqs';
 import { Faq } from '@/integrations/laravel/client';
 import { Loader2, Plus, Edit, Trash2, BookOpen, KeyRound, Cpu, Wifi, ShieldAlert, LucideIcon } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 const CATEGORY_STYLES: Record<string, { bg: string; border: string; text: string; badge: string; icon: LucideIcon }> = {
@@ -241,8 +242,26 @@ export default function Faqs() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="grid grid-cols-1 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="border border-border/60 shadow-sm p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-2.5 flex-1">
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-5 w-3/4 max-w-md" />
+                      <Skeleton className="h-4 w-full max-w-2xl" />
+                      <Skeleton className="h-3 w-40" />
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : !faqs?.length ? (
             <p className="text-center py-12 text-muted-foreground">

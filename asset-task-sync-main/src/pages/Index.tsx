@@ -11,6 +11,7 @@ import { Monitor, ClipboardList, Clock, CheckCircle, AlertTriangle, Wrench, Load
 import { useAssets } from '@/hooks/useAssets';
 import { useTickets } from '@/hooks/useTickets';
 import { useAuth } from '@/hooks/useAuth';
+import { DashboardOverviewSkeleton } from '@/components/skeletons/DashboardOverviewSkeleton';
 
 const Index = () => {
   const { role, loading: authLoading } = useAuth();
@@ -36,10 +37,11 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Dashboard" subtitle="Loading dashboard data...">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <DashboardLayout
+        title="Dashboard"
+        subtitle="Welcome back. Here's what's happening today."
+      >
+        <DashboardOverviewSkeleton />
       </DashboardLayout>
     );
   }

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTickets } from '@/hooks/useTickets';
 import { ChevronLeft, ChevronRight, Clock, User, Loader2 } from 'lucide-react';
+import { CalendarSkeleton } from '@/components/skeletons/CalendarSkeleton';
 import {
   format,
   startOfMonth,
@@ -53,9 +54,7 @@ const Calendar = () => {
   if (isLoading) {
     return (
       <DashboardLayout title="Calendar" subtitle="View scheduled maintenance tickets">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <CalendarSkeleton />
       </DashboardLayout>
     );
   }

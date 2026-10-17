@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, useImportLocationsCsv } from '@/hooks/useLocations';
 import { Location } from '@/integrations/laravel/client';
 import { Loader2, Plus, Upload, Edit, Trash2, Users } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useProfilesByLocation } from '@/hooks/useProfilesByLocation';
 import { toast } from 'sonner';
 
@@ -125,8 +126,24 @@ const Locations = () => {
 
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <div className="space-y-3 py-2">
+              <div className="grid grid-cols-4 gap-4 py-2 border-b border-border/60">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-16 justify-self-end" />
+              </div>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-4 gap-4 py-3 border-b border-border/40 items-center">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-44" />
+                  <Skeleton className="h-4 w-52" />
+                  <div className="flex justify-end gap-2">
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                    <Skeleton className="h-8 w-8 rounded-md" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -176,8 +193,13 @@ const Locations = () => {
 
           <div className="space-y-2 py-4">
             {isProfilesLoading ? (
-              <div className="flex items-center justify-center h-24">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="space-y-3 py-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5 py-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                ))}
               </div>
             ) : (
               <div>

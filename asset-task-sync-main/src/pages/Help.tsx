@@ -21,6 +21,7 @@ import { useFaqs } from '@/hooks/useFaqs';
 import { useAuth } from '@/hooks/useAuth';
 import { Faq } from '@/integrations/laravel/client';
 import { HelpCircle, Loader2, Search, ArrowRight, KeyRound, Cpu, Wifi, ShieldAlert, BookOpen, LucideIcon } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -144,8 +145,27 @@ export default function Help() {
             )}
 
             {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="space-y-6">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="border border-border/60 shadow-sm overflow-hidden">
+                    <CardHeader className="py-4 px-5 border-b border-muted/20 flex flex-row items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <Skeleton className="h-4 w-4 rounded" />
+                        <Skeleton className="h-5 w-28" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-4 w-12" />
+                    </CardHeader>
+                    <CardContent className="p-0 divide-y divide-muted/10">
+                      {Array.from({ length: 2 }).map((_, j) => (
+                        <div key={j} className="p-4 space-y-2">
+                          <Skeleton className="h-4 w-3/4 max-w-md" />
+                          <Skeleton className="h-3.5 w-full" />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             ) : !faqs?.length ? (
               <div className="text-center py-12 text-muted-foreground">
