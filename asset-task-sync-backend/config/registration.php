@@ -17,6 +17,6 @@ return [
     /*
     | Copy shown in API responses (frontend may mirror for UX).
     */
-    'support_email' => env('REGISTRATION_SUPPORT_EMAIL', 'it-support@eecproducts.com'),
+    'support_email' => env('REGISTRATION_SUPPORT_EMAIL', 'itsupport@eecproducts.com'),
 
 ];

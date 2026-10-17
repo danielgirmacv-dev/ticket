@@ -14,7 +14,7 @@ export const productName = 'EEC';
 export const productTagline = 'IT Maintenance Scheduler';
 
 const supportEmail =
-  import.meta.env.VITE_SUPPORT_EMAIL?.trim() || 'it-support@eecproducts.com';
+  import.meta.env.VITE_SUPPORT_EMAIL?.trim() || 'itsupport@eecproducts.com';
 
 export const supportMailto = `mailto:${supportEmail}?subject=${encodeURIComponent(
   `${productName} IT Support — Account or password help`,
