@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Profile;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -349,6 +350,13 @@ class AuthController extends Controller
         }
 
         app(UserApprovalService::class)->approveIfPending($user->fresh(['profile']));
+
+        // Notify the user via Telegram that their account is now approved
+        try {
+            app(TelegramService::class)->sendApprovalNotification($user->fresh(['profile']));
+        } catch (\Throwable $e) {
+            Log::warning('Approval Telegram notification failed: '.$e->getMessage());
+        }
 
         return response()->json([
             'message' => 'User approved successfully',
