@@ -9,6 +9,7 @@ use App\Jobs\SendTicketAssignedNotification;
 use App\Jobs\SendTicketRejectedNotification;
 use App\Jobs\SendTicketSubmittedNotification;
 use App\Models\MaintenanceTicket;
+use App\Models\Profile;
 use App\Services\ActivityLogger;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
