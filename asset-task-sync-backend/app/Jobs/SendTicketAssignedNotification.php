@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Mail\TicketAssignedMail;
 use App\Models\MaintenanceTicket;
 use App\Models\Profile;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class SendTicketAssignedNotification implements ShouldQueue
 {
@@ -27,7 +29,7 @@ class SendTicketAssignedNotification implements ShouldQueue
 
     public function handle(TelegramService $telegram): void
     {
-        $this->ticket->load('requester');
+        $this->ticket->load('requester', 'asset');
 
         $technicianProfile = Profile::find($this->technicianProfileId);
 
@@ -35,10 +37,10 @@ class SendTicketAssignedNotification implements ShouldQueue
             return;
         }
 
+        $technicianUser = User::find($technicianProfile->user_id);
+
         // --- Telegram: Technician ---
-        // (in-app DB notification handled synchronously by NotificationService)
         try {
-            $technicianUser = User::find($technicianProfile->user_id);
             $chatId = $technicianUser?->profile?->telegram_chat_id ?? null;
             if ($chatId) {
                 $telegram->sendMessage($chatId,
@@ -52,6 +54,15 @@ class SendTicketAssignedNotification implements ShouldQueue
             }
         } catch (\Exception $e) {
             Log::warning('Telegram send failed (technician assigned): ' . $e->getMessage());
+        }
+
+        // --- Email: Technician ---
+        if ($technicianUser?->email) {
+            try {
+                Mail::to($technicianUser->email)->send(new TicketAssignedMail($this->ticket, $technicianProfile));
+            } catch (\Exception $e) {
+                Log::warning('Failed sending ticket assigned email to technician: ' . $e->getMessage());
+            }
         }
 
         // --- Also notify Requester ---

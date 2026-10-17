@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Controller;
+use App\Mail\NewUserRegistrationMail;
 use App\Models\Notification;
 use App\Models\Profile;
 use App\Models\User;
@@ -14,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -60,7 +62,7 @@ class AuthController extends Controller
             return $user;
         });
 
-        // Notify Admins (managers) and Super Admins
+        // Notify Admins (managers) and Super Admins (in-app)
         try {
             $managers = User::role('admin')->get()->merge(User::role('super_admin')->get());
             foreach ($managers as $manager) {
@@ -76,6 +78,19 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             // Log error but don't fail registration
             Log::error('Failed to notify admins of new user: '.$e->getMessage());
+        }
+
+        // Send email to Super Admins awaiting approval
+        try {
+            $user->loadMissing('profile');
+            $superAdmins = User::role('super_admin')->get();
+            foreach ($superAdmins as $superAdmin) {
+                if ($superAdmin->email) {
+                    Mail::to($superAdmin->email)->send(new NewUserRegistrationMail($user, $superAdmin->name));
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed sending new user registration email to super admins: '.$e->getMessage());
         }
 
         // Welcome notification to the new user
