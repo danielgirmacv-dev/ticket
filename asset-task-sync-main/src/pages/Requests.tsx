@@ -133,10 +133,9 @@ const DEPARTMENT_METADATA = {
     tag: 'Hardware & Network',
     slaTime: 'Response < 2h',
     icon: Monitor,
-    color: '#11adc4',
-    bgGradient: 'from-[#11adc4]/15 via-teal-500/5 to-transparent',
-    borderActive: 'border-[#11adc4] ring-2 ring-[#11adc4]/40 shadow-md',
-    badgeClass: 'bg-[#11adc4]/15 text-[#074b58] dark:text-[#38d8ef] border-[#11adc4]/30',
+    gradient: 'from-[#11adc4] via-[#0ea0b6] to-[#077d8f]',
+    selectedRing: 'ring-4 ring-[#11adc4]/50 shadow-xl shadow-[#11adc4]/35 scale-[1.02] border-white',
+    badgeClass: 'bg-[#11adc4]/20 text-[#074b58] dark:text-[#38d8ef] border-[#11adc4]/40 font-bold',
   },
   sap: {
     title: 'SAP ERP & Systems',
@@ -145,10 +144,9 @@ const DEPARTMENT_METADATA = {
     tag: 'Business Applications',
     slaTime: 'Response < 3h',
     icon: Database,
-    color: '#0f5766',
-    bgGradient: 'from-[#0f5766]/20 via-[#11adc4]/10 to-transparent',
-    borderActive: 'border-[#0f5766] ring-2 ring-[#0f5766]/40 shadow-md',
-    badgeClass: 'bg-[#0f5766]/15 text-[#0f5766] dark:text-[#7ce5f5] border-[#0f5766]/30',
+    gradient: 'from-[#0f5766] via-[#0b4754] to-[#073640]',
+    selectedRing: 'ring-4 ring-[#0f5766]/60 shadow-xl shadow-[#0f5766]/40 scale-[1.02] border-white',
+    badgeClass: 'bg-[#0f5766]/20 text-[#0f5766] dark:text-[#7ce5f5] border-[#0f5766]/40 font-bold',
   },
   general: {
     title: 'Facility & Workplace',
@@ -157,10 +155,9 @@ const DEPARTMENT_METADATA = {
     tag: 'Workplace Services',
     slaTime: 'Response < 4h',
     icon: Wrench,
-    color: '#d97706',
-    bgGradient: 'from-amber-500/15 via-amber-500/5 to-transparent',
-    borderActive: 'border-amber-500 ring-2 ring-amber-500/40 shadow-md',
-    badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30',
+    gradient: 'from-[#143e49] via-[#0f323c] to-[#09222a]',
+    selectedRing: 'ring-4 ring-[#143e49]/60 shadow-xl shadow-[#143e49]/40 scale-[1.02] border-white',
+    badgeClass: 'bg-[#143e49]/20 text-[#143e49] dark:text-[#7ce5f5] border-[#143e49]/40 font-bold',
   },
 };
 
@@ -660,48 +657,57 @@ const Requests = () => {
                             type="button"
                             onClick={() => setSupportCategory(catKey)}
                             className={cn(
-                              'relative group flex flex-col justify-between rounded-2xl border p-4 text-left transition-all duration-200 ease-out',
-                              'hover:-translate-y-0.5 hover:shadow-md focus:outline-none',
+                              'relative group flex flex-col justify-between rounded-2xl border p-4 text-left transition-all duration-200 ease-out text-white overflow-hidden',
+                              'bg-gradient-to-br', meta.gradient,
                               isSelected
-                                ? cn(meta.borderActive, 'bg-gradient-to-b', meta.bgGradient)
-                                : 'border-border/80 bg-card hover:bg-muted/40 hover:border-border'
+                                ? cn('border-white/90', meta.selectedRing)
+                                : 'border-white/20 opacity-80 hover:opacity-100 hover:scale-[1.01] hover:shadow-lg shadow-md'
                             )}
                           >
-                            <div className="flex items-center justify-between w-full mb-3">
+                            {/* Subtle decorative glow overlay */}
+                            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
+
+                            <div className="flex items-center justify-between w-full mb-3 relative z-10">
                               <div
                                 className={cn(
-                                  'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 border',
+                                  'flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 border',
                                   isSelected
-                                    ? 'bg-[#11adc4] text-white border-[#11adc4] shadow-sm'
-                                    : 'bg-muted text-muted-foreground border-border group-hover:text-foreground'
+                                    ? 'bg-white text-[#0f5766] border-white shadow-md'
+                                    : 'bg-white/20 backdrop-blur-xs text-white border-white/30 group-hover:bg-white/30'
                                 )}
                               >
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div
                                 className={cn(
-                                  'h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-200',
+                                  'h-6 w-6 rounded-full border flex items-center justify-center transition-all duration-200',
                                   isSelected
-                                    ? 'border-teal-600 bg-teal-600 text-white scale-105 shadow-2xs'
-                                    : 'border-muted-foreground/30 opacity-40 group-hover:opacity-70'
+                                    ? 'border-white bg-white text-[#0f5766] scale-110 shadow-sm font-bold'
+                                    : 'border-white/40 bg-white/10 opacity-70 group-hover:opacity-100'
                                 )}
                               >
-                                {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                                {isSelected ? (
+                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                ) : (
+                                  <span className="h-2 w-2 rounded-full bg-white/40 group-hover:bg-white/80" />
+                                )}
                               </div>
                             </div>
-                            <div>
-                              <p className="text-sm font-bold tracking-tight text-foreground">
+
+                            <div className="relative z-10">
+                              <p className="text-sm font-bold tracking-tight text-white drop-shadow-xs">
                                 {meta.title}
                               </p>
-                              <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-2">
+                              <p className="text-xs text-white/85 leading-snug mt-1 line-clamp-2">
                                 {meta.desc}
                               </p>
                             </div>
-                            <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px]">
-                              <span className="font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+
+                            <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-[11px] relative z-10">
+                              <span className="font-semibold text-white/90">
                                 {meta.tag}
                               </span>
-                              <span className={cn('px-2 py-0.5 rounded-md font-semibold text-[10px] border', meta.badgeClass)}>
+                              <span className="px-2.5 py-0.5 rounded-lg font-bold text-[10px] bg-white/20 text-white border border-white/30 backdrop-blur-xs shadow-2xs">
                                 {meta.slaTime}
                               </span>
                             </div>
