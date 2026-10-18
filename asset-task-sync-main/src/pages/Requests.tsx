@@ -19,8 +19,15 @@ import { Combobox } from '@/components/ui/combobox';
 import { useAssets } from '@/hooks/useAssets';
 import { useLocations } from '@/hooks/useLocations';
 import { useAuth } from '@/hooks/useAuth';
-import { useCreateTicket } from '@/hooks/useTickets';
-import { Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Activity, Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, Calendar as CalendarIcon, Repeat, Info } from 'lucide-react';
+import { useTickets, useCreateTicket } from '@/hooks/useTickets';
+import { TicketStatusBadge } from '@/components/tickets/TicketStatusBadge';
+import { 
+  Send, Loader2, Paperclip, X, Copy, ExternalLink, HelpCircle, Activity, 
+  Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, 
+  Calendar as CalendarIcon, Repeat, Info, Clock, ShieldCheck, Sparkles, 
+  ChevronRight, AlertTriangle, Layers, Tag, Eye, BookOpen, CheckCircle2,
+  ArrowUpRight, Building2, User
+} from 'lucide-react';
 import { FormPageSkeleton } from '@/components/skeletons/FormPageSkeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { MaintenanceTicket } from '@/integrations/laravel/client';
@@ -118,6 +125,118 @@ function RequiredMark() {
   return <span className="text-destructive ml-0.5" aria-hidden="true">*</span>;
 }
 
+const DEPARTMENT_METADATA = {
+  it_support: {
+    title: 'IT & Hardware Support',
+    desc: 'PC, Laptop, Monitor, Wi-Fi, Printer & Network',
+    team: 'EEC IT Infrastructure & Helpdesk Team',
+    tag: 'Hardware & Network',
+    slaTime: 'Response < 2h',
+    icon: Monitor,
+    color: '#11adc4',
+    bgGradient: 'from-[#11adc4]/15 via-teal-500/5 to-transparent',
+    borderActive: 'border-[#11adc4] ring-2 ring-[#11adc4]/40 shadow-md',
+    badgeClass: 'bg-[#11adc4]/15 text-[#074b58] dark:text-[#38d8ef] border-[#11adc4]/30',
+  },
+  sap: {
+    title: 'SAP ERP & Systems',
+    desc: 'SAP Modules, T-Codes, Approvals & User Roles',
+    team: 'Enterprise Applications & SAP Competency Center',
+    tag: 'Business Applications',
+    slaTime: 'Response < 3h',
+    icon: Database,
+    color: '#0f5766',
+    bgGradient: 'from-[#0f5766]/20 via-[#11adc4]/10 to-transparent',
+    borderActive: 'border-[#0f5766] ring-2 ring-[#0f5766]/40 shadow-md',
+    badgeClass: 'bg-[#0f5766]/15 text-[#0f5766] dark:text-[#7ce5f5] border-[#0f5766]/30',
+  },
+  general: {
+    title: 'Facility & Workplace',
+    desc: 'AC, Electrical, Plumbing, Locks & Office Furniture',
+    team: 'EEC Workplace Operations & Facilities Team',
+    tag: 'Workplace Services',
+    slaTime: 'Response < 4h',
+    icon: Wrench,
+    color: '#d97706',
+    bgGradient: 'from-amber-500/15 via-amber-500/5 to-transparent',
+    borderActive: 'border-amber-500 ring-2 ring-amber-500/40 shadow-md',
+    badgeClass: 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30',
+  },
+};
+
+const PRIORITY_METADATA: Record<
+  NonNullable<MaintenanceTicket['priority']>,
+  {
+    label: string;
+    sublabel: string;
+    timeframe: string;
+    description: string;
+    badgeStyle: string;
+    pillStyle: string;
+    activePillStyle: string;
+    dotClass: string;
+  }
+> = {
+  low: {
+    label: 'Low',
+    sublabel: '3–5 days',
+    timeframe: 'within 3–5 business days',
+    description: 'Routine maintenance and minor non-urgent inquiries.',
+    badgeStyle: 'bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30',
+    pillStyle: 'border-border hover:border-slate-400 bg-card text-foreground',
+    activePillStyle: 'border-slate-500 bg-slate-100 dark:bg-slate-850 text-slate-900 dark:text-slate-100 ring-2 ring-slate-400/50 font-bold shadow-xs',
+    dotClass: 'bg-slate-400',
+  },
+  medium: {
+    label: 'Medium',
+    sublabel: '1–2 days',
+    timeframe: 'within 24–48 hours',
+    description: 'Standard technical issue impacting normal individual work.',
+    badgeStyle: 'bg-[#11adc4]/15 text-[#074b58] dark:text-[#38d8ef] border-[#11adc4]/30',
+    pillStyle: 'border-border hover:border-[#11adc4]/50 bg-card text-foreground',
+    activePillStyle: 'border-[#11adc4] bg-[#11adc4]/15 text-[#074b58] dark:text-[#38d8ef] ring-2 ring-[#11adc4]/50 font-bold shadow-xs',
+    dotClass: 'bg-[#11adc4]',
+  },
+  high: {
+    label: 'High',
+    sublabel: '< 4 hours',
+    timeframe: 'within 4 hours',
+    description: 'Urgent issue blocking key tasks or multiple team members.',
+    badgeStyle: 'bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/30',
+    pillStyle: 'border-border hover:border-amber-400 bg-card text-foreground',
+    activePillStyle: 'border-amber-500 bg-amber-500/15 text-amber-900 dark:text-amber-200 ring-2 ring-amber-500/50 font-bold shadow-xs',
+    dotClass: 'bg-amber-500',
+  },
+  critical: {
+    label: 'Critical',
+    sublabel: '< 2 hours',
+    timeframe: 'within 2 hours (Immediate Escalation)',
+    description: 'Major outage, complete system failure, or safety hazard.',
+    badgeStyle: 'bg-rose-500/15 text-rose-800 dark:text-rose-200 border-rose-500/30',
+    pillStyle: 'border-border hover:border-rose-400 bg-card text-foreground',
+    activePillStyle: 'border-rose-500 bg-rose-500/15 text-rose-900 dark:text-rose-100 ring-2 ring-rose-500/50 font-bold shadow-xs',
+    dotClass: 'bg-rose-500 animate-ping',
+  },
+};
+
+const SUGGESTED_FAQS = {
+  it_support: [
+    { title: 'Wi-Fi keeps dropping or will not authenticate', desc: 'Step-by-step 802.1x certificate & network reconnection guide', link: '/help' },
+    { title: 'Printer offline or paper jam on Floor 2', desc: 'Quick spooler reset and toner check instructions', link: '/help' },
+    { title: 'Setting up corporate email on Outlook mobile', desc: 'Server host and multi-factor setup instructions', link: '/help' },
+  ],
+  sap: [
+    { title: 'How to request SAP ERP role or T-Code access', desc: 'Department manager approval requirements and form', link: '/help' },
+    { title: 'SAP password locked or login expired', desc: 'Self-service unlock steps or immediate reset contact', link: '/help' },
+    { title: 'Resolving transaction verification & invoice errors', desc: 'Standard posting procedures and GL verification', link: '/help' },
+  ],
+  general: [
+    { title: 'Emergency water leak or electrical failure', desc: 'Direct 24/7 facility operations on-call line', link: '/help' },
+    { title: 'Office HVAC temperature & ventilation adjustment', desc: 'Zone control policies and thermostat schedule', link: '/help' },
+    { title: 'Office chair, drawer lock or desk repair requests', desc: 'Standard workplace ergonomics & repair turnaround', link: '/help' },
+  ],
+};
+
 const Requests = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -130,6 +249,7 @@ const Requests = () => {
 
   const { data: assets, isLoading: isLoadingAssets } = useAssets();
   const { data: locations, isLoading: isLoadingLocations } = useLocations();
+  const { data: allTickets = [] } = useTickets();
   const { role, profile } = useAuth();
   const createTicket = useCreateTicket();
 
@@ -285,6 +405,22 @@ const Requests = () => {
     [locations]
   );
 
+  const selectedLocation = useMemo(() => {
+    return locations?.find((l) => l.id === locationId);
+  }, [locations, locationId]);
+
+  const selectedAsset = useMemo(() => {
+    if (!formData.asset_id || formData.asset_id === 'none') return null;
+    return assets?.find((a) => a.id === formData.asset_id);
+  }, [assets, formData.asset_id]);
+
+  const myRecentTickets = useMemo(() => {
+    if (!allTickets || !Array.isArray(allTickets)) return [];
+    return allTickets
+      .filter((t) => (t.requester_id === profile?.id || t.created_by === profile?.id) && t.status !== 'closed' && t.status !== 'resolved')
+      .slice(0, 3);
+  }, [allTickets, profile?.id]);
+
   // Prefill location from profile; never auto-assign company-wide assets
   useEffect(() => {
     if (profile?.location_id && !locationId) {
@@ -425,464 +561,743 @@ const Requests = () => {
       title="Submit Request"
       subtitle="Create a new IT support request"
     >
-      <Card className="max-w-2xl mx-auto overflow-hidden border-t-4 border-t-primary shadow-lg bg-card rounded-2xl border-border/80">
-        <CardHeader className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-transparent to-transparent pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="max-w-[1440px] mx-auto space-y-6 pb-12">
+        {/* Top Notification / Help Center Banner */}
+        {showHelpBanner && (
+          <div className="rounded-2xl border border-teal-500/30 bg-gradient-to-r from-teal-500/10 via-cyan-500/5 to-transparent px-5 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs relative pr-12 transition-all">
             <div className="flex items-center gap-3">
-              <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary/75 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+              <div className="h-9 w-9 rounded-xl bg-teal-500/15 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0 border border-teal-500/30">
+                <Sparkles className="h-4 w-4" />
               </div>
-              <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-                New Support Request
-              </CardTitle>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Need an immediate answer?
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Check our Knowledge Base for self-service guides on Wi-Fi, printers, and SAP access before submitting.
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold self-start sm:self-auto border border-primary/20">
-              <Activity className="h-3 w-3 animate-pulse" />
-              Live Assistance
-            </div>
-          </div>
-          <CardDescription className="text-muted-foreground text-sm mt-2">
-            Submit a request for IT support. Our team will review it and respond based on priority.
-          </CardDescription>
-          {showHelpBanner && (
-            <div className="mt-4 rounded-xl border border-secondary/25 bg-secondary/5 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 relative pr-10">
-              <p className="text-sm text-foreground flex items-center gap-2">
-                <HelpCircle className="h-4 w-4 shrink-0 text-secondary" />
-                Check the Help Center first — your question may already be answered.
-              </p>
-              <Button variant="outline" size="sm" asChild className="border-secondary/30 text-secondary hover:bg-secondary/10 self-start sm:self-auto text-xs font-semibold">
-                <Link to="/help">Browse FAQ</Link>
+            <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+              <Button variant="outline" size="sm" asChild className="border-teal-500/30 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10 text-xs font-semibold rounded-xl">
+                <Link to="/help" className="flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Browse FAQs
+                </Link>
               </Button>
-              <button
-                type="button"
-                className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setShowHelpBanner(false)}
-                title="Dismiss banner"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Request Title<RequiredMark /></Label>
-              <Input
-                id="title"
-                placeholder={TITLE_PLACEHOLDERS[supportCategory]}
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
+            <button
+              type="button"
+              className="absolute right-3.5 top-3.5 text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition-colors"
+              onClick={() => setShowHelpBanner(false)}
+              title="Dismiss banner"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
 
-            {/* Support Department routing */}
-            <div className="grid gap-2">
-              <Label className="text-sm font-semibold flex items-center gap-1.5">
-                Support Department<RequiredMark />
-              </Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {([
-                  {
-                    value: 'it_support',
-                    label: 'IT Support',
-                    desc: 'Hardware, software & network',
-                    icon: Monitor,
-                    normalStyle: 'border-blue-200 dark:border-blue-800/60 bg-blue-50/70 dark:bg-blue-950/30 text-blue-950 dark:text-blue-100 hover:bg-blue-100/70 dark:hover:bg-blue-900/40',
-                    activeStyle: 'border-blue-500 bg-blue-100 dark:bg-blue-900/60 text-blue-950 dark:text-blue-50 ring-2 ring-blue-500/50 shadow-md',
-                    iconBg: 'bg-blue-500/15 text-blue-600 dark:text-blue-300',
-                    activeIconBg: 'bg-blue-600 text-white shadow-xs',
-                  },
-                  {
-                    value: 'sap',
-                    label: 'System-Related Issue',
-                    desc: 'SAP ERP, modules & access',
-                    icon: Database,
-                    normalStyle: 'border-teal-200 dark:border-teal-800/60 bg-teal-50/70 dark:bg-teal-950/30 text-teal-950 dark:text-teal-100 hover:bg-teal-100/70 dark:hover:bg-teal-900/40',
-                    activeStyle: 'border-teal-500 bg-teal-100 dark:bg-teal-900/60 text-teal-950 dark:text-teal-50 ring-2 ring-teal-500/50 shadow-md',
-                    iconBg: 'bg-teal-500/15 text-teal-600 dark:text-teal-300',
-                    activeIconBg: 'bg-teal-600 text-white shadow-xs',
-                  },
-                  {
-                    value: 'general',
-                    label: 'Facility & Maintenance',
-                    desc: 'Electrical, plumbing, AC & furniture',
-                    icon: Wrench,
-                    normalStyle: 'border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100 hover:bg-amber-100/70 dark:hover:bg-amber-900/40',
-                    activeStyle: 'border-amber-500 bg-amber-100 dark:bg-amber-900/60 text-amber-950 dark:text-amber-50 ring-2 ring-amber-500/50 shadow-md',
-                    iconBg: 'bg-amber-500/15 text-amber-600 dark:text-amber-300',
-                    activeIconBg: 'bg-amber-600 text-white shadow-xs',
-                  },
-                ] as const).map((cat) => {
-                  const Icon = cat.icon;
-                  const isSelected = supportCategory === cat.value;
-                  return (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => setSupportCategory(cat.value)}
-                      className={cn(
-                        'relative group flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all duration-200 ease-out',
-                        'hover:-translate-y-0.5 hover:shadow-md focus:outline-none',
-                        isSelected ? cat.activeStyle : cat.normalStyle
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-1.5 w-full">
-                        <div className={cn(
-                          'flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200',
-                          isSelected ? cat.activeIconBg : cat.iconBg
-                        )}>
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className={cn(
-                          'h-4 w-4 rounded-full border flex items-center justify-center transition-all duration-200',
-                          isSelected ? 'border-teal-600 bg-teal-600 text-white scale-105 shadow-2xs' : 'border-muted-foreground/30 opacity-40 group-hover:opacity-70'
-                        )}>
-                          {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold tracking-tight text-foreground">
-                          {cat.label}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-                          {cat.desc}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Smart Keyword Detection Banner */}
-              {smartSuggestion && dismissedSuggestion !== smartSuggestion.target && (
-                <div className={cn(
-                  'mt-2.5 p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200',
-                  smartSuggestion.colorClass
-                )}>
-                  <div className="flex items-start sm:items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-background/80 shadow-2xs shrink-0 mt-0.5 sm:mt-0">
-                      <Activity className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+        {/* 2-Column Responsive Workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Main Form Column (60-65% width) */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+            <Card className="overflow-hidden shadow-md bg-card rounded-2xl border border-border/80">
+              {/* Vibrant Top Accent Bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-[#11adc4] via-[#0f5766] to-[#11adc4]" />
+              
+              <CardHeader className="pb-4 pt-6 px-6 sm:px-8 border-b border-border/60 bg-gradient-to-b from-muted/20 to-transparent">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#11adc4]/20 to-[#0f5766]/20 border border-[#11adc4]/40 flex items-center justify-center text-[#0f5766] dark:text-[#11adc4] shadow-xs">
+                      <FileText className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold">
-                        Smart Department Suggestion
-                      </p>
-                      <p className="text-xs opacity-90 mt-0.5">
-                        {smartSuggestion.message}
-                      </p>
+                      <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
+                        Create Support Request
+                      </CardTitle>
+                      <CardDescription className="text-muted-foreground text-xs sm:text-sm mt-0.5">
+                        Submit a maintenance or technical ticket for rapid dispatch by our team.
+                      </CardDescription>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    <Button
-                      type="button"
-                      size="sm"
-                      className={cn('h-7 px-3 text-xs gap-1 font-semibold shadow-2xs', smartSuggestion.btnClass)}
-                      onClick={() => {
-                        setSupportCategory(smartSuggestion.target);
-                        toast({
-                          title: 'Department Updated',
-                          description: `Switched routing to ${smartSuggestion.label}.`,
-                        });
-                      }}
-                    >
-                      <smartSuggestion.icon className="h-3 w-3" />
-                      Switch to {smartSuggestion.label}
-                    </Button>
-                    <button
-                      type="button"
-                      className="p-1 rounded-md opacity-60 hover:opacity-100 transition-opacity"
-                      onClick={() => setDismissedSuggestion(smartSuggestion.target)}
-                      title="Keep current department"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-xs text-muted-foreground mt-1">
-                Your request will be automatically routed to the correct team based on this selection.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label>Request Type<RequiredMark /></Label>
-                <Select
-                  required
-                  value={formData.type}
-                  onValueChange={handleTypeChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(REQUEST_TYPES_BY_CATEGORY[supportCategory] || REQUEST_TYPES_BY_CATEGORY.it_support).map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Priority<RequiredMark /></Label>
-                <Select
-                  required
-                  value={formData.priority}
-                  onValueChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      priority: val as MaintenanceTicket['priority'],
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low — Can wait</SelectItem>
-                    <SelectItem value="medium">Medium — Within a few days</SelectItem>
-                    <SelectItem value="high">High — Urgent</SelectItem>
-                    <SelectItem value="critical">Critical — Immediate attention</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Room / Facility Area for General tickets */}
-            {supportCategory === 'general' && (
-              <div className="grid gap-2 animate-in fade-in duration-200">
-                <Label htmlFor="facility-room">
-                  Room / Office / Building Area <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
-                </Label>
-                <Input
-                  id="facility-room"
-                  placeholder="e.g., Building A, 2nd Floor, Room 204 / Executive Conference Room"
-                  value={facilityRoom}
-                  onChange={(e) => setFacilityRoom(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Specify the exact room or area so the facility technician can locate it immediately.
-                </p>
-              </div>
-            )}
-
-            {showAssetField && (
-              <div className="grid gap-2">
-                <Label>Related Asset</Label>
-                <Combobox
-                  options={assetOptions}
-                  value={formData.asset_id || 'none'}
-                  onValueChange={(val) =>
-                    setFormData({
-                      ...formData,
-                      asset_id: !val || val === 'none' ? undefined : val,
-                    })
-                  }
-                  placeholder="Search and select an asset"
-                  emptyText={
-                    role === 'requester'
-                      ? 'No assets assigned to your account yet'
-                      : 'No assets found'
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  {role === 'requester'
-                    ? 'Optional — only assets assigned to you by an admin appear here.'
-                    : 'Optional — search by name, type, or serial number.'}
-                </p>
-              </div>
-            )}
-
-            <div className="grid gap-2">
-              <Label>Location<RequiredMark /></Label>
-              <Combobox
-                options={locationOptions}
-                value={locationId}
-                onValueChange={setLocationId}
-                placeholder="Select office / branch"
-                emptyText="No locations configured"
-              />
-              <p className="text-xs text-muted-foreground">
-                Choose from the official location list so reports stay consistent.
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description<RequiredMark /></Label>
-              <Textarea
-                id="description"
-                placeholder={DESCRIPTION_PLACEHOLDERS[supportCategory]}
-                rows={5}
-                required
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="attachments" className="text-sm font-semibold flex items-center justify-between">
-                <span>Attachments</span>
-                <span className="text-xs text-muted-foreground font-normal">Optional (Max 5 files, 5MB each)</span>
-              </Label>
-              <label
-                htmlFor="attachments"
-                className="block cursor-pointer rounded-xl border-2 border-dashed border-teal-500/30 bg-teal-50/30 dark:bg-teal-950/10 p-4 transition-all duration-200 hover:border-teal-500/60 hover:bg-teal-50/50"
-              >
-                <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
-                  <div className="h-10 w-10 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center">
-                    <UploadCloud className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-semibold text-teal-700 dark:text-teal-300 hover:underline">
-                      Click to upload files
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold self-start sm:self-auto border border-emerald-500/25">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span className="text-xs text-muted-foreground"> or drag and drop</span>
+                    Dispatch Active
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Supports PNG, JPG, JPEG, and PDF documents
-                  </p>
-                  <Input
-                    id="attachments"
-                    type="file"
-                    accept="image/*,.pdf"
-                    multiple
-                    className="hidden"
-                    onChange={handleFilesChange}
-                  />
                 </div>
-                {attachments.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-teal-500/15 space-y-2">
-                    <p className="text-xs font-semibold text-teal-800 dark:text-teal-200">
-                      Selected Files ({attachments.length}):
-                    </p>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {attachments.map((file, index) => (
-                        <li
-                          key={`${file.name}-${index}`}
-                          className="flex items-center justify-between rounded-lg border border-teal-500/20 bg-background px-3 py-1.5 text-xs font-medium shadow-2xs"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span className="truncate mr-2 flex items-center gap-1.5">
-                            <Paperclip className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400 shrink-0" />
-                            {file.name}
-                          </span>
+              </CardHeader>
+
+              <CardContent className="p-6 sm:p-8">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Step 1: Department Routing (Bento Cards) */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 rounded-full bg-[#11adc4]/15 text-[#0f5766] dark:text-[#11adc4] text-xs font-bold items-center justify-center border border-[#11adc4]/30">
+                          1
+                        </span>
+                        <Label className="text-sm font-bold tracking-tight text-foreground">
+                          Support Department & Team<RequiredMark />
+                        </Label>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-medium hidden sm:inline-block">
+                        Auto-assigned to specialists
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                      {(['it_support', 'sap', 'general'] as const).map((catKey) => {
+                        const meta = DEPARTMENT_METADATA[catKey];
+                        const Icon = meta.icon;
+                        const isSelected = supportCategory === catKey;
+
+                        return (
+                          <button
+                            key={catKey}
+                            type="button"
+                            onClick={() => setSupportCategory(catKey)}
+                            className={cn(
+                              'relative group flex flex-col justify-between rounded-2xl border p-4 text-left transition-all duration-200 ease-out',
+                              'hover:-translate-y-0.5 hover:shadow-md focus:outline-none',
+                              isSelected
+                                ? cn(meta.borderActive, 'bg-gradient-to-b', meta.bgGradient)
+                                : 'border-border/80 bg-card hover:bg-muted/40 hover:border-border'
+                            )}
+                          >
+                            <div className="flex items-center justify-between w-full mb-3">
+                              <div
+                                className={cn(
+                                  'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 border',
+                                  isSelected
+                                    ? 'bg-[#11adc4] text-white border-[#11adc4] shadow-sm'
+                                    : 'bg-muted text-muted-foreground border-border group-hover:text-foreground'
+                                )}
+                              >
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <div
+                                className={cn(
+                                  'h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-200',
+                                  isSelected
+                                    ? 'border-teal-600 bg-teal-600 text-white scale-105 shadow-2xs'
+                                    : 'border-muted-foreground/30 opacity-40 group-hover:opacity-70'
+                                )}
+                              >
+                                {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                              </div>
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold tracking-tight text-foreground">
+                                {meta.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-2">
+                                {meta.desc}
+                              </p>
+                            </div>
+                            <div className="mt-3 pt-2.5 border-t border-border/50 flex items-center justify-between text-[11px]">
+                              <span className="font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                                {meta.tag}
+                              </span>
+                              <span className={cn('px-2 py-0.5 rounded-md font-semibold text-[10px] border', meta.badgeClass)}>
+                                {meta.slaTime}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Smart Keyword Detection Suggestion */}
+                    {smartSuggestion && dismissedSuggestion !== smartSuggestion.target && (
+                      <div className={cn(
+                        'mt-3 p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200',
+                        smartSuggestion.colorClass
+                      )}>
+                        <div className="flex items-start sm:items-center gap-2.5">
+                          <div className="p-1.5 rounded-lg bg-background/90 shadow-2xs shrink-0 mt-0.5 sm:mt-0">
+                            <Activity className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold">
+                              Smart Department Suggestion
+                            </p>
+                            <p className="text-xs opacity-90 mt-0.5">
+                              {smartSuggestion.message}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                           <Button
                             type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeAttachment(index);
+                            size="sm"
+                            className={cn('h-7 px-3 text-xs gap-1 font-semibold shadow-2xs', smartSuggestion.btnClass)}
+                            onClick={() => {
+                              setSupportCategory(smartSuggestion.target);
+                              toast({
+                                title: 'Department Updated',
+                                description: `Switched routing to ${smartSuggestion.label}.`,
+                              });
                             }}
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <smartSuggestion.icon className="h-3 w-3" />
+                            Switch to {smartSuggestion.label}
                           </Button>
-                        </li>
-                      ))}
-                    </ul>
+                          <button
+                            type="button"
+                            className="p-1 rounded-md opacity-60 hover:opacity-100 transition-opacity"
+                            onClick={() => setDismissedSuggestion(smartSuggestion.target)}
+                            title="Keep current department"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </label>
-            </div>
 
-            {!isUrgent && (
-              <div className="grid gap-2">
-                <Label htmlFor="preferred-date" className="text-sm font-semibold">Preferred Date</Label>
-                <Input
-                  id="preferred-date"
-                  type="date"
-                  value={preferredDate}
-                  onChange={(e) => setPreferredDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="rounded-lg"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Optional — when you would prefer this to be scheduled.
-                </p>
-              </div>
-            )}
-            {isUrgent && (
-              <p className="text-xs text-teal-800 dark:text-teal-300 rounded-lg border border-teal-500/20 bg-teal-50/50 dark:bg-teal-950/20 px-3.5 py-2.5 flex items-center gap-2">
-                <Info className="h-4 w-4 text-teal-600 dark:text-teal-400 shrink-0" />
-                Preferred date is hidden for High/Critical requests — our team will prioritize this immediately.
-              </p>
-            )}
+                  {/* Step 2: Request Scope & Priority */}
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 rounded-full bg-[#11adc4]/15 text-[#0f5766] dark:text-[#11adc4] text-xs font-bold items-center justify-center border border-[#11adc4]/30">
+                        2
+                      </span>
+                      <Label className="text-sm font-bold tracking-tight text-foreground">
+                        Request Details & Urgency<RequiredMark />
+                      </Label>
+                    </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/20 p-3.5">
-              <div>
-                <Label className="text-sm font-semibold">Recurring Request</Label>
-                <p className="text-xs text-muted-foreground">
-                  Schedule this request to automatically repeat on an interval
-                </p>
+                    {/* Request Title */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="title" className="text-xs font-semibold flex items-center justify-between">
+                        <span>Subject / Short Summary<RequiredMark /></span>
+                        <span className="text-[11px] text-muted-foreground font-normal">Clear and specific summary</span>
+                      </Label>
+                      <Input
+                        id="title"
+                        placeholder={TITLE_PLACEHOLDERS[supportCategory]}
+                        required
+                        className="rounded-xl h-11 text-sm border-border focus-visible:ring-[#11adc4]/30 focus-visible:border-[#11adc4]"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      />
+                    </div>
+
+                    {/* Priority Selector Pill Bar */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-semibold">Priority & Urgency<RequiredMark /></Label>
+                        <span className="text-[11px] text-muted-foreground font-normal">Affects queue dispatch SLA</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {(['low', 'medium', 'high', 'critical'] as const).map((pKey) => {
+                          const pMeta = PRIORITY_METADATA[pKey];
+                          const isPSelected = formData.priority === pKey;
+
+                          return (
+                            <button
+                              key={pKey}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, priority: pKey })}
+                              className={cn(
+                                'flex flex-col items-start p-2.5 rounded-xl border text-left transition-all duration-150',
+                                isPSelected ? pMeta.activePillStyle : pMeta.pillStyle
+                              )}
+                            >
+                              <div className="flex items-center justify-between w-full mb-1">
+                                <span className="text-xs font-bold capitalize flex items-center gap-1.5">
+                                  <span className={cn('h-2 w-2 rounded-full', pMeta.dotClass)} />
+                                  {pMeta.label}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground">
+                                {pMeta.sublabel}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Request Type and Location Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Request Category Type<RequiredMark /></Label>
+                        <Select
+                          required
+                          value={formData.type}
+                          onValueChange={handleTypeChange}
+                        >
+                          <SelectTrigger className="rounded-xl h-11 text-sm">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            {(REQUEST_TYPES_BY_CATEGORY[supportCategory] || REQUEST_TYPES_BY_CATEGORY.it_support).map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-semibold">Office / Location<RequiredMark /></Label>
+                        <Combobox
+                          options={locationOptions}
+                          value={locationId}
+                          onValueChange={setLocationId}
+                          placeholder="Select office / branch"
+                          emptyText="No locations configured"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Room / Facility Area for General tickets */}
+                    {supportCategory === 'general' && (
+                      <div className="space-y-1.5 animate-in fade-in duration-200">
+                        <Label htmlFor="facility-room" className="text-xs font-semibold">
+                          Room / Office / Building Area <span className="text-muted-foreground font-normal">(Optional)</span>
+                        </Label>
+                        <Input
+                          id="facility-room"
+                          placeholder="e.g., Building A, 2nd Floor, Room 204 / Executive Boardroom"
+                          className="rounded-xl h-11 text-sm"
+                          value={facilityRoom}
+                          onChange={(e) => setFacilityRoom(e.target.value)}
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Specify the exact room or area so the facility technician can locate it immediately.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Related Asset Picker */}
+                    {showAssetField && (
+                      <div className="space-y-1.5 animate-in fade-in duration-200">
+                        <Label className="text-xs font-semibold">Related Asset</Label>
+                        <Combobox
+                          options={assetOptions}
+                          value={formData.asset_id || 'none'}
+                          onValueChange={(val) =>
+                            setFormData({
+                              ...formData,
+                              asset_id: !val || val === 'none' ? undefined : val,
+                            })
+                          }
+                          placeholder="Search and select an asset"
+                          emptyText={
+                            role === 'requester'
+                              ? 'No assets assigned to your account yet'
+                              : 'No assets found'
+                          }
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {role === 'requester'
+                            ? 'Optional — only assets assigned to you by an admin appear here.'
+                            : 'Optional — search by name, type, or serial number.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Step 3: Description & File Attachments */}
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-5 w-5 rounded-full bg-[#11adc4]/15 text-[#0f5766] dark:text-[#11adc4] text-xs font-bold items-center justify-center border border-[#11adc4]/30">
+                        3
+                      </span>
+                      <Label className="text-sm font-bold tracking-tight text-foreground">
+                        Description & Attachments<RequiredMark />
+                      </Label>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="description" className="text-xs font-semibold flex items-center justify-between">
+                        <span>Detailed Description<RequiredMark /></span>
+                        <span className="text-[11px] text-muted-foreground font-normal">
+                          {formData.description?.length || 0} characters
+                        </span>
+                      </Label>
+                      <Textarea
+                        id="description"
+                        placeholder={DESCRIPTION_PLACEHOLDERS[supportCategory]}
+                        rows={5}
+                        required
+                        className="rounded-xl text-sm border-border focus-visible:ring-[#11adc4]/30 focus-visible:border-[#11adc4]"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      />
+                    </div>
+
+                    {/* File Attachment Dropzone */}
+                    <div className="space-y-2">
+                      <Label htmlFor="attachments" className="text-xs font-semibold flex items-center justify-between">
+                        <span>Supporting Files & Screenshots</span>
+                        <span className="text-[11px] text-muted-foreground font-normal">Optional (Max 5 files, 5MB each)</span>
+                      </Label>
+                      <label
+                        htmlFor="attachments"
+                        className="block cursor-pointer rounded-2xl border-2 border-dashed border-[#11adc4]/35 bg-[#11adc4]/5 dark:bg-[#11adc4]/5 p-5 transition-all duration-200 hover:border-[#11adc4] hover:bg-[#11adc4]/10"
+                      >
+                        <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
+                          <div className="h-11 w-11 rounded-2xl bg-[#11adc4]/15 text-[#0f5766] dark:text-[#11adc4] flex items-center justify-center border border-[#11adc4]/30 shadow-2xs">
+                            <UploadCloud className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-[#0f5766] dark:text-[#38d8ef] hover:underline">
+                              Click to upload attachments
+                            </span>
+                            <span className="text-xs text-muted-foreground"> or drag and drop</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Screenshots, logs, or photos (PNG, JPG, JPEG, PDF)
+                          </p>
+                          <Input
+                            id="attachments"
+                            type="file"
+                            accept="image/*,.pdf"
+                            multiple
+                            className="hidden"
+                            onChange={handleFilesChange}
+                          />
+                        </div>
+
+                        {attachments.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-[#11adc4]/20 space-y-2">
+                            <p className="text-xs font-semibold text-[#0f5766] dark:text-[#7ce5f5]">
+                              Attached Files ({attachments.length}):
+                            </p>
+                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {attachments.map((file, index) => (
+                                <li
+                                  key={`${file.name}-${index}`}
+                                  className="flex items-center justify-between rounded-xl border border-[#11adc4]/30 bg-background px-3 py-2 text-xs font-medium shadow-2xs"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <span className="truncate mr-2 flex items-center gap-2">
+                                    <Paperclip className="h-3.5 w-3.5 text-[#11adc4] shrink-0" />
+                                    <span className="truncate">{file.name}</span>
+                                    <span className="text-[10px] text-muted-foreground shrink-0">
+                                      ({(file.size / 1024).toFixed(0)} KB)
+                                    </span>
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0 rounded-lg"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeAttachment(index);
+                                    }}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+
+                    {/* Preferred Date & Recurring Options */}
+                    {!isUrgent && (
+                      <div className="space-y-1.5 pt-1">
+                        <Label htmlFor="preferred-date" className="text-xs font-semibold">Preferred Service Date</Label>
+                        <Input
+                          id="preferred-date"
+                          type="date"
+                          value={preferredDate}
+                          onChange={(e) => setPreferredDate(e.target.value)}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="rounded-xl h-10 text-xs sm:text-sm max-w-xs"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Optional — when you would prefer technician maintenance to occur.
+                        </p>
+                      </div>
+                    )}
+                    {isUrgent && (
+                      <p className="text-xs text-[#0f5766] dark:text-[#7ce5f5] rounded-xl border border-[#11adc4]/30 bg-[#11adc4]/10 px-3.5 py-2.5 flex items-center gap-2">
+                        <Info className="h-4 w-4 text-[#11adc4] shrink-0" />
+                        Preferred date is omitted for Urgent/Critical requests — assigned dispatch starts immediately.
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between rounded-xl border border-border/80 bg-muted/20 p-3.5">
+                      <div>
+                        <Label className="text-xs sm:text-sm font-semibold">Recurring Request Schedule</Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          Schedule this maintenance task to repeat automatically
+                        </p>
+                      </div>
+                      <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                    </div>
+
+                    {isRecurring && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-[#11adc4]/30 p-4 bg-[#11adc4]/5">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-semibold">Frequency<RequiredMark /></Label>
+                          <Select
+                            value={recurringInterval}
+                            onValueChange={(val) =>
+                              setRecurringInterval(
+                                val as NonNullable<MaintenanceTicket['recurring_interval']>
+                              )
+                            }
+                          >
+                            <SelectTrigger className="rounded-xl">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="quarterly">Quarterly</SelectItem>
+                              <SelectItem value="yearly">Yearly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="recurring-ends" className="text-xs font-semibold">Ends on<RequiredMark /></Label>
+                          <Input
+                            id="recurring-ends"
+                            type="date"
+                            required={isRecurring}
+                            value={recurringEndsAt}
+                            min={new Date().toISOString().split('T')[0]}
+                            onChange={(e) => setRecurringEndsAt(e.target.value)}
+                            className="rounded-xl"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-border/60">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full sm:w-auto rounded-xl h-11 px-5"
+                      onClick={() => window.history.back()}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="w-full sm:w-auto rounded-xl h-11 px-7 bg-gradient-to-r from-[#11adc4] to-[#0f5766] hover:opacity-95 text-white font-semibold shadow-md shadow-[#11adc4]/25 hover:shadow-lg transition-all duration-200"
+                      disabled={createTicket.isPending}
+                    >
+                      {createTicket.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Submitting Request...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Submit Request
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column: Live Context & Ticket Preview (35-40% width, sticky) */}
+          <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6">
+            {/* 1. Live Ticket Preview Card */}
+            <Card className="rounded-2xl border-2 border-[#11adc4]/40 bg-card shadow-lg overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border/60 bg-gradient-to-r from-[#11adc4]/15 via-teal-500/10 to-transparent flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0f5766] dark:text-[#11adc4]">
+                  <Eye className="h-4 w-4 text-[#11adc4]" />
+                  Live Ticket Preview
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Real-time
+                </div>
               </div>
-              <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
-            </div>
-            {isRecurring && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-teal-500/30 p-4 bg-teal-50/30 dark:bg-teal-950/10">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Frequency<RequiredMark /></Label>
-                  <Select
-                    value={recurringInterval}
-                    onValueChange={(val) =>
-                      setRecurringInterval(
-                        val as NonNullable<MaintenanceTicket['recurring_interval']>
-                      )
-                    }
+
+              <CardContent className="p-5 space-y-4">
+                {/* Simulated Ticket Card */}
+                <div className="rounded-xl border border-border/80 bg-muted/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-xs font-bold text-muted-foreground bg-background px-2.5 py-1 rounded-md border border-border/70">
+                      #TKT-DRAFT
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn('px-2.5 py-1 rounded-md text-[10px] font-bold border', DEPARTMENT_METADATA[supportCategory].badgeClass)}>
+                        {DEPARTMENT_METADATA[supportCategory].title}
+                      </span>
+                      <span className={cn('px-2.5 py-1 rounded-md text-[10px] font-bold border', PRIORITY_METADATA[formData.priority || 'medium'].badgeStyle)}>
+                        {PRIORITY_METADATA[formData.priority || 'medium'].label}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-bold text-foreground tracking-tight leading-snug">
+                      {formData.title ? formData.title : (
+                        <span className="text-muted-foreground italic font-normal">
+                          Enter a request title above...
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3 leading-relaxed">
+                      {formData.description ? formData.description : (
+                        <span className="italic opacity-60">
+                          Description snippet will preview here in real time...
+                        </span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
+                      <MapPin className="h-3 w-3 text-[#11adc4]" />
+                      {selectedLocation ? selectedLocation.name : 'Location pending'}
+                    </span>
+                    {selectedAsset && (
+                      <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
+                        <Monitor className="h-3 w-3 text-teal-600" />
+                        {selectedAsset.name}
+                      </span>
+                    )}
+                    {attachments.length > 0 && (
+                      <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
+                        <Paperclip className="h-3 w-3 text-amber-600" />
+                        {attachments.length} file(s)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground text-center italic">
+                  This preview mirrors how your ticket will appear in technician dispatch.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* 2. Guaranteed SLA & Routing Commitment */}
+            <Card className="rounded-2xl border border-border/80 bg-card shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  Service Level Commitment
+                </div>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  SLA Active
+                </span>
+              </div>
+              <CardContent className="p-5 space-y-3.5">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#11adc4]/20 to-[#0f5766]/20 border border-[#11adc4]/30 flex items-center justify-center text-[#0f5766] dark:text-[#11adc4] shrink-0 mt-0.5">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">
+                      Target Response Time
+                    </p>
+                    <p className="text-sm font-extrabold text-[#0f5766] dark:text-[#38d8ef] mt-0.5">
+                      {PRIORITY_METADATA[formData.priority || 'medium'].timeframe}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {PRIORITY_METADATA[formData.priority || 'medium'].description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/70 text-xs space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-[#11adc4]" />
+                    Routed Department:
+                  </p>
+                  <p className="text-muted-foreground text-[11px] pl-5">
+                    {DEPARTMENT_METADATA[supportCategory].team}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 3. Quick Self-Help Knowledge Base Match */}
+            <Card className="rounded-2xl border border-border/80 bg-card shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
+                  <HelpCircle className="h-4 w-4 text-[#11adc4]" />
+                  Quick FAQs & Self-Service
+                </div>
+                <Link to="/help" className="text-[11px] text-[#11adc4] hover:underline font-semibold flex items-center gap-0.5">
+                  View All <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              </div>
+              <CardContent className="p-4 space-y-2">
+                {SUGGESTED_FAQS[supportCategory].map((faq, i) => (
+                  <Link
+                    key={i}
+                    to={faq.link}
+                    className="group block p-2.5 rounded-xl border border-transparent hover:border-[#11adc4]/30 hover:bg-[#11adc4]/5 transition-all text-left"
                   >
-                    <SelectTrigger className="rounded-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="recurring-ends" className="text-xs font-semibold">Ends on<RequiredMark /></Label>
-                  <Input
-                    id="recurring-ends"
-                    type="date"
-                    required={isRecurring}
-                    value={recurringEndsAt}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setRecurringEndsAt(e.target.value)}
-                    className="rounded-lg"
-                  />
-                </div>
-              </div>
-            )}
+                    <p className="text-xs font-semibold text-foreground group-hover:text-[#0f5766] dark:group-hover:text-[#38d8ef] flex items-center justify-between">
+                      <span>{faq.title}</span>
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {faq.desc}
+                    </p>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 border-t border-border/60">
-              <Button type="button" variant="outline" className="w-full sm:w-auto rounded-xl" onClick={() => window.history.back()}>
-                Cancel
-              </Button>
-              <Button type="submit" className="w-full sm:w-auto rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:shadow-primary/30 transition-all duration-200" disabled={createTicket.isPending}>
-                {createTicket.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Submitting Request...
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Submit Request
-                  </>
-                )}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            {/* 4. My Open Requests (Duplicate Prevention) */}
+            {myRecentTickets.length > 0 && (
+              <Card className="rounded-2xl border border-border/80 bg-card shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
+                    <Activity className="h-4 w-4 text-amber-500" />
+                    Your Active Requests
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {myRecentTickets.length} pending
+                  </span>
+                </div>
+                <CardContent className="p-4 space-y-2.5">
+                  <p className="text-[11px] text-muted-foreground">
+                    Avoid submitting duplicates — check your currently open requests:
+                  </p>
+                  {myRecentTickets.map((t) => (
+                    <div
+                      key={t.id}
+                      className="p-2.5 rounded-xl border border-border/70 bg-muted/20 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-semibold text-foreground truncate">
+                          {t.title}
+                        </p>
+                        <p className="font-mono text-[10px] text-muted-foreground">
+                          {ticketReference(t.id)}
+                        </p>
+                      </div>
+                      <TicketStatusBadge status={t.status} className="shrink-0 text-[10px] py-0.5 px-2" />
+                    </div>
+                  ))}
+                  <Button variant="ghost" size="sm" asChild className="w-full text-xs text-[#11adc4] hover:bg-[#11adc4]/10 mt-1">
+                    <Link to="/tickets">View all your requests</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
 
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <DialogContent className="w-[95vw] sm:max-w-md text-center p-6 sm:p-8 border-none bg-card/95 backdrop-blur-md shadow-2xl rounded-2xl">
