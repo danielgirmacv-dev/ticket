@@ -33,9 +33,18 @@ class MaintenanceTicketController extends Controller
         if ($user->hasRole('super_admin')) {
             // Super Admins see ALL tickets — no filtering
         } elseif ($user->hasRole('admin')) {
-            // Managers see only tickets routed to them via assigned_manager_id
+            // Managers see tickets routed to them via assigned_manager_id or category fallback
             $managerProfileId = $user->profile?->id;
-            $query->where('assigned_manager_id', $managerProfileId);
+            $managerCategory = $user->profile?->support_category;
+            $query->where(function ($q) use ($managerProfileId, $managerCategory) {
+                $q->where('assigned_manager_id', $managerProfileId);
+                if ($managerCategory) {
+                    $q->orWhere(function ($sub) use ($managerCategory) {
+                        $sub->whereNull('assigned_manager_id')
+                            ->where('support_category', $managerCategory);
+                    });
+                }
+            });
         } elseif ($user->hasRole('technician')) {
             // Technicians see tickets assigned to them
             $query->where('assigned_technician_id', $user->profile->id);
@@ -623,7 +632,7 @@ class MaintenanceTicketController extends Controller
 
         ActivityLogger::log('feedback', 'Ticket', $ticket->id, "Submitted feedback for ticket: {$ticket->title}");
 
-        // ✅ Notify technician synchronously
+        // ✅ 1. Notify technician synchronously
         if ($ticket->assignedTechnician && $ticket->assignedTechnician->user_id) {
             NotificationService::create(
                 $ticket->assignedTechnician->user_id,
@@ -634,7 +643,46 @@ class MaintenanceTicketController extends Controller
             );
         }
 
-        return response()->json($ticket);
+        // ✅ 2. Ensure ticket has a routed manager
+        if (! $ticket->assigned_manager_id && $ticket->support_category) {
+            $this->assignManagerForCategory($ticket, $ticket->support_category);
+            $ticket->refresh();
+        }
+
+        // ✅ 3. Notify the routed manager synchronously
+        $managerUser = null;
+        if ($ticket->assignedManager && $ticket->assignedManager->user_id) {
+            $managerUser = \App\Models\User::find($ticket->assignedManager->user_id);
+        } elseif ($ticket->support_category) {
+            $managerUser = $this->resolveManagerForCategory($ticket->support_category);
+        }
+
+        $stars = str_repeat('★', (int) $validated['feedback_rating']) . str_repeat('☆', 5 - (int) $validated['feedback_rating']);
+        $commentText = !empty($validated['feedback_comment']) ? " Comment: \"{$validated['feedback_comment']}\"" : '';
+
+        if ($managerUser) {
+            NotificationService::create(
+                $managerUser->id,
+                'Requester Feedback Received',
+                "Requester rated ticket '{$ticket->title}' {$stars} ({$validated['feedback_rating']}/5).{$commentText}",
+                'info',
+                "/tickets/{$ticket->id}"
+            );
+        } else {
+            // Fallback: Notify all category managers/admins
+            $managers = \App\Models\User::role(['admin', 'super_admin'])->get();
+            foreach ($managers as $mgr) {
+                NotificationService::create(
+                    $mgr->id,
+                    'Requester Feedback Received',
+                    "Requester rated ticket '{$ticket->title}' {$stars} ({$validated['feedback_rating']}/5).{$commentText}",
+                    'info',
+                    "/tickets/{$ticket->id}"
+                );
+            }
+        }
+
+        return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'));
     }
 
     /**

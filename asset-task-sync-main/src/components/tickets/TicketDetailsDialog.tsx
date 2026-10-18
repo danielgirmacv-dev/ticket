@@ -377,32 +377,65 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                             </div>
                         )}
 
-                        {/* Feedback Section */}
+                        {/* Feedback Section - Visible to Routed Manager & Technicians */}
                         {(ticket.feedback_rating || ticket.feedback_comment) && (
-                            <div className="border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-900/30 rounded-lg p-4">
-                                <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-500 mb-3 flex items-center gap-2">
-                                    <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" /> Requester Feedback
-                                </h3>
-                                <div className="flex items-center gap-1 mb-2">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            className={`h-4 w-4 ${i < (ticket.feedback_rating || 0)
-                                                ? 'fill-yellow-500 text-yellow-500'
-                                                : 'text-gray-300 dark:text-gray-600'
-                                                }`}
-                                        />
-                                    ))}
-                                    <span className="text-sm font-medium ml-2">
-                                        {ticket.feedback_rating}/5
+                            <div className="border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent rounded-2xl p-5 shadow-xs space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+                                    <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                                        <div className="h-7 w-7 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center">
+                                            <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+                                        </div>
+                                        Requester Feedback & Quality Review
+                                    </h3>
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#0f5766]/15 text-[#0f5766] dark:text-[#38d8ef] border border-[#0f5766]/30 self-start sm:self-auto">
+                                        <CheckCircle className="h-3 w-3 text-[#11adc4]" />
+                                        Visible to Routed Manager
                                     </span>
                                 </div>
+
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-1 bg-background/80 px-3 py-1.5 rounded-xl border border-amber-500/30 shadow-2xs">
+                                        {[...Array(5)].map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`h-4 w-4 ${i < (ticket.feedback_rating || 0)
+                                                    ? 'fill-amber-500 text-amber-500'
+                                                    : 'text-gray-300 dark:text-gray-600'
+                                                    }`}
+                                            />
+                                        ))}
+                                        <span className="text-sm font-black text-foreground ml-1.5">
+                                            {ticket.feedback_rating}/5
+                                        </span>
+                                    </div>
+                                    <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                                        {ticket.feedback_rating === 5 && '⭐️⭐️⭐️⭐️⭐️ Exceptional Service'}
+                                        {ticket.feedback_rating === 4 && '⭐️⭐️⭐️⭐️ Very Good / Satisfied'}
+                                        {ticket.feedback_rating === 3 && '⭐️⭐️⭐️ Average / Acceptable'}
+                                        {ticket.feedback_rating === 2 && '⭐️⭐️ Needs Improvement'}
+                                        {ticket.feedback_rating === 1 && '⭐️ Poor Experience'}
+                                    </span>
+                                </div>
+
                                 {ticket.feedback_comment && (
-                                    <div className="mt-2">
-                                        <span className="text-xs text-yellow-700 dark:text-yellow-600 block mb-1">Comment</span>
-                                        <p className="text-sm text-yellow-900 dark:text-yellow-200 italic">"{ticket.feedback_comment}"</p>
+                                    <div className="rounded-xl bg-background/80 border border-amber-500/20 p-3.5 space-y-1">
+                                        <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                                            Requester Comment
+                                        </span>
+                                        <p className="text-sm text-foreground italic leading-relaxed">
+                                            "{ticket.feedback_comment}"
+                                        </p>
                                     </div>
                                 )}
+
+                                <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground gap-2">
+                                    <span>
+                                        Routed Manager: <strong className="text-foreground">{ticket.assigned_manager?.name || 'Department Manager'}</strong>
+                                    </span>
+                                    <span className="text-amber-700 dark:text-amber-300 font-medium">
+                                        Logged in Manager Dashboard Audit History
+                                    </span>
+                                </div>
                             </div>
                         )}
                     </div>

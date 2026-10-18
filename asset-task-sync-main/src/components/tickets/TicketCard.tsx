@@ -15,6 +15,7 @@ import {
   MapPin,
   Monitor,
   RefreshCw,
+  Star,
 } from 'lucide-react';
 
 interface TicketCardTechnician {
@@ -77,6 +78,12 @@ export function TicketCard({
                 {priority.label}
               </span>
               <TicketStatusBadge status={ticket.status} />
+              {ticket.feedback_rating && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200 shadow-2xs">
+                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                  {ticket.feedback_rating}/5
+                </span>
+              )}
               {ticket.is_recurring && (
                 <Badge variant="outline" className="text-[10px] h-5 gap-0.5 rounded-full px-1.5">
                   <RefreshCw className="h-2.5 w-2.5" />

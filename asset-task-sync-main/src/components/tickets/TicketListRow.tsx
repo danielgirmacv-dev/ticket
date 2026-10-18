@@ -5,7 +5,7 @@ import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
 import { ticketPriorityStyles, ticketReference } from '@/lib/ticket-utils';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Star } from 'lucide-react';
 
 interface TicketListRowProps {
   ticket: MaintenanceTicket;
@@ -68,6 +68,12 @@ export function TicketListRow({
 
       <div className="hidden lg:flex lg:col-span-2 items-center gap-1.5">
         <TicketStatusBadge status={ticket.status} />
+        {ticket.feedback_rating && (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200 shadow-2xs shrink-0">
+            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+            {ticket.feedback_rating}/5
+          </span>
+        )}
         <span
           className={cn(
             'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
