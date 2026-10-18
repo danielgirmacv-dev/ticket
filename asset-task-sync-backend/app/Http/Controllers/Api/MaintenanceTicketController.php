@@ -92,6 +92,11 @@ class MaintenanceTicketController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // 🔒 Technicians see the star rating, but the written feedback comment is confidential to managers
+        if ($user->hasRole('technician') && ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            $tickets->each(fn ($t) => $t->makeHidden('feedback_comment'));
+        }
+
         return response()->json($tickets);
     }
 
@@ -227,7 +232,15 @@ class MaintenanceTicketController extends Controller
     {
         Gate::authorize('view', $maintenanceTicket);
 
-        return response()->json($maintenanceTicket->load('asset', 'requester', 'assignedTechnician'));
+        $maintenanceTicket->load('asset', 'requester', 'assignedTechnician', 'assignedManager');
+
+        // 🔒 Technicians see the star rating, but the written feedback comment is confidential to managers
+        $user = request()->user();
+        if ($user && $user->hasRole('technician') && ! $user->hasAnyRole(['admin', 'super_admin'])) {
+            $maintenanceTicket->makeHidden('feedback_comment');
+        }
+
+        return response()->json($maintenanceTicket);
     }
 
     /**

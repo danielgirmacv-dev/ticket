@@ -30,6 +30,8 @@ import {
     ExternalLink,
     ArrowLeftRight,
     Loader2,
+    Lock,
+    ShieldCheck,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -417,15 +419,33 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                     </span>
                                 </div>
 
-                                {ticket.feedback_comment && (
-                                    <div className="rounded-xl bg-background/80 border border-amber-500/20 p-3.5 space-y-1">
-                                        <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
-                                            Requester Comment
+                                {/* Comment Visibility: Hidden from technicians, visible only to managers / requesters */}
+                                {role === 'technician' ? (
+                                    <div className="rounded-xl bg-muted/40 border border-border/70 p-3.5 flex items-center gap-2.5 text-xs text-muted-foreground">
+                                        <div className="h-6 w-6 rounded-md bg-muted flex items-center justify-center shrink-0 text-muted-foreground">
+                                            <Lock className="h-3.5 w-3.5" />
+                                        </div>
+                                        <span>
+                                            Written feedback comments are confidential and only accessible by your department manager.
                                         </span>
-                                        <p className="text-sm text-foreground italic leading-relaxed">
-                                            "{ticket.feedback_comment}"
-                                        </p>
                                     </div>
+                                ) : (
+                                    ticket.feedback_comment && (
+                                        <div className="rounded-xl bg-background/80 border border-amber-500/20 p-3.5 space-y-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider block">
+                                                    Requester Comment (Manager & QA View)
+                                                </span>
+                                                <span className="text-[10px] text-muted-foreground font-semibold flex items-center gap-1">
+                                                    <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                                    Confidential to Manager
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-foreground italic leading-relaxed">
+                                                "{ticket.feedback_comment}"
+                                            </p>
+                                        </div>
+                                    )
                                 )}
 
                                 <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center justify-between text-[11px] text-muted-foreground gap-2">
@@ -433,7 +453,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                         Routed Manager: <strong className="text-foreground">{ticket.assigned_manager?.name || 'Department Manager'}</strong>
                                     </span>
                                     <span className="text-amber-700 dark:text-amber-300 font-medium">
-                                        Logged in Manager Dashboard Audit History
+                                        {role === 'technician' ? 'Performance rating logged in QA' : 'Logged in Manager Dashboard Audit History'}
                                     </span>
                                 </div>
                             </div>
