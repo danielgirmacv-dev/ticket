@@ -116,11 +116,15 @@ class AuthController extends Controller
             Log::warning('UserApprovalService message error: '.$e->getMessage());
         }
 
+        $botUsername = env('TELEGRAM_BOT_USERNAME', 'eec_it_bot');
+
         return response()->json([
             'message' => $pendingMessage,
             'status' => 'pending',
             'auto_approve_after_minutes' => $autoApproveMinutes > 0 ? $autoApproveMinutes : null,
             'support_email' => config('registration.support_email'),
+            'telegram_bot_username' => $botUsername,
+            'telegram_bot_link' => $botUsername ? "https://t.me/{$botUsername}?start" : null,
             'user' => [
                 'name' => $user->name,
                 'email' => $user->email,

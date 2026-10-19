@@ -549,6 +549,11 @@ class MaintenanceTicketController extends Controller
                 'info',
                 "/tickets/{$ticket->id}"
             );
+
+            NotificationService::sms(
+                $ticket->requester->user_id,
+                "EEC IT: Your ticket #{$ticket->id} - {$ticket->title} has been completed and is pending your review.",
+            );
         }
 
         return response()->json($ticket);
@@ -594,6 +599,11 @@ class MaintenanceTicketController extends Controller
                     'success',
                     "/tickets/{$ticket->id}"
                 );
+
+                NotificationService::sms(
+                    $ticket->assignedTechnician->user_id,
+                    "EEC IT: Completion of ticket #{$ticket->id} - {$ticket->title} has been approved. Great job!",
+                );
             }
         } else {
             $ticket->update([
@@ -613,6 +623,11 @@ class MaintenanceTicketController extends Controller
                     "The completion of ticket '{$ticket->title}' was rejected. It has been reopened — please check the review notes.",
                     'warning',
                     "/tickets/{$ticket->id}"
+                );
+
+                NotificationService::sms(
+                    $ticket->requester->user_id,
+                    "EEC IT: Ticket #{$ticket->id} - {$ticket->title} was reopened after review. Please check the review notes.",
                 );
             }
         }

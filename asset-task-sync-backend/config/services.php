@@ -42,4 +42,27 @@ return [
         'sender_email'  => env('MICROSOFT_GRAPH_SENDER_EMAIL', 'system@eeigconstruction.com'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | SMS (Ethio Telecom gateway / aggregator)
+    |--------------------------------------------------------------------------
+    | driver: 'log' (dev — writes SMS to the log instead of sending)
+    |         'api' (real sending via SMS_API_URL)
+    | auth_mode: 'bearer' | 'basic' | 'header' | 'none'
+    | *_field: JSON body field names — adjust to match your provider's docs.
+    */
+    'sms' => [
+        'driver'        => env('SMS_DRIVER', 'log'),
+        'api_url'       => env('SMS_API_URL'),
+        'auth_mode'     => env('SMS_AUTH_MODE', 'bearer'),
+        'api_key'       => env('SMS_API_KEY'),
+        'username'      => env('SMS_USERNAME'),
+        'password'      => env('SMS_PASSWORD'),
+        'auth_header'   => env('SMS_AUTH_HEADER', 'KEY'),
+        'sender_id'     => env('SMS_SENDER_ID'),
+        'to_field'      => env('SMS_TO_FIELD', 'to'),
+        'message_field' => env('SMS_MESSAGE_FIELD', 'message'),
+        'sender_field'  => env('SMS_SENDER_FIELD', 'sender_id'),
+    ],
+
 ];

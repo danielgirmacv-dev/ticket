@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendSmsNotification;
 use App\Models\MaintenanceTicket;
 use App\Models\Notification;
 use App\Models\Profile;
@@ -16,13 +17,26 @@ use Illuminate\Support\Facades\Log;
  * notifications would never appear. This service bypasses the queue
  * entirely for DB writes, so notifications are always immediate.
  *
- * Telegram messages (network I/O) still go through the queue jobs.
+ * Telegram messages and SMS (network I/O) still go through the queue jobs.
  */
 class NotificationService
 {
     // -------------------------------------------------------------------------
     // Generic helper
     // -------------------------------------------------------------------------
+
+    /**
+     * Queue an SMS for a user (sent to profiles.phone by the queued job).
+     * Safe to call anywhere — the gateway call never blocks the request.
+     */
+    public static function sms(int $userId, string $message): void
+    {
+        try {
+            SendSmsNotification::dispatch($userId, $message);
+        } catch (\Exception $e) {
+            Log::error('[NotificationService] SMS dispatch failed: '.$e->getMessage());
+        }
+    }
 
     public static function create(
         int $userId,
@@ -82,6 +96,12 @@ class NotificationService
                 'info',
                 "/tickets/{$ticket->id}",
             );
+
+            self::sms(
+                $assignedManagerUserId,
+                "EEC IT: New {$categoryLabel} ticket #{$ticket->id} - {$ticket->title} ("
+                .strtoupper($ticket->priority ?? 'medium').") has been routed to you. Please log in to review.",
+            );
         }
 
         // Notify ALL super_admins (oversight) — unless they submitted it or are the assigned manager
@@ -95,6 +115,11 @@ class NotificationService
                 "Ticket '{$ticket->title}' submitted — routed to assigned manager.",
                 'info',
                 "/tickets/{$ticket->id}",
+            );
+
+            self::sms(
+                $superAdmin->id,
+                "EEC IT: Ticket #{$ticket->id} - {$ticket->title} submitted and routed to the assigned manager.",
             );
         });
     }
@@ -117,6 +142,11 @@ class NotificationService
             'success',
             "/tickets/{$ticket->id}",
         );
+
+        self::sms(
+            $userId,
+            "EEC IT: Your ticket #{$ticket->id} - {$ticket->title} has been approved. A technician will be assigned shortly.",
+        );
     }
 
     // -------------------------------------------------------------------------
@@ -136,6 +166,11 @@ class NotificationService
             "Your ticket '{$ticket->title}' was rejected. Reason: {$reason}",
             'error',
             "/tickets/{$ticket->id}",
+        );
+
+        self::sms(
+            $userId,
+            "EEC IT: Your ticket #{$ticket->id} - {$ticket->title} was rejected. Reason: {$reason}",
         );
     }
 
@@ -159,6 +194,12 @@ class NotificationService
             "/tickets/{$ticket->id}",
         );
 
+        self::sms(
+            $technicianProfile->user_id,
+            "EEC IT: You have been assigned ticket #{$ticket->id} - {$ticket->title} ("
+            .strtoupper($ticket->priority ?? 'medium')."). Scheduled: {$ticket->scheduled_date}. Log in to start.",
+        );
+
         // Notify requester
         $requesterUserId = $ticket->requester?->user_id;
         if ($requesterUserId) {
@@ -168,6 +209,11 @@ class NotificationService
                 "A technician has been assigned to your ticket '{$ticket->title}'.",
                 'info',
                 "/tickets/{$ticket->id}",
+            );
+
+            self::sms(
+                $requesterUserId,
+                "EEC IT: A technician has been assigned to your ticket #{$ticket->id} - {$ticket->title}.",
             );
         }
     }
@@ -192,6 +238,11 @@ class NotificationService
                 'info',
                 "/tickets/{$ticket->id}",
             );
+
+            self::sms(
+                $managerUserId,
+                "EEC IT: Ticket #{$ticket->id} - {$ticket->title} has been marked complete and needs your review.",
+            );
         }
 
         // Notify super_admins (oversight) — unless they completed it or are the assigned manager
@@ -204,6 +255,11 @@ class NotificationService
                 "Ticket '{$ticket->title}' has been marked as completed and is pending review.",
                 'info',
                 "/tickets/{$ticket->id}",
+            );
+
+            self::sms(
+                $sa->id,
+                "EEC IT: Ticket #{$ticket->id} - {$ticket->title} is complete and pending review.",
             );
         });
     }
@@ -227,6 +283,11 @@ class NotificationService
                 'warning',
                 "/tickets/{$ticket->id}",
             );
+
+            self::sms(
+                $managerUserId,
+                "EEC IT: Ticket #{$ticket->id} - {$ticket->title} has been reopened and needs attention.",
+            );
         }
 
         User::role('super_admin')->each(function ($sa) use ($ticket, $reopenedByUserId, $managerUserId) {
@@ -238,6 +299,11 @@ class NotificationService
                 "Ticket '{$ticket->title}' has been reopened.",
                 'warning',
                 "/tickets/{$ticket->id}",
+            );
+
+            self::sms(
+                $sa->id,
+                "EEC IT: Ticket #{$ticket->id} - {$ticket->title} has been reopened.",
             );
         });
     }

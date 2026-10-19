@@ -66,6 +66,8 @@ export default function Auth() {
   const [successMessage, setSuccessMessage] = useState('');
   const [successDialogVariant, setSuccessDialogVariant] = useState<SuccessDialogVariant>('pending');
   const [pendingAutoApproveMinutes, setPendingAutoApproveMinutes] = useState<number | null>(null);
+  const [pendingTelegramLink, setPendingTelegramLink] = useState<string | null>(null);
+  const [pendingTelegramUsername, setPendingTelegramUsername] = useState<string | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -213,10 +215,22 @@ export default function Auth() {
       setSuccessDialogVariant('pending');
       setPendingAutoApproveMinutes(result.autoApproveAfterMinutes ?? null);
       setSuccessMessage(result.message || 'Your registration was submitted successfully.');
+      if (cleanTelegram || result.telegramBotLink) {
+        setPendingTelegramLink(
+          result.telegramBotLink ||
+          (result.telegramBotUsername ? `https://t.me/${result.telegramBotUsername}?start` : 'https://t.me/eec_it_bot?start')
+        );
+        setPendingTelegramUsername(cleanTelegram || null);
+      } else {
+        setPendingTelegramLink(null);
+        setPendingTelegramUsername(null);
+      }
       setShowSuccessDialog(true);
       setSignupStep(1);
       resetSignupForm();
     } else {
+      setPendingTelegramLink(null);
+      setPendingTelegramUsername(null);
       setSuccessDialogVariant('active');
       setSuccessMessage('Your account is ready. You can sign in now.');
       setShowSuccessDialog(true);
@@ -675,22 +689,53 @@ export default function Auth() {
               <div className="text-slate-500 text-sm max-w-sm space-y-3 text-left">
                 <p>{successMessage}</p>
                 {successDialogVariant === 'pending' && (
-                  <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
-                    <li>Check your email for confirmation when you can sign in.</li>
-                    {pendingAutoApproveMinutes ? (
+                  <>
+                    <ul className="list-disc pl-5 space-y-1 text-xs text-slate-600">
+                      <li>Check your email for confirmation when you can sign in.</li>
+                      {pendingAutoApproveMinutes ? (
+                        <li>
+                          If no manager is available, your account is activated automatically within about{' '}
+                          {pendingAutoApproveMinutes} minutes.
+                        </li>
+                      ) : null}
                       <li>
-                        If no manager is available, your account is activated automatically within about{' '}
-                        {pendingAutoApproveMinutes} minutes.
+                        Need urgent access? Email{' '}
+                        <a href={supportMailto} className="font-medium underline" style={{ color: brandPrimaryDark }}>
+                          IT support
+                        </a>
+                        .
                       </li>
-                    ) : null}
-                    <li>
-                      Need urgent access? Email{' '}
-                      <a href={supportMailto} className="font-medium underline" style={{ color: brandPrimaryDark }}>
-                        IT support
-                      </a>
-                      .
-                    </li>
-                  </ul>
+                    </ul>
+
+                    {pendingTelegramLink && (
+                      <div className="mt-3 p-3.5 bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200/90 rounded-xl space-y-2.5">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-[#229ED9] text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                            <Send className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-800">
+                              Receive Approval Alert on Telegram
+                            </p>
+                            <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                              {pendingTelegramUsername
+                                ? `You registered with @${pendingTelegramUsername.replace(/^@/, '')}. Tap below to start our bot so Telegram can deliver your approval notification!`
+                                : 'Tap "Start" in our Telegram bot to receive an instant alert when your account is approved.'}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={pendingTelegramLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 text-xs font-semibold text-white bg-[#229ED9] hover:bg-[#1E88BE] active:bg-[#1976a5] rounded-lg shadow-sm transition-colors text-center"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Open Telegram Bot & Tap Start
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </DialogDescription>

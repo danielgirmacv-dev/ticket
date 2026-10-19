@@ -57,19 +57,24 @@ class TelegramService
      */
     public function sendApprovalNotification($user)
     {
-        $appUrl = env('APP_URL', 'http://localhost:5173');
+        $appUrl = env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080'));
 
         $message = "🎉 *Account Approved!*\n\n";
         $message .= "Hello {$user->name},\n\n";
         $message .= "Your account has been approved by the administrator!\n";
         $message .= "You can now log in and submit maintenance requests.\n\n";
-        $message .= "🔗 Login: {$appUrl}/auth\n\n";
+        $message .= "🔗 *Login:* {$appUrl}/auth\n\n";
         $message .= 'Have a great day!';
 
-        $telegramChatId = $user->profile->telegram_chat_id ?? null;
+        $telegramChatId = $user->profile?->telegram_chat_id ?? null;
 
         if (! $telegramChatId) {
-            Log::info("User {$user->id} has no Telegram chat_id linked");
+            $username = $user->profile?->telegram_username ?? null;
+            if ($username) {
+                Log::warning("User {$user->id} provided Telegram username '@{$username}', but has not pressed /start on the bot yet (no chat_id).");
+            } else {
+                Log::info("User {$user->id} has no Telegram chat_id linked");
+            }
 
             return false;
         }

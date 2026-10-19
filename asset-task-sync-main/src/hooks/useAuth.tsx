@@ -17,6 +17,8 @@ interface AuthContextType {
     message?: string;
     autoApproveAfterMinutes?: number | null;
     supportEmail?: string;
+    telegramBotUsername?: string | null;
+    telegramBotLink?: string | null;
   }>;
   signOut: () => Promise<void>;
 }
@@ -115,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message: response.data.message,
           autoApproveAfterMinutes: response.data.auto_approve_after_minutes ?? null,
           supportEmail: response.data.support_email,
+          telegramBotUsername: response.data.telegram_bot_username ?? null,
+          telegramBotLink: response.data.telegram_bot_link ?? null,
         };
       }
 
