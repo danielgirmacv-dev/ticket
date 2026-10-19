@@ -62,7 +62,8 @@ const SAP_KEYWORDS = [
   'su01', 'erp', 'gui', 'sap logon', 'gl account', 'purchase order', 'po approval',
   'cost center', 'profit center', 'pr approval', 'abap', 'hana', 'bapi', 'workflow approval',
   'fico', 'mm module', 'sd module', 'pm module', 'sap password', 'sap user', 'sap error',
-  'sap access', 't code', 'transaction code', 'idoc', 'posting', 'invoice verification'
+  'sap access', 't code', 'transaction code', 'idoc', 'posting', 'invoice verification',
+  'system', 'software', 'application', 'portal', 'login error', 'access denied', 'credentials'
 ];
 
 const IT_KEYWORDS = [
@@ -136,17 +137,19 @@ const DEPARTMENT_METADATA = {
     gradient: 'from-[#11adc4] via-[#0ea0b6] to-[#077d8f]',
     selectedRing: 'ring-4 ring-[#11adc4]/50 shadow-xl shadow-[#11adc4]/35 scale-[1.02] border-white',
     badgeClass: 'bg-[#11adc4]/20 text-[#074b58] dark:text-[#38d8ef] border-[#11adc4]/40 font-bold',
+    accentText: 'text-[#077d8f]',
   },
   sap: {
-    title: 'SAP ERP & Systems',
-    desc: 'SAP Modules, T-Codes, Approvals & User Roles',
-    team: 'Enterprise Applications & SAP Competency Center',
-    tag: 'Business Applications',
+    title: 'System Related Issues',
+    desc: 'SAP ERP, Software, User Access, Approvals & Applications',
+    team: 'Enterprise Applications & Systems Support Team',
+    tag: 'Systems & Software',
     slaTime: 'Response < 3h',
     icon: Database,
     gradient: 'from-[#0f5766] via-[#0b4754] to-[#073640]',
     selectedRing: 'ring-4 ring-[#0f5766]/60 shadow-xl shadow-[#0f5766]/40 scale-[1.02] border-white',
     badgeClass: 'bg-[#0f5766]/20 text-[#0f5766] dark:text-[#7ce5f5] border-[#0f5766]/40 font-bold',
+    accentText: 'text-[#0f5766]',
   },
   general: {
     title: 'Facility & Workplace',
@@ -155,9 +158,10 @@ const DEPARTMENT_METADATA = {
     tag: 'Workplace Services',
     slaTime: 'Response < 4h',
     icon: Wrench,
-    gradient: 'from-[#143e49] via-[#0f323c] to-[#09222a]',
-    selectedRing: 'ring-4 ring-[#143e49]/60 shadow-xl shadow-[#143e49]/40 scale-[1.02] border-white',
-    badgeClass: 'bg-[#143e49]/20 text-[#143e49] dark:text-[#7ce5f5] border-[#143e49]/40 font-bold',
+    gradient: 'from-[#ea580c] via-[#c2410c] to-[#9a3412]',
+    selectedRing: 'ring-4 ring-[#ea580c]/60 shadow-xl shadow-[#ea580c]/40 scale-[1.02] border-white',
+    badgeClass: 'bg-[#ea580c]/20 text-[#c2410c] dark:text-[#fb923c] border-[#ea580c]/40 font-bold',
+    accentText: 'text-[#c2410c]',
   },
 };
 
@@ -298,7 +302,7 @@ const Requests = () => {
           icon: Database,
           colorClass: 'border-teal-500/40 bg-teal-500/10 text-teal-900 dark:text-teal-200',
           btnClass: 'bg-teal-600 hover:bg-teal-700 text-white',
-          message: `Your request mentions "${match}". It appears to be related to the SAP ERP system.`,
+          message: `Your request mentions "${match}". It appears to be related to a system or software issue.`,
         };
       }
     }
@@ -672,7 +676,7 @@ const Requests = () => {
                                 className={cn(
                                   'flex h-11 w-11 items-center justify-center rounded-xl transition-all duration-200 border',
                                   isSelected
-                                    ? 'bg-white text-[#0f5766] border-white shadow-md'
+                                    ? cn('bg-white border-white shadow-md', meta.accentText || 'text-[#0f5766]')
                                     : 'bg-white/20 backdrop-blur-xs text-white border-white/30 group-hover:bg-white/30'
                                 )}
                               >
@@ -682,7 +686,7 @@ const Requests = () => {
                                 className={cn(
                                   'h-6 w-6 rounded-full border flex items-center justify-center transition-all duration-200',
                                   isSelected
-                                    ? 'border-white bg-white text-[#0f5766] scale-110 shadow-sm font-bold'
+                                    ? cn('border-white bg-white scale-110 shadow-sm font-bold', meta.accentText || 'text-[#0f5766]')
                                     : 'border-white/40 bg-white/10 opacity-70 group-hover:opacity-100'
                                 )}
                               >
