@@ -55,11 +55,36 @@ class SmsService
 
         $cfg = config('services.sms');
 
-        $payload = array_filter([
+        $payload = [
             $cfg['to_field']      => $phone,
             $cfg['message_field'] => $message,
-            $cfg['sender_field']  => $cfg['sender_id'],
-        ], fn ($value) => $value !== null && $value !== '');
+        ];
+
+        // Body-based auth (for gateways that expect secret/token in the POST body)
+        if (($cfg['auth_mode'] ?? '') === 'body') {
+            $secret = $cfg['api_key'] ?? $cfg['auth_header'] ?? null;
+            if ($secret) {
+                $payload[$cfg['secret_field'] ?? 'secret'] = $secret;
+            }
+        }
+
+        if (! empty($cfg['sender_id'])) {
+            $payload[$cfg['sender_field']] = $cfg['sender_id'];
+        }
+
+        if (! empty($cfg['device_id'])) {
+            $payload[$cfg['device_field'] ?? 'device'] = $cfg['device_id'];
+        }
+
+        if (! empty($cfg['mode'])) {
+            $payload['mode'] = $cfg['mode'];
+        }
+
+        if (! empty($cfg['sim'])) {
+            $payload['sim'] = $cfg['sim'];
+        }
+
+        $payload = array_filter($payload, fn ($value) => $value !== null && $value !== '');
 
         $request = Http::timeout(10)->acceptJson();
 
@@ -71,13 +96,25 @@ class SmsService
         };
 
         try {
-            $response = $request->post($cfg['api_url'], $payload);
+            $isForm = ($cfg['content_type'] ?? 'form') === 'form';
+            $response = $isForm
+                ? $request->asForm()->post($cfg['api_url'], $payload)
+                : $request->post($cfg['api_url'], $payload);
         } catch (\Throwable $e) {
             // Connection error — let the queued job retry.
             throw new \RuntimeException('SMS gateway unreachable: '.$e->getMessage(), 0, $e);
         }
 
         if ($response->successful()) {
+            $body = $response->json();
+            // Handle gateways that return HTTP 200 with an internal error status (e.g. {"status":400, "message":"..."})
+            if (is_array($body) && isset($body['status']) && (int) $body['status'] !== 200) {
+                $msg = $body['message'] ?? 'Gateway returned error status '.$body['status'];
+                Log::error("[SmsService] SMS rejected by gateway ({$body['status']}): {$msg}");
+
+                return false;
+            }
+
             Log::info("[SmsService] SMS sent to {$phone}");
 
             return true;

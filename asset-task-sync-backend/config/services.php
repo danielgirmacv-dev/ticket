@@ -60,9 +60,15 @@ return [
         'password'      => env('SMS_PASSWORD'),
         'auth_header'   => env('SMS_AUTH_HEADER', 'KEY'),
         'sender_id'     => env('SMS_SENDER_ID'),
+        'device_id'     => env('SMS_DEVICE_ID'),
+        'mode'          => env('SMS_MODE'),
+        'sim'           => env('SMS_SIM'),
+        'content_type'  => env('SMS_CONTENT_TYPE', 'form'),
         'to_field'      => env('SMS_TO_FIELD', 'to'),
         'message_field' => env('SMS_MESSAGE_FIELD', 'message'),
         'sender_field'  => env('SMS_SENDER_FIELD', 'sender_id'),
+        'secret_field'  => env('SMS_SECRET_FIELD', 'secret'),
+        'device_field'  => env('SMS_DEVICE_FIELD', 'device'),
     ],
 
 ];

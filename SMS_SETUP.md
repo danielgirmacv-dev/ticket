@@ -133,8 +133,9 @@ SMS_SENDER_FIELD=sender_id
 
 Provider cheat-sheet:
 
-| Provider | URL | Auth | Fields |
+| Provider | URL | Auth | Fields / Params |
 |---|---|---|---|
+| **Milkotech / EEC SMS Gateway** | `http://msgg.milkotech.et/api/send/sms` | `body` (`SMS_API_KEY=...`) | `SMS_DEVICE_ID=...`, `SMS_MODE=devices`, `SMS_SIM=1`, `SMS_CONTENT_TYPE=form`, `SMS_TO_FIELD=phone`, `SMS_MESSAGE_FIELD=message` |
 | SMSEthiopia | `https://smsethiopia.com/api/sms/send` | `header` + `SMS_AUTH_HEADER=KEY` | `SMS_TO_FIELD=msisdn`, `SMS_MESSAGE_FIELD=text` |
 | Generic bearer (send.et, eSMS Africa…) | provider's `/v1/...` URL | `bearer` | `to` / `message` (or `body`) |
 | Ethio Telecom direct (if docs use Basic) | provider's URL | `basic` (username/password) | per their docs |
