@@ -1,0 +1,547 @@
+/* ==========================================================================
+   ICT Service & Requisition Request Form — Official EEC Styles
+   Standalone Sections Matching Official EEC Word/PDF Template
+   ========================================================================== */
+
+/* Page Background & Layout on Screen */
+.ict-form-page {
+  background: #e5e7eb;
+  min-height: 100vh;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.ict-form-toolbar {
+  max-width: 210mm;
+  margin: 0 auto 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.ict-form-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ict-form-notice {
+  max-width: 210mm;
+  margin: 0 auto 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #f59e0b;
+  color: #78350f;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+}
+
+/* ==========================================================================
+   Screen Sheet — A4 Paper (No Outer Border)
+   ========================================================================== */
+.ict-a4-sheet {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.16);
+  padding: 9mm 12mm 10mm;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  line-height: 1.25;
+  border: none !important; /* No outer continuous box */
+}
+
+/* ==========================================================================
+   1. DOCUMENT HEADER (Standalone Bordered Table)
+   ========================================================================== */
+.ict-doc-header {
+  margin-bottom: 7px;
+}
+
+.ict-header-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1.5px solid #000000;
+}
+
+.ict-header-table td {
+  border: 1px solid #000000;
+  vertical-align: top;
+  padding: 4px 6px;
+}
+
+.ict-header-company {
+  width: 68%;
+  padding: 5px 8px !important;
+}
+
+.ict-header-label {
+  font-size: 7.5pt;
+  color: #111111;
+  line-height: 1.15;
+}
+
+.ict-header-amharic {
+  font-family: "Nyala", "Abyssinica SIL", "Noto Sans Ethiopic", Arial, sans-serif;
+  font-size: 12pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ict-header-english {
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.ict-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ict-header-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ict-header-meta {
+  width: 32%;
+  font-size: 8.5pt;
+  padding: 5px 8px !important;
+}
+
+.ict-header-meta strong {
+  font-size: 9.5pt;
+  display: block;
+  margin-top: 2px;
+}
+
+.ict-title-cell {
+  width: 46%;
+  padding: 4px 8px !important;
+}
+
+.ict-doc-cell {
+  width: 24%;
+  padding: 4px 6px !important;
+}
+
+.ict-issue-cell {
+  width: 15%;
+  padding: 4px 6px !important;
+}
+
+.ict-page-cell {
+  width: 15%;
+  padding: 4px 6px !important;
+}
+
+.ict-form-title {
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   2. BODY — DISTINCT SECTIONS WITH WHITE SPACE BETWEEN
+   ========================================================================== */
+.ict-doc-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.ict-section {
+  margin-bottom: 7px;
+  border: 1px solid #000000;
+  background: #ffffff;
+}
+
+/* Navy Section Headings */
+.ict-section-banner {
+  background: #0b2a59 !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 9pt;
+  letter-spacing: 0.02em;
+  padding: 3.5px 8px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #000000;
+}
+
+/* Field Utilities */
+.ict-field-container {
+  display: flex;
+  align-items: baseline;
+}
+
+.ict-field-label {
+  font-weight: 700;
+  white-space: nowrap;
+  font-size: 8.5pt;
+}
+
+.ict-field-value {
+  min-height: 1.15em;
+  border-bottom: 1px dotted #444444;
+  display: inline-block;
+  flex: 1;
+  padding: 0 4px;
+  font-size: 8.5pt;
+  margin-left: 3px;
+}
+
+.ict-two-col {
+  width: 50%;
+}
+
+/* SECTION 1: REQUESTER TABLE */
+.ict-section-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ict-section-table td {
+  border: 1px solid #000000;
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+.ict-section-table tr:first-child td {
+  border-top: none;
+}
+.ict-section-table tr:last-child td {
+  border-bottom: none;
+}
+.ict-section-table tr td:first-child {
+  border-left: none;
+}
+.ict-section-table tr td:last-child {
+  border-right: none;
+}
+
+/* SECTION 2: TYPE OF ICT REQUEST BOX */
+.ict-type-box {
+  padding: 5px 8px 6px;
+}
+
+.ict-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  row-gap: 5px;
+  column-gap: 12px;
+}
+
+.ict-type-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8.2pt;
+  line-height: 1.25;
+}
+
+.ict-priority-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  margin-top: 5px;
+  background: #eaf0f8 !important;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-size: 8.2pt;
+  border: 1px solid #d0deee;
+}
+
+.ict-priority-label {
+  font-weight: 700;
+}
+
+.ict-check {
+  display: inline-flex;
+  width: 11.5px;
+  height: 11.5px;
+  border: 1px solid #000000;
+  align-items: center;
+  justify-content: center;
+  font-size: 8.5px;
+  line-height: 1;
+  flex-shrink: 0;
+  background: #ffffff;
+  color: #000000;
+  font-weight: bold;
+}
+
+.ict-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* SECTION 3: DESCRIPTION TABLE */
+.ict-desc-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ict-desc-table th {
+  font-size: 8.2pt;
+  font-weight: 700;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #000000;
+  padding: 3px 6px;
+}
+
+.ict-desc-table td {
+  border: 1px solid #000000;
+  padding: 4px 6px;
+  font-size: 8.2pt;
+  line-height: 1.25;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ict-col-item {
+  width: 8%;
+  text-align: center;
+}
+
+.ict-col-desc {
+  width: 52%;
+}
+
+.ict-col-qty {
+  width: 8%;
+  text-align: center;
+}
+
+.ict-col-just {
+  width: 32%;
+}
+
+.ict-desc-table tr:first-child th {
+  border-top: none;
+}
+.ict-desc-table tr:last-child td {
+  border-bottom: none;
+}
+.ict-desc-table tr th:first-child,
+.ict-desc-table tr td:first-child {
+  border-left: none;
+}
+.ict-desc-table tr th:last-child,
+.ict-desc-table tr td:last-child {
+  border-right: none;
+}
+
+/* SECTION 4: APPROVAL TABLE */
+.ict-approval-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.ict-approval-table th {
+  text-align: center;
+  font-size: 8.2pt;
+  font-weight: 700;
+  padding: 3px 6px;
+  border: 1px solid #000000;
+  background: #ffffff;
+}
+
+.ict-sign-block {
+  padding: 5px 8px !important;
+  font-size: 8.2pt;
+  min-height: 75px;
+  border: 1px solid #000000;
+}
+
+.ict-sign-line-container {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.ict-sign-label {
+  font-weight: 700;
+  display: inline-block;
+  min-width: 64px;
+  font-size: 8.2pt;
+}
+
+.ict-sign-line {
+  display: inline-block;
+  flex: 1;
+  min-height: 1.1em;
+  border-bottom: 1px dotted #444444;
+  padding: 0 4px;
+  font-size: 8.2pt;
+}
+
+.ict-status-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  font-size: 8.2pt;
+}
+
+.ict-approval-table tr:first-child th {
+  border-top: none;
+}
+.ict-approval-table tr:last-child td {
+  border-bottom: none;
+}
+.ict-approval-table tr th:first-child,
+.ict-approval-table tr td:first-child {
+  border-left: none;
+}
+.ict-approval-table tr th:last-child,
+.ict-approval-table tr td:last-child {
+  border-right: none;
+}
+
+/* SECTION 5: DIVISION USE BOX */
+.ict-division-box {
+  padding: 5px 8px 6px;
+}
+
+.ict-division-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.ict-div-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 8.2pt;
+}
+
+.ict-blank-line {
+  display: inline-block;
+  flex: 1;
+  border-bottom: 1px solid #000000;
+  min-height: 1.1em;
+  padding: 0 4px;
+  font-size: 8.2pt;
+}
+
+.ict-status-checks {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   3. DOCUMENT FOOTER (Official Centered Note)
+   ========================================================================== */
+.ict-doc-footer {
+  margin-top: 6px;
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.ict-footer-text {
+  font-size: 7.8pt;
+  font-style: italic;
+  color: #222222;
+}
+
+/* ==========================================================================
+   PRINT SPECIFICATION — True A4 Portrait (1 Page)
+   ========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print,
+  .print-hidden,
+  .ict-form-toolbar,
+  .ict-form-notice {
+    display: none !important;
+  }
+
+  .ict-form-page {
+    background: transparent !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .ict-a4-sheet,
+  .print-document {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important; /* Strictly no continuous outer box around page */
+    transform: none !important;
+    box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .ict-doc-header,
+  .ict-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .ict-section-banner {
+    background: #0b2a59 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .ict-priority-row {
+    background: #eaf0f8 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .ict-desc-table td,
+  .ict-sign-block,
+  .ict-division-box {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

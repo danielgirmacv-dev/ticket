@@ -1,0 +1,18 @@
+# Secrets — NEVER commit these
+**/.env
+**/.env.local
+**/.env.production
+
+# Dependencies
+**/node_modules/
+**/vendor/
+
+# Build output
+**/dist/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+.kilo/
+.codex/

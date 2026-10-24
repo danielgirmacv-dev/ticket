@@ -121,11 +121,42 @@ class MaintenanceTicket extends Model
     }
 
     /**
+     * Approval profile aliased so JSON keeps the `approved_by` UUID column.
+     */
+    public function approvedByProfile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'approved_by');
+    }
+
+    /**
      * Get the profile that reviewed this ticket completion.
      */
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(Profile::class, 'reviewed_by');
+    }
+
+    /**
+     * Reviewer profile aliased so JSON keeps the `reviewed_by` UUID column.
+     */
+    public function reviewedByProfile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'reviewed_by');
+    }
+
+    /**
+     * Relations needed for ticket details and the ICT service form.
+     */
+    public static function detailRelations(): array
+    {
+        return [
+            'asset',
+            'requester',
+            'assignedTechnician',
+            'assignedManager',
+            'approvedByProfile',
+            'reviewedByProfile',
+        ];
     }
 
     /**

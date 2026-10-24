@@ -26,7 +26,7 @@ class MaintenanceTicketController extends Controller
      */
     public function index(Request $request)
     {
-        $query = MaintenanceTicket::with('asset', 'requester', 'assignedTechnician', 'assignedManager');
+        $query = MaintenanceTicket::with(MaintenanceTicket::detailRelations());
 
         $user = $request->user();
 
@@ -222,7 +222,7 @@ class MaintenanceTicketController extends Controller
             auth()->id()
         );
 
-        return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'), 201);
+        return response()->json($ticket->load(MaintenanceTicket::detailRelations()), 201);
     }
 
     /**
@@ -232,10 +232,14 @@ class MaintenanceTicketController extends Controller
     {
         Gate::authorize('view', $maintenanceTicket);
 
-        $maintenanceTicket->load('asset', 'requester', 'assignedTechnician', 'assignedManager');
+        $user = request()->user();
+        if ($user && ! $this->userCanAccessTicket($user, $maintenanceTicket)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $maintenanceTicket->load(MaintenanceTicket::detailRelations());
 
         // 🔒 Technicians see the star rating, but the written feedback comment is confidential to managers
-        $user = request()->user();
         if ($user && $user->hasRole('technician') && ! $user->hasAnyRole(['admin', 'super_admin'])) {
             $maintenanceTicket->makeHidden('feedback_comment');
         }
@@ -942,6 +946,37 @@ class MaintenanceTicketController extends Controller
             );
         }
 
-        return response()->json($ticket->load('asset', 'requester', 'assignedTechnician', 'assignedManager'));
+        return response()->json($ticket->load(MaintenanceTicket::detailRelations()));
+    }
+
+    /**
+     * Mirror list-endpoint visibility so print/preview cannot load another user's ticket by ID.
+     */
+    private function userCanAccessTicket($user, MaintenanceTicket $ticket): bool
+    {
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        if ($user->hasRole('admin')) {
+            $managerProfileId = $user->profile?->id;
+            $managerCategory = $user->profile?->support_category;
+
+            if ($managerProfileId && $ticket->assigned_manager_id === $managerProfileId) {
+                return true;
+            }
+
+            if (! $ticket->assigned_manager_id && $managerCategory && $ticket->support_category === $managerCategory) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if ($user->hasRole('technician')) {
+            return $ticket->assigned_technician_id === $user->profile?->id;
+        }
+
+        return $ticket->requester_id === $user->profile?->id;
     }
 }

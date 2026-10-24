@@ -26,6 +26,7 @@ const Locations = lazy(() => import("./pages/Locations"));
 const Departments = lazy(() => import("./pages/Departments"));
 const Help = lazy(() => import("./pages/Help"));
 const Faqs = lazy(() => import("./pages/Faqs"));
+const TicketPrintPreview = lazy(() => import("./pages/TicketPrintPreview"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -67,6 +68,11 @@ const App = () => (
               <Route path="/tickets/:ticketId" element={
                 <ProtectedRoute>
                   <Tickets />
+                </ProtectedRoute>
+              } />
+              <Route path="/tickets/:ticketId/print" element={
+                <ProtectedRoute>
+                  <TicketPrintPreview />
                 </ProtectedRoute>
               } />
               <Route path="/users" element={

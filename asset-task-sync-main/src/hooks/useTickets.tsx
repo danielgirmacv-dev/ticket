@@ -19,6 +19,17 @@ export function useTickets() {
     });
 }
 
+export function useTicket(id: string | undefined) {
+    return useQuery({
+        queryKey: ['tickets', id],
+        queryFn: async (): Promise<MaintenanceTicket> => {
+            const response = await laravelClient.get(`/maintenance-tickets/${id}`);
+            return response.data;
+        },
+        enabled: Boolean(id),
+    });
+}
+
 export function useCreateTicket() {
     const queryClient = useQueryClient();
 

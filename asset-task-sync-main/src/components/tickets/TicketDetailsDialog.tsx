@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Dialog,
     DialogContent,
@@ -32,6 +33,7 @@ import {
     Loader2,
     Lock,
     ShieldCheck,
+    Printer,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -460,7 +462,15 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                         )}
                     </div>
 
-                    <div className="pt-4 border-t mt-4">
+                    <div className="pt-4 border-t mt-4 space-y-3">
+                        {ticket.status === 'completed' && (
+                            <Button asChild className="w-full sm:w-auto gap-2">
+                                <Link to={`/tickets/${ticket.id}/print`}>
+                                    <Printer className="h-4 w-4" />
+                                    Preview / Print Form
+                                </Link>
+                            </Button>
+                        )}
                         <TicketWorkflow
                             ticket={ticket}
                             technicians={technicians}

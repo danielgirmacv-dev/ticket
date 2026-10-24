@@ -70,6 +70,7 @@ export interface Profile {
   user_id: number;
   name: string;
   email: string;
+  phone?: string | null;
   avatar_url?: string | null;
   department?: string | null;
   support_category?: string | null;
