@@ -351,23 +351,23 @@ class AuthController extends Controller
             Log::warning('Welcome notification failed: '.$e->getMessage());
         }
 
-        // Notify managers/super admins of the new signup
-        try {
-            foreach (User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))->get() as $admin) {
-                if ($admin->id === $user->id) {
-                    continue;
+            // Notify ONLY super admins of the new signup (managers excluded)
+            try {
+                foreach (User::whereHas('roles', fn($q) => $q->where('name', 'super_admin'))->get() as $admin) {
+                    if ($admin->id === $user->id) {
+                        continue;
+                    }
+                    NotificationService::create(
+                        $admin->id,
+                        'New User Signed Up',
+                        "A new user {$validated['name']} ({$validated['email']}) has been created as {$validated['role']}.",
+                        'info',
+                        '/users'
+                    );
                 }
-                NotificationService::create(
-                    $admin->id,
-                    'New User Signed Up',
-                    "A new user {$validated['name']} ({$validated['email']}) has been created as {$validated['role']}.",
-                    'info',
-                    '/users'
-                );
+            } catch (\Throwable $e) {
+                Log::warning('New-user signup notification failed: '.$e->getMessage());
             }
-        } catch (\Throwable $e) {
-            Log::warning('New-user signup notification failed: '.$e->getMessage());
-        }
 
         return response()->json([
             'message' => 'User created successfully',
