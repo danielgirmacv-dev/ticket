@@ -101,7 +101,19 @@ export default function Auth() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('reason') === 'inactivity') {
+    const hasReason = params.get('reason') === 'inactivity';
+    const hadActiveSession = sessionStorage.getItem('eec_session_timed_out') === 'true';
+
+    // Clean up reason query parameter from the address bar immediately so it never lingers or gets copied/shared
+    if (params.has('reason')) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+
+    // Only show warning if there was an actual active session in this browser that timed out
+    // (Never show it to a brand new user who just opened a shared or bookmarked link)
+    if (hadActiveSession) {
+      sessionStorage.removeItem('eec_session_timed_out');
       toast.warning('Session Expired', {
         description: 'You were automatically logged out due to inactivity for your security.',
         duration: 6000,

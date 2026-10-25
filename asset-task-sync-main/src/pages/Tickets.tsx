@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +59,7 @@ const Tickets = () => {
   const { data: users } = useUsers();
   const createTicket = useCreateTicket();
   const { ticketId } = useParams();
+  const navigate = useNavigate();
   const { viewMode, setViewMode } = useTicketsViewMode();
 
   const isSapEntity = (dept?: string | null, name?: string | null, email?: string | null) => {
@@ -386,7 +387,15 @@ const Tickets = () => {
       <TicketDetailsDialog
         ticket={selectedTicket}
         open={isDetailsOpen}
-        onOpenChange={setIsDetailsOpen}
+        onOpenChange={(open) => {
+          setIsDetailsOpen(open);
+          if (!open) {
+            setSelectedTicket(null);
+            if (ticketId) {
+              navigate('/tickets', { replace: true });
+            }
+          }
+        }}
         technicians={getTechniciansForTicket(selectedTicket)}
         onApprove={() => {
           setTicketToAssign(selectedTicket);

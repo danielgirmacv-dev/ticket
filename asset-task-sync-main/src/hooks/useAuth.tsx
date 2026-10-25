@@ -4,11 +4,13 @@ import { getApiErrorMessage } from '@/lib/api-error';
 import { toAuthUserMessage } from '@/lib/auth-messages';
 
 type AppRole = 'super_admin' | 'admin' | 'technician' | 'requester';
+type SupportCategory = 'it_support' | 'sap' | 'general' | null;
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   role: AppRole | null;
+  supportCategory: SupportCategory;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string, telegram?: string, phone?: string) => Promise<{
@@ -25,11 +27,28 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Derives the effective support category from a profile, with null as fallback. */
+function deriveSupportCategory(p: Profile | null): SupportCategory {
+  if (!p) return null;
+  if (p.support_category === 'sap' || p.support_category === 'general' || p.support_category === 'it_support') {
+    return p.support_category as SupportCategory;
+  }
+  // Keyword fallback for legacy profiles
+  const dept  = (p.department ?? '').toLowerCase();
+  const name  = (p.name ?? '').toLowerCase();
+  const email = (p.email ?? '').toLowerCase();
+  if (dept.includes('sap') || dept.includes('erp') || name.includes('sap') || email.includes('sap')) return 'sap';
+  if (dept.includes('facility') || dept.includes('facilities') || dept.includes('maintenance') ||
+      dept.includes('workplace') || name.includes('facility') || email.includes('facility')) return 'general';
+  return null; // unknown / not categorised yet
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [supportCategory, setSupportCategory] = useState<SupportCategory>(null);
 
   useEffect(() => {
     checkAuth();
@@ -48,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       setProfile(userData.profile);
+      setSupportCategory(deriveSupportCategory(userData.profile ?? null));
 
       // Extract role from roles array (assuming single role for now)
       const userRole = userData.roles && userData.roles.length > 0
@@ -57,9 +77,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(userRole);
     } catch {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('eec_last_active_time');
       setUser(null);
       setProfile(null);
       setRole(null);
+      setSupportCategory(null);
     } finally {
       setLoading(false);
     }
@@ -72,9 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token, user: userData } = response.data;
 
       localStorage.setItem('auth_token', token);
+      localStorage.setItem('eec_last_active_time', Date.now().toString());
+      sessionStorage.removeItem('eec_session_timed_out');
 
       setUser(userData);
       setProfile(userData.profile);
+      setSupportCategory(deriveSupportCategory(userData.profile ?? null));
 
       const userRole = userData.roles && userData.roles.length > 0
         ? userData.roles[0].name as AppRole
@@ -129,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData);
       setProfile(userData.profile);
+      setSupportCategory(deriveSupportCategory(userData.profile ?? null));
 
       const userRole = userData.roles && userData.roles.length > 0
         ? userData.roles[0].name as AppRole
@@ -154,14 +180,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore network errors on logout; clear local session regardless.
     } finally {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('eec_last_active_time');
+      sessionStorage.removeItem('eec_session_timed_out');
       setUser(null);
       setProfile(null);
       setRole(null);
+      setSupportCategory(null);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, role, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, profile, role, supportCategory, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

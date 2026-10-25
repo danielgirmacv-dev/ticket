@@ -178,14 +178,23 @@ $link   = __DIR__ . '/storage';
 $target = __DIR__ . '/../storage/app/public';
 
 if (is_link($link)) {
-    echo "<span class='ok'>✅ Already linked</span>\n";
+    if (! file_exists($link)) {
+        @unlink($link);
+        if (@symlink($target, $link)) {
+            echo "<span class='ok'>✅ Removed broken link and recreated</span>\n";
+        } else {
+            echo "<span class='warn'>⚠️ Removed broken link. (Laravel fallback route will serve uploads)</span>\n";
+        }
+    } else {
+        echo "<span class='ok'>✅ Already linked</span>\n";
+    }
 } elseif (file_exists($link)) {
     echo "<span class='err'>❌ A file/folder named 'storage' already exists in public/ — remove it first</span>\n";
 } else {
     if (@symlink($target, $link)) {
         echo "<span class='ok'>✅ Done</span>\n";
     } else {
-        echo "<span class='err'>❌ symlink() failed — cPanel may not allow symlinks; skip this step if not using file uploads</span>\n";
+        echo "<span class='warn'>⚠️ symlink() failed — Laravel fallback route will handle uploads</span>\n";
     }
 }
 

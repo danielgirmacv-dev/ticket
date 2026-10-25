@@ -34,6 +34,12 @@ import {
     Lock,
     ShieldCheck,
     Printer,
+    ImageOff,
+    X,
+    ZoomIn,
+    ChevronLeft,
+    ChevronRight,
+    Download,
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +49,7 @@ import { EditTicketDialog } from '@/components/tickets/EditTicketDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useDeleteTicket } from '@/hooks/useTicketWorkflow';
 import { useUpdateTicket, useTransferTicket } from '@/hooks/useTickets';
+import { cn } from '@/lib/utils';
 
 interface TicketDetailsDialogProps {
     ticket: MaintenanceTicket | null;
@@ -59,9 +66,26 @@ const priorityStyles = {
     critical: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 };
 
+const resolveAttachmentUrl = (url?: string) => {
+    if (!url) return '';
+    try {
+        const parsed = new URL(url);
+        if (parsed.pathname.includes('/storage/')) {
+            const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+            const apiOrigin = new URL(apiBase).origin;
+            return `${apiOrigin}${parsed.pathname}`;
+        }
+    } catch {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        const apiOrigin = new URL(apiBase).origin;
+        return `${apiOrigin}${url.startsWith('/') ? '' : '/'}${url}`;
+    }
+    return url;
+};
+
 const categoryLabels = {
     it_support: 'IT Support',
-    sap: 'System Related Issue (SAP)',
+    sap: 'System & ERP Related Issue',
     general: 'Facility & Maintenance',
 };
 
@@ -70,6 +94,62 @@ const categoryStyles = {
     sap: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200 dark:border-teal-800',
     general: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
 };
+
+const STATUS_STEPS: Array<{ key: string; label: string }> = [
+    { key: 'submitted',                  label: 'Submitted' },
+    { key: 'in_progress',               label: 'In Progress' },
+    { key: 'completed_pending_review',  label: 'Review' },
+    { key: 'completed',                 label: 'Completed' },
+];
+
+function TicketStatusStepper({ status }: { status: string }) {
+    const cancelledOrRejected = status === 'cancelled' || status === 'rejected';
+    const activeIdx = STATUS_STEPS.findIndex(s => s.key === status);
+    return (
+        <div className="relative flex items-center gap-0 w-full mb-2">
+            {STATUS_STEPS.map((step, i) => {
+                const done = !cancelledOrRejected && activeIdx > i;
+                const active = !cancelledOrRejected && activeIdx === i;
+                return (
+                    <div key={step.key} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="relative w-full flex items-center">
+                            {i > 0 && (
+                                <div className={cn('absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-1/2',
+                                    done || active ? 'bg-primary' : 'bg-border'
+                                )} />
+                            )}
+                            {i < STATUS_STEPS.length - 1 && (
+                                <div className={cn('absolute right-0 top-1/2 -translate-y-1/2 h-0.5 w-1/2',
+                                    done ? 'bg-primary' : 'bg-border'
+                                )} />
+                            )}
+                            <div className={cn(
+                                'relative z-10 mx-auto flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold transition-all',
+                                done  ? 'border-primary bg-primary text-primary-foreground' :
+                                active ? 'border-primary bg-background text-primary ring-4 ring-primary/20' :
+                                cancelledOrRejected ? 'border-destructive/50 bg-muted text-muted-foreground' :
+                                'border-border bg-muted text-muted-foreground'
+                            )}>
+                                {done ? <CheckCircle className="h-3 w-3" /> : i + 1}
+                            </div>
+                        </div>
+                        <span className={cn(
+                            'text-[10px] font-medium text-center leading-tight',
+                            active ? 'text-primary' : done ? 'text-primary/70' : 'text-muted-foreground'
+                        )}>{step.label}</span>
+                    </div>
+                );
+            })}
+            {cancelledOrRejected && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[10px] font-semibold text-destructive bg-background px-2 py-0.5 rounded border border-destructive/30">
+                        {status === 'cancelled' ? '✗ Cancelled' : '✗ Rejected'}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = [], onApprove }: TicketDetailsDialogProps) {
     const { role, profile } = useAuth();
@@ -81,8 +161,18 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
     const [targetCategory, setTargetCategory] = useState<'it_support' | 'sap' | 'general'>('it_support');
     const [transferReason, setTransferReason] = useState('');
     const transferTicket = useTransferTicket();
+    const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+    const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set());
 
     if (!ticket) return null;
+
+    const imageAttachments = (ticket.images?.attachments ?? []).filter(f => f.mime.startsWith('image/'));
+
+    const openLightbox = (idx: number) => setLightboxIdx(idx);
+    const closeLightbox = () => setLightboxIdx(null);
+    const prevImage = () => setLightboxIdx(i => i !== null && i > 0 ? i - 1 : i);
+    const nextImage = () => setLightboxIdx(i => i !== null && i < imageAttachments.length - 1 ? i + 1 : i);
+    const markBroken = (idx: number) => setBrokenImages(prev => new Set(prev).add(idx));
 
     const handleDelete = () => {
         deleteTicket.mutate(ticket.id, {
@@ -185,6 +275,12 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                     </DialogHeader>
 
                     <div className="space-y-6 py-4">
+                        {/* Status Stepper */}
+                        <div className="bg-muted/30 border border-border/60 rounded-xl px-4 pt-4 pb-3">
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Ticket Progress</h3>
+                            <TicketStatusStepper status={ticket.status} />
+                        </div>
+
                         {/* Description */}
                         <div>
                             <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
@@ -203,6 +299,8 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                         const fileSize = file.size
                                             ? `${(file.size / 1024).toFixed(1)} KB`
                                             : '';
+                                        const imgIdx = imageAttachments.findIndex(f => f.url === file.url);
+                                        const isBroken = brokenImages.has(idx);
                                         return (
                                             <div
                                                 key={idx}
@@ -210,18 +308,30 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                             >
                                                 <div className="flex items-center gap-3 overflow-hidden">
                                                     {isImage ? (
-                                                        <div className="h-10 w-10 rounded border overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
-                                                            <img
-                                                                src={file.url}
-                                                                alt={file.name}
-                                                                className="h-full w-full object-cover"
-                                                                onError={(e) => {
-                                                                    (e.target as HTMLElement).style.display = 'none';
-                                                                }}
-                                                            />
-                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            title={isBroken ? 'Click to download' : 'Click to view full size'}
+                                                            onClick={() => !isBroken && openLightbox(imgIdx)}
+                                                            className={cn(
+                                                                'h-12 w-12 rounded-lg border overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center transition-all',
+                                                                !isBroken && 'hover:ring-2 hover:ring-primary cursor-zoom-in group/thumb'
+                                                            )}
+                                                        >
+                                                            {isBroken ? (
+                                                                <span title="Cannot preview — click download button">
+                                                                    <ImageOff className="h-5 w-5 text-muted-foreground" />
+                                                                </span>
+                                                            ) : (
+                                                                <img
+                                                                    src={resolveAttachmentUrl(file.url)}
+                                                                    alt={file.name}
+                                                                    className="h-full w-full object-cover group-hover/thumb:opacity-80 transition-opacity"
+                                                                    onError={() => markBroken(idx)}
+                                                                />
+                                                            )}
+                                                        </button>
                                                     ) : (
-                                                        <div className="h-10 w-10 rounded border bg-muted flex items-center justify-center flex-shrink-0">
+                                                        <div className="h-12 w-12 rounded-lg border bg-muted flex items-center justify-center flex-shrink-0">
                                                             <FileText className="h-5 w-5 text-muted-foreground" />
                                                         </div>
                                                     )}
@@ -234,6 +344,9 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                                                 {fileSize}
                                                             </span>
                                                         )}
+                                                        {isBroken && (
+                                                            <span className="text-[10px] text-destructive font-medium">Cannot preview</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <Button
@@ -241,14 +354,14 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                                     size="icon"
                                                     asChild
                                                     className="flex-shrink-0 hover:bg-muted"
+                                                    title="Download"
                                                 >
                                                     <a
-                                                        href={file.url}
+                                                        href={resolveAttachmentUrl(file.url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        title="Open / Download"
                                                     >
-                                                        <ExternalLink className="h-4 w-4" />
+                                                        <Download className="h-4 w-4" />
                                                     </a>
                                                 </Button>
                                             </div>
@@ -480,6 +593,65 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                 </DialogContent>
             </Dialog>
 
+            {/* Lightbox */}
+            {lightboxIdx !== null && imageAttachments[lightboxIdx] && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                    onClick={closeLightbox}
+                >
+                    <button
+                        type="button"
+                        onClick={closeLightbox}
+                        className="absolute top-4 right-4 h-9 w-9 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+
+                    {imageAttachments.length > 1 && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                                disabled={lightboxIdx === 0}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center disabled:opacity-30 transition-colors"
+                            >
+                                <ChevronLeft className="h-6 w-6" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                                disabled={lightboxIdx === imageAttachments.length - 1}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center disabled:opacity-30 transition-colors"
+                            >
+                                <ChevronRight className="h-6 w-6" />
+                            </button>
+                        </>
+                    )}
+
+                    <div className="flex flex-col items-center gap-3 max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                        <img
+                            src={resolveAttachmentUrl(imageAttachments[lightboxIdx].url)}
+                            alt={imageAttachments[lightboxIdx].name}
+                            className="max-h-[75vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+                        />
+                        <div className="flex items-center gap-3">
+                            <span className="text-white/80 text-sm">{imageAttachments[lightboxIdx].name}</span>
+                            {imageAttachments.length > 1 && (
+                                <span className="text-white/50 text-xs">{lightboxIdx + 1} / {imageAttachments.length}</span>
+                            )}
+                            <a
+                                href={resolveAttachmentUrl(imageAttachments[lightboxIdx].url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition-colors"
+                            >
+                                <Download className="h-3 w-3" /> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
                     <DialogHeader>
@@ -531,7 +703,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="it_support">🖥️ IT Support (Hardware, network, PC)</SelectItem>
-                                    <SelectItem value="sap">🗄️ SAP System (ERP, modules & access)</SelectItem>
+                                    <SelectItem value="sap">⚙️ System & ERP (Applications, access & modules)</SelectItem>
                                     <SelectItem value="general">🔧 General Support (Facility & equipment)</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -540,7 +712,7 @@ export function TicketDetailsDialog({ ticket, open, onOpenChange, technicians = 
                         <div className="space-y-1.5">
                             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Reason for Transfer (Optional)</Label>
                             <Textarea
-                                placeholder="e.g. Requester accidentally submitted under SAP, but this is a printer error..."
+                                placeholder="e.g. Requester accidentally submitted under System & ERP, but this is a printer error..."
                                 rows={3}
                                 value={transferReason}
                                 onChange={(e) => setTransferReason(e.target.value)}

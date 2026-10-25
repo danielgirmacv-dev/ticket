@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 const STORAGE_LAST_ACTIVE_KEY = 'eec_last_active_time';
 const STORAGE_TIMEOUT_MINUTES_KEY = 'session_timeout_minutes';
-const DEFAULT_TIMEOUT_MINUTES = 15;
+const DEFAULT_TIMEOUT_MINUTES = 60; // 60 minutes for a stable working session
 const WARNING_WINDOW_SECONDS = 60; // Show countdown 60 seconds before logout
 
 export function SessionTimeoutHandler() {
@@ -61,15 +61,13 @@ export function SessionTimeoutHandler() {
 
     try {
       localStorage.removeItem(STORAGE_LAST_ACTIVE_KEY);
+      sessionStorage.setItem('eec_session_timed_out', 'true');
       await signOut();
     } catch {
       // Ignore signOut network errors
     } finally {
-      toast.warning('Session Expired', {
-        description: 'You were automatically logged out due to inactivity.',
-        duration: 6000,
-      });
-      navigate('/auth?reason=inactivity', { replace: true });
+      // Clean navigation to /auth without polluting the URL with query parameters
+      navigate('/auth', { replace: true });
       isLoggingOutRef.current = false;
     }
   }, [signOut, navigate]);
@@ -86,6 +84,16 @@ export function SessionTimeoutHandler() {
       duration: 3000,
     });
   }, []);
+
+  // Refresh activity timestamp whenever an authenticated user session is established
+  useEffect(() => {
+    if (user) {
+      const now = Date.now();
+      lastThrottleRef.current = now;
+      localStorage.setItem(STORAGE_LAST_ACTIVE_KEY, now.toString());
+      sessionStorage.removeItem('eec_session_timed_out');
+    }
+  }, [user?.id]);
 
   // Track user activity events
   useEffect(() => {
@@ -107,7 +115,7 @@ export function SessionTimeoutHandler() {
       }
     };
 
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click', 'input', 'wheel'];
     events.forEach((evt) => {
       window.addEventListener(evt, onUserInteraction, { passive: true });
     });
@@ -152,9 +160,19 @@ export function SessionTimeoutHandler() {
       if (!timeoutMs) return; // Disabled
 
       const storedTimeStr = localStorage.getItem(STORAGE_LAST_ACTIVE_KEY);
-      const lastActive = storedTimeStr ? parseInt(storedTimeStr, 10) : Date.now();
-      const elapsed = Date.now() - lastActive;
+      if (!storedTimeStr) {
+        // Fresh start without stored timestamp — initialize now
+        localStorage.setItem(STORAGE_LAST_ACTIVE_KEY, Date.now().toString());
+        return;
+      }
 
+      const lastActive = parseInt(storedTimeStr, 10);
+      if (isNaN(lastActive) || lastActive <= 0) {
+        localStorage.setItem(STORAGE_LAST_ACTIVE_KEY, Date.now().toString());
+        return;
+      }
+
+      const elapsed = Date.now() - lastActive;
       const warningThresholdMs = timeoutMs - WARNING_WINDOW_SECONDS * 1000;
 
       if (elapsed >= timeoutMs) {

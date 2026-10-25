@@ -5,7 +5,7 @@ import { TicketWorkflow } from '@/components/tickets/TicketWorkflow';
 import { ticketPriorityStyles, ticketReference } from '@/lib/ticket-utils';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { ArrowUpRight, Star } from 'lucide-react';
+import { ArrowUpRight, Paperclip, Star } from 'lucide-react';
 
 interface TicketListRowProps {
   ticket: MaintenanceTicket;
@@ -83,6 +83,12 @@ export function TicketListRow({
           <span className={cn('h-1.5 w-1.5 rounded-full', priority.dot)} />
           {priority.label}
         </span>
+        {(ticket.images?.attachments?.length ?? 0) > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300 shrink-0">
+            <Paperclip className="h-2.5 w-2.5" />
+            {ticket.images!.attachments!.length}
+          </span>
+        )}
       </div>
 
       <div className="hidden lg:block lg:col-span-2 text-[14px] text-muted-foreground truncate">

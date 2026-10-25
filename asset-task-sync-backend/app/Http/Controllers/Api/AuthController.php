@@ -251,41 +251,63 @@ class AuthController extends Controller
             'location_id'      => 'nullable|exists:locations,id',
         ]);
 
-        // Managers cannot create other managers or super admins
-        if (! $admin->hasRole('super_admin') && in_array($validated['role'], ['admin', 'super_admin'], true)) {
-            return response()->json([
-                'message' => 'Only super admins can create manager or super admin accounts.',
-            ], 403);
+        // Managers cannot create other managers, super admins, or requester accounts
+        if (! $admin->hasRole('super_admin')) {
+            if (in_array($validated['role'], ['admin', 'super_admin'], true)) {
+                return response()->json([
+                    'message' => 'Only super admins can create manager or super admin accounts.',
+                ], 403);
+            }
+            if ($validated['role'] === 'requester') {
+                return response()->json([
+                    'message' => 'Requester accounts are locked. Managers can only create and manage technicians in their department.',
+                ], 403);
+            }
         }
 
         // Managers only create technicians for their own department team
         if ($admin->hasRole('admin') && ! $admin->hasRole('super_admin')) {
-            $adminDept = $admin->profile?->department;
-            $adminName = strtolower($admin->name ?? '');
-            $adminEmail = strtolower($admin->email ?? '');
-            // Use explicit support_category first; fall back to keyword detection for legacy data
+            // Determine the manager's category — explicit support_category takes priority.
             $adminCategory = $admin->profile?->support_category;
-            $isSapManager = $adminCategory === 'sap'
-                || (! $adminCategory && (
-                    str_contains(strtolower($adminDept ?? ''), 'sap')
-                    || str_contains(strtolower($adminDept ?? ''), 'erp')
-                    || str_contains($adminName, 'sap')
-                    || str_contains($adminEmail, 'sap')
-                    || str_contains($adminName, 'deployment')
-                ));
+
+            if (! $adminCategory) {
+                $adminDept = strtolower($admin->profile?->department ?? '');
+                $adminName = strtolower($admin->name ?? '');
+                $adminEmail = strtolower($admin->email ?? '');
+
+                if (str_contains($adminDept, 'sap') || str_contains($adminDept, 'erp')
+                    || str_contains($adminName, 'sap') || str_contains($adminEmail, 'sap')
+                    || str_contains($adminName, 'deployment')) {
+                    $adminCategory = 'sap';
+                } elseif (str_contains($adminDept, 'facility') || str_contains($adminDept, 'facilities')
+                    || str_contains($adminDept, 'maintenance') || str_contains($adminDept, 'workplace')
+                    || str_contains($adminName, 'facility') || str_contains($adminEmail, 'facility')) {
+                    $adminCategory = 'general';
+                } else {
+                    $adminCategory = 'it_support';
+                }
+            }
 
             if ($validated['role'] === 'technician') {
+                // If the caller provided an explicit support_category, verify it matches the manager's
+                if (! empty($validated['support_category']) && $validated['support_category'] !== $adminCategory) {
+                    return response()->json([
+                        'message' => 'You can only create technicians in your own support category ('.$adminCategory.').',
+                    ], 422);
+                }
+
+                // Auto-assign the technician to the manager's category & department
+                if (empty($validated['support_category'])) {
+                    $validated['support_category'] = $adminCategory;
+                }
+
                 if (empty($validated['department'])) {
-                    $validated['department'] = $adminDept ?: ($isSapManager ? 'SAP Deployment' : 'IT Support');
-                } else {
-                    $selectedDept = strtolower($validated['department']);
-                    $isSapDept = str_contains($selectedDept, 'sap') || str_contains($selectedDept, 'erp');
-                    if ($isSapManager && ! $isSapDept) {
-                        return response()->json(['message' => 'SAP managers can only create technicians for the SAP team.'], 422);
-                    }
-                    if (! $isSapManager && $isSapDept) {
-                        return response()->json(['message' => 'IT Support managers cannot create technicians for the SAP team.'], 422);
-                    }
+                    $validated['department'] = $admin->profile?->department
+                        ?: match ($adminCategory) {
+                            'sap'      => 'System & ERP Support',
+                            'general'  => 'Facility Management',
+                            default    => 'IT Support',
+                        };
                 }
             }
         }
@@ -313,41 +335,41 @@ class AuthController extends Controller
             return $user;
         });
 
-            // Refresh cached manager-routing so new managers are picked up immediately
-            MaintenanceTicketController::forgetRoutingCache();
+        // Refresh cached manager-routing so new managers are picked up immediately
+        MaintenanceTicketController::forgetRoutingCache();
 
-            // Welcome notification to the new user
-            try {
-                NotificationService::create(
-                    $user->id,
-                    'Account Created',
-                    "Welcome {$validated['name']}! Your account ({$validated['role']}) has been created.",
-                    'info',
-                    '/auth'
-                );
-            } catch (\Throwable $e) {
-                Log::warning('Welcome notification failed: '.$e->getMessage());
-            }
+        // Welcome notification to the new user
+        try {
+            NotificationService::create(
+                $user->id,
+                'Account Created',
+                "Welcome {$validated['name']}! Your account ({$validated['role']}) has been created.",
+                'info',
+                '/auth'
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Welcome notification failed: '.$e->getMessage());
+        }
 
-            // Notify managers/super admins of the new signup
-            try {
-                foreach (User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))->get() as $admin) {
-                    if ($admin->id === $user->id) {
-                        continue;
-                    }
-                    NotificationService::create(
-                        $admin->id,
-                        'New User Signed Up',
-                        "A new user {$validated['name']} ({$validated['email']}) has been created as {$validated['role']}.",
-                        'info',
-                        '/users'
-                    );
+        // Notify managers/super admins of the new signup
+        try {
+            foreach (User::whereHas('roles', fn($q) => $q->whereIn('name', ['admin', 'super_admin']))->get() as $admin) {
+                if ($admin->id === $user->id) {
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                Log::warning('New-user signup notification failed: '.$e->getMessage());
+                NotificationService::create(
+                    $admin->id,
+                    'New User Signed Up',
+                    "A new user {$validated['name']} ({$validated['email']}) has been created as {$validated['role']}.",
+                    'info',
+                    '/users'
+                );
             }
+        } catch (\Throwable $e) {
+            Log::warning('New-user signup notification failed: '.$e->getMessage());
+        }
 
-            return response()->json([
+        return response()->json([
             'message' => 'User created successfully',
             'user' => $user->load('profile', 'roles'),
         ], 201);
@@ -368,6 +390,15 @@ class AuthController extends Controller
 
         if ($user->status !== 'pending') {
             return response()->json(['message' => 'User is not pending approval'], 400);
+        }
+
+        // Managers cannot approve requester accounts (Super Admin only)
+        if ($admin->hasRole('admin') && ! $admin->hasRole('super_admin')) {
+            if ($user->hasRole('requester')) {
+                return response()->json([
+                    'message' => 'Requester accounts can only be approved by Super Administrators. Managers cannot approve requesters.',
+                ], 403);
+            }
         }
 
         app(UserApprovalService::class)->approveIfPending($user->fresh(['profile']));
@@ -400,6 +431,15 @@ class AuthController extends Controller
 
         if ($user->status !== 'pending') {
             return response()->json(['message' => 'User is not pending approval'], 400);
+        }
+
+        // Managers cannot reject requester accounts (Super Admin only)
+        if ($admin->hasRole('admin') && ! $admin->hasRole('super_admin')) {
+            if ($user->hasRole('requester')) {
+                return response()->json([
+                    'message' => 'Requester accounts can only be rejected by Super Administrators. Managers cannot reject requesters.',
+                ], 403);
+            }
         }
 
         $user->update(['status' => 'rejected']);

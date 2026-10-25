@@ -194,7 +194,7 @@ class MaintenanceTicketController extends Controller
         // ---------------------------------------------------------------
         $assignedManager = null;
         try {
-            $category = $ticket->support_category ?? 'it_support';
+            $category = $ticket->support_category ?? 'general';
             $assignedManager = $this->assignManagerForCategory($ticket, $category);
         } catch (\Exception $e) {
             Log::error('Failed to route ticket: ' . $e->getMessage());
@@ -291,44 +291,7 @@ class MaintenanceTicketController extends Controller
         return response()->json(null, 204);
     }
 
-    /**
-     * Helper to create notifications
-     */
-    private function createNotification($userId, $title, $message, $type, $link = null)
-    {
-        try {
-            \App\Models\Notification::create([
-                'user_id' => $userId,
-                'title' => $title,
-                'message' => $message,
-                'type' => $type,
-                'link' => $link,
-                'is_read' => false,
-            ]);
-        } catch (\Exception $e) {
-            // Log error but don't fail the request
-            Log::error('Failed to create notification: '.$e->getMessage());
-        }
-    }
 
-    /**
-     * Helper to send Telegram message to a user (gracefully skips if not linked)
-     */
-    private function sendTelegramToUser($user, string $message): void
-    {
-        try {
-            if (! $user) {
-                return;
-            }
-            $chatId = $user->profile?->telegram_chat_id ?? null;
-            if (! $chatId) {
-                return;
-            }
-            app(TelegramService::class)->sendMessage($chatId, $message);
-        } catch (\Exception $e) {
-            Log::warning('Telegram notification failed: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Approve a maintenance ticket (Admin only).
@@ -572,8 +535,6 @@ class MaintenanceTicketController extends Controller
             'approved' => 'required|boolean',
             'notes' => 'nullable|string',
         ]);
-
-        // Gate::authorize('manage', MaintenanceTicket::class);
 
         $ticket = MaintenanceTicket::findOrFail($id);
 
@@ -926,7 +887,7 @@ class MaintenanceTicketController extends Controller
 
         // Notify new assigned manager
         if ($newManager && (string)$newManager->id !== (string)auth()->id()) {
-            $this->createNotification(
+            NotificationService::create(
                 $newManager->id,
                 'Ticket Transferred to Your Department',
                 "Ticket '{$ticket->title}' was re-routed to {$newLabel}{$reasonText}.",
@@ -937,7 +898,7 @@ class MaintenanceTicketController extends Controller
 
         // Notify requester
         if ($ticket->requester && $ticket->requester->user_id) {
-            $this->createNotification(
+            NotificationService::create(
                 $ticket->requester->user_id,
                 'Ticket Department Updated',
                 "Your ticket '{$ticket->title}' has been re-routed from {$oldLabel} to {$newLabel}{$reasonText}.",
@@ -966,7 +927,7 @@ class MaintenanceTicketController extends Controller
                 return true;
             }
 
-            if (! $ticket->assigned_manager_id && $managerCategory && $ticket->support_category === $managerCategory) {
+            if (! $ticket->assigned_manager_id && $managerCategory && ($ticket->support_category === $managerCategory)) {
                 return true;
             }
 

@@ -39,7 +39,7 @@ const Settings = () => {
 
   // Session timeout state
   const [sessionTimeout, setSessionTimeout] = useState(() => {
-    return localStorage.getItem('session_timeout_minutes') || '15';
+    return localStorage.getItem('session_timeout_minutes') || '60';
   });
 
   const handleSessionTimeoutChange = (val: string) => {
@@ -660,9 +660,10 @@ const Settings = () => {
                       <SelectValue placeholder="Select timeout" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="15">⏱️ 15 Minutes (Recommended)</SelectItem>
+                      <SelectItem value="15">⏱️ 15 Minutes</SelectItem>
                       <SelectItem value="30">⏱️ 30 Minutes</SelectItem>
-                      <SelectItem value="60">⏱️ 1 Hour</SelectItem>
+                      <SelectItem value="60">⏱️ 1 Hour (Recommended)</SelectItem>
+                      <SelectItem value="120">⏱️ 2 Hours</SelectItem>
                       <SelectItem value="disabled">🚫 Disabled (Stay logged in)</SelectItem>
                     </SelectContent>
                   </Select>

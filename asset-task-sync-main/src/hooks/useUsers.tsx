@@ -36,7 +36,7 @@ export function useUsers() {
           email: profile.email,
           avatar_url: profile.avatar_url,
           department: profile.department,
-          support_category: (profile as any).support_category || null,
+          support_category: profile.support_category || null,
           location_id: profile.location_id,
           location: profile.location,
           created_at: profile.created_at,
@@ -72,6 +72,7 @@ export function useCreateUser() {
         department: data.department || undefined,
         phone: data.phone || undefined,
         location_id: data.location_id || undefined,
+        support_category: data.support_category || undefined,
       });
 
       return response.data;
@@ -91,11 +92,6 @@ export function useUpdateUserRole() {
 
   return useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      // Note: userId here is actually the Profile ID based on how the UI uses it
-      // We need to verify if the UI passes Profile ID or User ID.
-      // Looking at useUsers mapping: id is Profile ID.
-      // So userId passed here is likely Profile ID.
-
       await laravelClient.patch(`/profiles/${userId}/role`, {
         role
       });

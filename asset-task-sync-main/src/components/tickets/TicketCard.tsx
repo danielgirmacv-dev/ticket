@@ -14,6 +14,7 @@ import {
   Clock,
   MapPin,
   Monitor,
+  Paperclip,
   RefreshCw,
   Star,
 } from 'lucide-react';
@@ -89,6 +90,12 @@ export function TicketCard({
                   <RefreshCw className="h-2.5 w-2.5" />
                   Recurring
                 </Badge>
+              )}
+              {(ticket.images?.attachments?.length ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300">
+                  <Paperclip className="h-2.5 w-2.5" />
+                  {ticket.images!.attachments!.length}
+                </span>
               )}
             </div>
             <h3 className="text-[15px] sm:text-[16px] font-semibold leading-snug line-clamp-2 group-hover:text-primary transition-colors text-foreground">

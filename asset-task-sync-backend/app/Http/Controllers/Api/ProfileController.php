@@ -12,9 +12,6 @@ class ProfileController extends Controller
     /**
      * Display a listing of profiles.
      */
-    /**
-     * Display a listing of profiles.
-     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -36,68 +33,105 @@ class ProfileController extends Controller
         ->latest();
 
         // If the authenticated user is a manager (admin) but not super_admin,
-        // isolate technicians by department so each manager only sees their own team.
+        // isolate technicians so each manager only sees their own team.
+        // Primary key: support_category column (it_support | sap | general).
+        // Fallback: department/name/email keyword matching for legacy profiles.
         if ($user && $user->hasRole('admin') && ! $user->hasRole('super_admin')) {
-            $dept = strtolower($user->profile?->department ?? '');
-            $name = strtolower($user->name ?? '');
-            $email = strtolower($user->email ?? '');
+            $managerCategory = $user->profile?->support_category; // 'it_support' | 'sap' | 'general' | null
 
-            $isSapManager = str_contains($dept, 'sap')
-                || str_contains($dept, 'erp')
-                || str_contains($name, 'sap')
-                || str_contains($email, 'sap')
-                || str_contains($name, 'deployment');
+            // If no explicit support_category, derive from department/name heuristics
+            if (! $managerCategory) {
+                $dept  = strtolower($user->profile?->department ?? '');
+                $uname = strtolower($user->name ?? '');
+                $email = strtolower($user->email ?? '');
 
-            $isFacilityManager = str_contains($dept, 'facility')
-                || str_contains($dept, 'facilities')
-                || str_contains($dept, 'general')
-                || str_contains($dept, 'maintenance')
-                || str_contains($dept, 'workplace')
-                || str_contains($name, 'facility')
-                || str_contains($email, 'facility');
+                if (str_contains($dept, 'sap') || str_contains($dept, 'erp') || str_contains($dept, 'system')
+                    || str_contains($uname, 'sap') || str_contains($uname, 'erp') || str_contains($uname, 'system')
+                    || str_contains($email, 'sap') || str_contains($email, 'erp') || str_contains($email, 'system')
+                    || str_contains($uname, 'deployment')) {
+                    $managerCategory = 'sap';
+                } elseif (str_contains($dept, 'facility') || str_contains($dept, 'facilities')
+                    || str_contains($dept, 'maintenance') || str_contains($dept, 'workplace')
+                    || str_contains($uname, 'facility') || str_contains($email, 'facility')) {
+                    $managerCategory = 'general';
+                } else {
+                    $managerCategory = 'it_support';
+                }
+            }
 
-            $query->where(function ($q) use ($isSapManager, $isFacilityManager) {
-                // Non-technicians (managers, requesters) remain visible
-                $q->whereDoesntHave('user.roles', function ($rq) {
-                    $rq->where('name', 'technician');
-                })->orWhere(function ($tq) use ($isSapManager, $isFacilityManager) {
-                    if ($isSapManager) {
-                        // SAP Manager only sees SAP technicians
-                        $tq->where(function ($sub) {
-                            $sub->where('department', 'like', '%sap%')
-                                ->orWhere('department', 'like', '%erp%')
-                                ->orWhere('name', 'like', '%sap%')
-                                ->orWhere('email', 'like', '%sap%');
-                        });
-                    } elseif ($isFacilityManager) {
-                        // Facility/General Manager only sees Facility/Maintenance technicians
-                        $tq->where(function ($sub) {
-                            $sub->where('department', 'like', '%facility%')
-                                ->orWhere('department', 'like', '%facilities%')
-                                ->orWhere('department', 'like', '%maintenance%')
-                                ->orWhere('department', 'like', '%general%')
-                                ->orWhere('department', 'like', '%workplace%')
-                                ->orWhere('name', 'like', '%facility%')
-                                ->orWhere('email', 'like', '%facility%');
-                        });
-                    } else {
-                        // IT Support Manager sees IT technicians (neither SAP nor Facility)
-                        $tq->where(function ($sub) {
-                            $sub->whereNull('department')
-                                ->orWhere(function ($inner) {
-                                    $inner->where('department', 'not like', '%sap%')
-                                          ->where('department', 'not like', '%erp%')
-                                          ->where('department', 'not like', '%facility%')
-                                          ->where('department', 'not like', '%facilities%')
-                                          ->where('department', 'not like', '%maintenance%')
-                                          ->where('department', 'not like', '%workplace%');
-                                });
-                        })
-                        ->where('name', 'not like', '%sap%')
-                        ->where('email', 'not like', '%sap%')
-                        ->where('name', 'not like', '%facility%')
-                        ->where('email', 'not like', '%facility%');
-                    }
+            $mc = $managerCategory; // capture for closure
+            $currentUserId = $user->id;
+
+            $query->where(function ($q) use ($mc, $currentUserId) {
+                // 1. The manager themselves (always see own profile)
+                $q->where('user_id', $currentUserId)
+                // 2. Super Admins (visible for escalation/contact)
+                ->orWhereHas('user.roles', function ($rq) {
+                    $rq->where('name', 'super_admin');
+                })
+                // 3. Requesters (visible but locked from edits)
+                ->orWhereHas('user.roles', function ($rq) {
+                    $rq->where('name', 'requester');
+                })
+                // 4. Technicians belonging to this manager's category
+                ->orWhere(function ($tq) use ($mc) {
+                    $tq->whereHas('user.roles', function ($rq) {
+                        $rq->where('name', 'technician');
+                    })->where(function ($cat) use ($mc) {
+                        // Exact category match (clean data)
+                        $cat->where('support_category', $mc);
+
+                        // Keyword fallback for technicians lacking support_category
+                        if ($mc === 'sap') {
+                            $cat->orWhere(function ($kw) {
+                                $kw->whereNull('support_category')
+                                    ->where(function ($sub) {
+                                        $sub->where('department', 'like', '%sap%')
+                                            ->orWhere('department', 'like', '%erp%')
+                                            ->orWhere('department', 'like', '%system%')
+                                            ->orWhere('name', 'like', '%sap%')
+                                            ->orWhere('name', 'like', '%erp%')
+                                            ->orWhere('name', 'like', '%system%')
+                                            ->orWhere('email', 'like', '%sap%')
+                                            ->orWhere('email', 'like', '%erp%')
+                                            ->orWhere('email', 'like', '%system%');
+                                    });
+                            });
+                        } elseif ($mc === 'general') {
+                            $cat->orWhere(function ($kw) {
+                                $kw->whereNull('support_category')
+                                    ->where(function ($sub) {
+                                        $sub->where('department', 'like', '%facility%')
+                                            ->orWhere('department', 'like', '%facilities%')
+                                            ->orWhere('department', 'like', '%maintenance%')
+                                            ->orWhere('department', 'like', '%general%')
+                                            ->orWhere('department', 'like', '%workplace%')
+                                            ->orWhere('name', 'like', '%facility%')
+                                            ->orWhere('email', 'like', '%facility%');
+                                    });
+                            });
+                        } else {
+                            // it_support — everything that isn't sap or general
+                            $cat->orWhere(function ($kw) {
+                                $kw->whereNull('support_category')
+                                    ->where(function ($sub) {
+                                        $sub->whereNull('department')
+                                            ->orWhere(function ($inner) {
+                                                $inner->where('department', 'not like', '%sap%')
+                                                      ->where('department', 'not like', '%erp%')
+                                                      ->where('department', 'not like', '%facility%')
+                                                      ->where('department', 'not like', '%facilities%')
+                                                      ->where('department', 'not like', '%maintenance%')
+                                                      ->where('department', 'not like', '%workplace%');
+                                            });
+                                    })
+                                    ->where('name', 'not like', '%sap%')
+                                    ->where('email', 'not like', '%sap%')
+                                    ->where('name', 'not like', '%facility%')
+                                    ->where('email', 'not like', '%facility%');
+                            });
+                        }
+                    });
                 });
             });
         }
@@ -123,6 +157,22 @@ class ProfileController extends Controller
         // Admins/super_admins can update any profile, regular users can only update their own
         if (! auth()->user()->hasAnyRole(['admin', 'super_admin']) && $profile->user_id !== auth()->id()) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Managers cannot edit requesters (requesters are locked) or other managers/admins
+        if (auth()->user()->hasRole('admin') && ! auth()->user()->hasRole('super_admin')) {
+            if ($profile->user_id !== auth()->id()) {
+                if ($profile->user->hasRole('requester')) {
+                    return response()->json([
+                        'message' => 'Requester accounts are locked. Managers cannot edit requesters.',
+                    ], 403);
+                }
+                if ($profile->user->hasAnyRole(['admin', 'super_admin'])) {
+                    return response()->json([
+                        'message' => 'Managers cannot edit other manager or super admin accounts.',
+                    ], 403);
+                }
+            }
         }
 
         $rules = [
@@ -155,6 +205,7 @@ class ProfileController extends Controller
             MaintenanceTicketController::forgetRoutingCache();
         }
 
+        // Sync name/email changes to the users table
         $userUpdates = [];
         if (isset($validated['name'])) {
             $userUpdates['name'] = $validated['name'];
@@ -164,11 +215,6 @@ class ProfileController extends Controller
         }
         if (! empty($userUpdates)) {
             $profile->user->update($userUpdates);
-        }
-
-        // Flush routing cache so the new support_category takes effect immediately
-        if (isset($validated['support_category'])) {
-            \App\Http\Controllers\Api\MaintenanceTicketController::forgetRoutingCache();
         }
 
         ActivityLogger::log('updated', 'Profile', $profile->id, "Updated profile for user: {$profile->name}");
@@ -189,8 +235,11 @@ class ProfileController extends Controller
         // Only super admins can assign manager/super_admin or modify those accounts
         if (! auth()->user()->hasRole('super_admin')) {
             $requestedRole = $request->input('role');
-            if (in_array($requestedRole, ['super_admin', 'admin'], true)) {
-                return response()->json(['message' => 'Only super admins can assign the manager or super admin role'], 403);
+            if (in_array($requestedRole, ['super_admin', 'admin', 'requester'], true)) {
+                return response()->json(['message' => 'Managers cannot assign manager, super admin, or requester roles'], 403);
+            }
+            if ($profile->user->hasRole('requester')) {
+                return response()->json(['message' => 'Requester accounts are locked. Managers cannot modify requester roles.'], 403);
             }
             if ($profile->user->hasAnyRole(['admin', 'super_admin'])) {
                 return response()->json(['message' => 'Cannot modify a manager or super admin account'], 403);
@@ -221,9 +270,14 @@ class ProfileController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Managers cannot delete manager or super admin accounts
-        if (! auth()->user()->hasRole('super_admin') && $profile->user->hasAnyRole(['admin', 'super_admin'])) {
-            return response()->json(['message' => 'Only super admins can delete manager or super admin accounts'], 403);
+        // Managers cannot delete requesters (locked) or other manager / super admin accounts
+        if (! auth()->user()->hasRole('super_admin')) {
+            if ($profile->user->hasRole('requester')) {
+                return response()->json(['message' => 'Requester accounts are locked. Managers cannot delete requesters.'], 403);
+            }
+            if ($profile->user->hasAnyRole(['admin', 'super_admin'])) {
+                return response()->json(['message' => 'Only super admins can delete manager or super admin accounts'], 403);
+            }
         }
 
         // Prevent deleting the last super admin

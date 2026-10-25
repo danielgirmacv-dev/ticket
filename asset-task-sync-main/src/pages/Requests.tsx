@@ -26,7 +26,7 @@ import {
   Monitor, Database, Wrench, Check, UploadCloud, FileText, MapPin, 
   Calendar as CalendarIcon, Repeat, Info, Clock, ShieldCheck, Sparkles, 
   ChevronRight, AlertTriangle, Layers, Tag, Eye, BookOpen, CheckCircle2,
-  ArrowUpRight, Building2, User
+  ArrowUpRight, Building2, User, Zap, ArrowRight
 } from 'lucide-react';
 import { FormPageSkeleton } from '@/components/skeletons/FormPageSkeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -97,7 +97,7 @@ const REQUEST_TYPES_BY_CATEGORY: Record<
   sap: [
     { value: 'other', label: '🔑 User Account / Role & Authorization Request' },
     { value: 'repair', label: '⚠️ Transaction / T-Code Error & Bug Fix' },
-    { value: 'installation', label: '⚙️ SAP Module / Authorization Config' },
+    { value: 'installation', label: '⚙️ ERP Module / System Authorization Config' },
     { value: 'maintenance', label: '🔄 Data / Configuration Maintenance' },
     { value: 'inspection', label: '📋 Authorization & Access Review' },
   ],
@@ -112,13 +112,13 @@ const REQUEST_TYPES_BY_CATEGORY: Record<
 
 const TITLE_PLACEHOLDERS = {
   it_support: 'e.g., Computer not turning on, Printer paper jam, Wi-Fi keeps disconnecting',
-  sap: 'e.g., Authorization error on T-Code ME21N, Need access to SAP MM module',
+  sap: 'e.g., Authorization error, transaction error, need access to ERP module',
   general: 'e.g., Air conditioner leaking water in Room 204, Broken chair wheel, Dead power socket',
 };
 
 const DESCRIPTION_PLACEHOLDERS = {
   it_support: 'Describe what happened, any error messages, and troubleshooting steps already tried...',
-  sap: 'Describe the SAP module, error message or T-Code, and what operation you were trying to perform...',
+  sap: 'Describe the system or ERP module, error message or transaction code, and what operation you were trying to perform...',
   general: 'Describe the facility issue, specific room/floor location, urgency, and any safety hazards...',
 };
 
@@ -140,10 +140,10 @@ const DEPARTMENT_METADATA = {
     accentText: 'text-[#077d8f]',
   },
   sap: {
-    title: 'System Related Issues',
-    desc: 'SAP ERP, Software, User Access, Approvals & Applications',
-    team: 'Enterprise Applications & Systems Support Team',
-    tag: 'Systems & Software',
+    title: 'System & ERP Related Issues',
+    desc: 'ERP Systems, Business Software, User Access, Approvals & Applications',
+    team: 'Enterprise Systems & ERP Support Team',
+    tag: 'Systems & ERP',
     slaTime: 'Response < 3h',
     icon: Database,
     gradient: 'from-[#0f5766] via-[#0b4754] to-[#073640]',
@@ -227,8 +227,8 @@ const SUGGESTED_FAQS = {
     { title: 'Setting up corporate email on Outlook mobile', desc: 'Server host and multi-factor setup instructions', link: '/help' },
   ],
   sap: [
-    { title: 'How to request SAP ERP role or T-Code access', desc: 'Department manager approval requirements and form', link: '/help' },
-    { title: 'SAP password locked or login expired', desc: 'Self-service unlock steps or immediate reset contact', link: '/help' },
+    { title: 'How to request ERP system role or transaction access', desc: 'Department manager approval requirements and form', link: '/help' },
+    { title: 'System password locked or login expired', desc: 'Self-service unlock steps or immediate reset contact', link: '/help' },
     { title: 'Resolving transaction verification & invoice errors', desc: 'Standard posting procedures and GL verification', link: '/help' },
   ],
   general: [
@@ -368,6 +368,7 @@ const Requests = () => {
     useState<NonNullable<MaintenanceTicket['recurring_interval']>>('monthly');
   const [recurringEndsAt, setRecurringEndsAt] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [facilityRoom, setFacilityRoom] = useState('');
 
   const showAssetField = supportCategory === 'it_support' && ASSET_REQUIRED_TYPES.includes(
@@ -422,6 +423,22 @@ const Requests = () => {
       .slice(0, 3);
   }, [allTickets, profile?.id]);
 
+  // Real-time completeness score for the live preview
+  const completenessChecks = useMemo(() => {
+    return [
+      { key: 'category', label: 'Category', done: Boolean(supportCategory) },
+      { key: 'type', label: 'Type', done: Boolean(formData.type) },
+      { key: 'title', label: 'Title', done: Boolean(formData.title && formData.title.trim().length >= 4) },
+      { key: 'description', label: 'Details', done: Boolean(formData.description && formData.description.trim().length >= 10) },
+      { key: 'location', label: 'Location', done: Boolean(locationId) },
+    ];
+  }, [supportCategory, formData.type, formData.title, formData.description, locationId]);
+
+  const completenessPercent = useMemo(() => {
+    const doneCount = completenessChecks.filter(c => c.done).length;
+    return Math.round((doneCount / completenessChecks.length) * 100);
+  }, [completenessChecks]);
+
   // Prefill location from profile; never auto-assign company-wide assets
   useEffect(() => {
     if (profile?.location_id && !locationId) {
@@ -446,19 +463,34 @@ const Requests = () => {
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
+    processFiles(files);
+    e.target.value = '';
+  };
 
-    const next = [...attachments, ...files].slice(0, 5);
+  const processFiles = (incoming: File[]) => {
+    const ALLOWED = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'];
+    const valid = incoming.filter((f) => ALLOWED.includes(f.type));
+    const invalid = incoming.filter((f) => !ALLOWED.includes(f.type));
+    if (invalid.length) {
+      toast({
+        title: 'Unsupported file type',
+        description: `${invalid.map(f => f.name).join(', ')} — only PNG, JPG, JPEG, WebP, GIF, PDF allowed.`,
+        variant: 'destructive',
+      });
+    }
+    const next = [...attachments, ...valid].slice(0, 5);
     const oversized = next.filter((f) => f.size > 5 * 1024 * 1024);
     if (oversized.length) {
       toast({
         title: 'File too large',
-        description: 'Each attachment must be 5MB or less.',
+        description: `${oversized.map(f => f.name).join(', ')} exceed the 5 MB limit.`,
         variant: 'destructive',
       });
+      const ok = next.filter((f) => f.size <= 5 * 1024 * 1024);
+      setAttachments(ok);
       return;
     }
     setAttachments(next);
-    e.target.value = '';
   };
 
   const removeAttachment = (index: number) => {
@@ -945,73 +977,113 @@ const Requests = () => {
                     {/* File Attachment Dropzone */}
                     <div className="space-y-2">
                       <Label htmlFor="attachments" className="text-xs font-semibold flex items-center justify-between">
-                        <span>Supporting Files & Screenshots</span>
+                        <span>Supporting Files &amp; Screenshots</span>
                         <span className="text-[11px] text-muted-foreground font-normal">Optional (Max 5 files, 5MB each)</span>
                       </Label>
-                      <label
-                        htmlFor="attachments"
-                        className="block cursor-pointer rounded-2xl border-2 border-dashed border-[#11adc4]/35 bg-[#11adc4]/5 dark:bg-[#11adc4]/5 p-5 transition-all duration-200 hover:border-[#11adc4] hover:bg-[#11adc4]/10"
+                      <div
+                        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                        onDragEnter={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                        onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragOver(false);
+                          const files = Array.from(e.dataTransfer.files);
+                          if (files.length) processFiles(files);
+                        }}
+                        className={`rounded-2xl border-2 border-dashed transition-all duration-200 ${
+                          isDragOver
+                            ? 'border-[#11adc4] bg-[#11adc4]/15 scale-[1.01]'
+                            : 'border-[#11adc4]/35 bg-[#11adc4]/5 dark:bg-[#11adc4]/5 hover:border-[#11adc4] hover:bg-[#11adc4]/10'
+                        }`}
                       >
-                        <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
-                          <div className="h-11 w-11 rounded-2xl bg-[#11adc4]/15 text-[#0f5766] dark:text-[#11adc4] flex items-center justify-center border border-[#11adc4]/30 shadow-2xs">
-                            <UploadCloud className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <span className="text-sm font-semibold text-[#0f5766] dark:text-[#38d8ef] hover:underline">
-                              Click to upload attachments
-                            </span>
-                            <span className="text-xs text-muted-foreground"> or drag and drop</span>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            Screenshots, logs, or photos (PNG, JPG, JPEG, PDF)
-                          </p>
-                          <Input
-                            id="attachments"
-                            type="file"
-                            accept="image/*,.pdf"
-                            multiple
-                            className="hidden"
-                            onChange={handleFilesChange}
-                          />
-                        </div>
-
-                        {attachments.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-[#11adc4]/20 space-y-2">
-                            <p className="text-xs font-semibold text-[#0f5766] dark:text-[#7ce5f5]">
-                              Attached Files ({attachments.length}):
-                            </p>
-                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {attachments.map((file, index) => (
-                                <li
-                                  key={`${file.name}-${index}`}
-                                  className="flex items-center justify-between rounded-xl border border-[#11adc4]/30 bg-background px-3 py-2 text-xs font-medium shadow-2xs"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <span className="truncate mr-2 flex items-center gap-2">
-                                    <Paperclip className="h-3.5 w-3.5 text-[#11adc4] shrink-0" />
-                                    <span className="truncate">{file.name}</span>
-                                    <span className="text-[10px] text-muted-foreground shrink-0">
-                                      ({(file.size / 1024).toFixed(0)} KB)
-                                    </span>
+                        <label htmlFor="attachments" className="block cursor-pointer p-5">
+                          <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
+                            <div className={`h-11 w-11 rounded-2xl flex items-center justify-center border shadow-2xs transition-all ${
+                              isDragOver
+                                ? 'bg-[#11adc4]/30 border-[#11adc4] scale-110'
+                                : 'bg-[#11adc4]/15 border-[#11adc4]/30 text-[#0f5766] dark:text-[#11adc4]'
+                            }`}>
+                              <UploadCloud className={`h-6 w-6 ${isDragOver ? 'text-[#11adc4] animate-bounce' : ''}`} />
+                            </div>
+                            <div>
+                              {isDragOver ? (
+                                <span className="text-sm font-bold text-[#11adc4]">Drop files here!</span>
+                              ) : (
+                                <>
+                                  <span className="text-sm font-semibold text-[#0f5766] dark:text-[#38d8ef] hover:underline">
+                                    Click to upload
                                   </span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0 rounded-lg"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      removeAttachment(index);
-                                    }}
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                </li>
-                              ))}
-                            </ul>
+                                  <span className="text-xs text-muted-foreground"> or drag &amp; drop</span>
+                                </>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Screenshots, logs, or photos (PNG, JPG, JPEG, PDF) · Max 5MB each
+                            </p>
+                            <Input
+                              id="attachments"
+                              type="file"
+                              accept="image/*,.pdf"
+                              multiple
+                              className="hidden"
+                              onChange={handleFilesChange}
+                            />
                           </div>
-                        )}
-                      </label>
+
+                          {attachments.length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-[#11adc4]/20 space-y-2">
+                              <p className="text-xs font-semibold text-[#0f5766] dark:text-[#7ce5f5]">
+                                Attached Files ({attachments.length}/5):
+                              </p>
+                              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {attachments.map((file, index) => {
+                                  const isImg = file.type.startsWith('image/');
+                                  const sizeKB = (file.size / 1024).toFixed(0);
+                                  const tooLarge = file.size > 5 * 1024 * 1024;
+                                  const previewUrl = isImg ? URL.createObjectURL(file) : null;
+                                  return (
+                                    <li
+                                      key={`${file.name}-${index}`}
+                                      className={`relative flex flex-col rounded-xl border bg-background overflow-hidden shadow-2xs transition-all ${
+                                        tooLarge ? 'border-destructive/60' : 'border-[#11adc4]/30'
+                                      }`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {isImg && previewUrl ? (
+                                        <div className="w-full h-20 bg-muted overflow-hidden">
+                                          <img
+                                            src={previewUrl}
+                                            alt={file.name}
+                                            className="w-full h-full object-cover"
+                                            onLoad={() => URL.revokeObjectURL(previewUrl)}
+                                          />
+                                        </div>
+                                      ) : (
+                                        <div className="w-full h-20 bg-muted/50 flex items-center justify-center">
+                                          <Paperclip className="h-7 w-7 text-[#11adc4]/50" />
+                                        </div>
+                                      )}
+                                      <div className="px-2 py-1.5">
+                                        <p className="text-[11px] font-medium truncate text-foreground" title={file.name}>{file.name}</p>
+                                        <p className={`text-[10px] font-semibold ${tooLarge ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                          {tooLarge ? `⚠ ${sizeKB} KB — exceeds 5MB` : `${sizeKB} KB`}
+                                        </p>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); removeAttachment(index); }}
+                                        className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/40 hover:bg-destructive text-white flex items-center justify-center transition-colors"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          )}
+                        </label>
+                      </div>
                     </div>
 
                     {/* Preferred Date & Recurring Options */}
@@ -1124,115 +1196,289 @@ const Requests = () => {
           {/* Right Column: Live Context & Ticket Preview (35-40% width, sticky) */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-6">
             {/* 1. Live Ticket Preview Card */}
-            <Card className="rounded-2xl border-2 border-[#11adc4]/40 bg-card shadow-lg overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border/60 bg-gradient-to-r from-[#11adc4]/15 via-teal-500/10 to-transparent flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0f5766] dark:text-[#11adc4]">
-                  <Eye className="h-4 w-4 text-[#11adc4]" />
-                  Live Ticket Preview
+            <Card className="rounded-2xl border-2 border-[#11adc4]/40 bg-card shadow-xl overflow-hidden backdrop-blur-sm transition-all duration-300 hover:border-[#11adc4]/70">
+              {/* Header with Completeness Progress */}
+              <div className="p-4 border-b border-border/60 bg-gradient-to-r from-[#11adc4]/15 via-teal-500/10 to-transparent space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#0f5766] dark:text-[#11adc4]">
+                    <div className="h-6 w-6 rounded-lg bg-[#11adc4]/20 flex items-center justify-center border border-[#11adc4]/30">
+                      <Eye className="h-3.5 w-3.5 text-[#11adc4]" />
+                    </div>
+                    Live Ticket Preview
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/30 shadow-2xs">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Interactive
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Real-time
+
+                {/* Form Completeness Meter */}
+                <div className="space-y-1.5 bg-background/60 p-2.5 rounded-xl border border-border/60">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-foreground flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-[#11adc4]" />
+                      Ticket Readiness:
+                    </span>
+                    <span className={cn(
+                      'font-bold font-mono text-xs',
+                      completenessPercent === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#0f5766] dark:text-[#38d8ef]'
+                    )}>
+                      {completenessPercent}% {completenessPercent === 100 ? '— Ready to Submit!' : ''}
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 via-[#11adc4] to-cyan-400 rounded-full transition-all duration-300"
+                      style={{ width: `${completenessPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between pt-0.5 text-[10px] text-muted-foreground">
+                    {completenessChecks.map((item) => (
+                      <span
+                        key={item.key}
+                        className={cn(
+                          'flex items-center gap-0.5 transition-colors',
+                          item.done ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'opacity-60'
+                        )}
+                      >
+                        {item.done ? '✓' : '○'} {item.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <CardContent className="p-5 space-y-4">
-                {/* Simulated Ticket Card */}
-                <div className="rounded-xl border border-border/80 bg-muted/30 p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-bold text-muted-foreground bg-background px-2.5 py-1 rounded-md border border-border/70">
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                {/* Simulated Ticket Card with Accent Ribbon */}
+                <div className="relative rounded-2xl border border-border/80 bg-gradient-to-b from-background via-card to-muted/20 p-4 shadow-sm space-y-3.5 overflow-hidden">
+                  {/* Top Category Accent Ribbon */}
+                  <div className={cn('absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r', DEPARTMENT_METADATA[supportCategory].gradient)} />
+
+                  {/* Header Row: ID + Category & Priority Badges */}
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <span className="font-mono text-[11px] font-bold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md border border-border/60">
                       #TKT-DRAFT
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn('px-2.5 py-1 rounded-md text-[10px] font-bold border', DEPARTMENT_METADATA[supportCategory].badgeClass)}>
-                        {DEPARTMENT_METADATA[supportCategory].title}
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className={cn('px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1', DEPARTMENT_METADATA[supportCategory].badgeClass)}>
+                        {DEPARTMENT_METADATA[supportCategory].title.split(' ')[0]}
                       </span>
-                      <span className={cn('px-2.5 py-1 rounded-md text-[10px] font-bold border', PRIORITY_METADATA[formData.priority || 'medium'].badgeStyle)}>
+                      <span className={cn('px-2 py-0.5 rounded-md text-[10px] font-bold border flex items-center gap-1', PRIORITY_METADATA[formData.priority || 'medium'].badgeStyle)}>
+                        <span className={cn('h-1.5 w-1.5 rounded-full', PRIORITY_METADATA[formData.priority || 'medium'].dotClass)} />
                         {PRIORITY_METADATA[formData.priority || 'medium'].label}
                       </span>
                     </div>
                   </div>
 
-                  <div>
+                  {/* Requester Identity Row */}
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground border-b border-border/40 pb-2">
+                    <div className="h-5 w-5 rounded-full bg-[#11adc4]/15 border border-[#11adc4]/30 flex items-center justify-center text-[#0f5766] dark:text-[#11adc4]">
+                      <User className="h-3 w-3" />
+                    </div>
+                    <span className="font-medium text-foreground truncate">
+                      {profile?.name || (user as any)?.name || 'Requester'}
+                    </span>
+                    <span className="text-muted-foreground/60">·</span>
+                    <span className="text-[10px] text-muted-foreground">Draft Preview</span>
+                  </div>
+
+                  {/* Title & Description Preview */}
+                  <div className="space-y-1.5">
                     <h4 className="text-sm font-bold text-foreground tracking-tight leading-snug">
-                      {formData.title ? formData.title : (
-                        <span className="text-muted-foreground italic font-normal">
-                          Enter a request title above...
+                      {formData.title ? (
+                        formData.title
+                      ) : (
+                        <span className="text-muted-foreground/60 italic font-normal">
+                          Request title will preview here...
                         </span>
                       )}
                     </h4>
-                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-3 leading-relaxed">
-                      {formData.description ? formData.description : (
-                        <span className="italic opacity-60">
-                          Description snippet will preview here in real time...
+                    <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                      {formData.description ? (
+                        formData.description
+                      ) : (
+                        <span className="italic opacity-50">
+                          Description snippet will preview here in real time as you type...
                         </span>
                       )}
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
-                      <MapPin className="h-3 w-3 text-[#11adc4]" />
-                      {selectedLocation ? selectedLocation.name : 'Location pending'}
+                  {/* Key Context Chips */}
+                  <div className="pt-2 border-t border-border/50 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-lg border border-border/60 text-muted-foreground">
+                      <MapPin className="h-3 w-3 text-[#11adc4] shrink-0" />
+                      <span className="truncate max-w-[140px]">
+                        {selectedLocation ? selectedLocation.name : 'Location pending'}
+                      </span>
                     </span>
+
+                    {facilityRoom && (
+                      <span className="flex items-center gap-1 bg-muted/60 px-2 py-1 rounded-lg border border-border/60 text-muted-foreground">
+                        <Building2 className="h-3 w-3 text-[#11adc4] shrink-0" />
+                        <span>Room {facilityRoom}</span>
+                      </span>
+                    )}
+
                     {selectedAsset && (
-                      <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
-                        <Monitor className="h-3 w-3 text-teal-600" />
-                        {selectedAsset.name}
+                      <span className="flex items-center gap-1 bg-teal-500/10 px-2 py-1 rounded-lg border border-teal-500/20 text-teal-700 dark:text-teal-300">
+                        <Monitor className="h-3 w-3 shrink-0" />
+                        <span className="truncate max-w-[120px]">{selectedAsset.name}</span>
                       </span>
                     )}
-                    {attachments.length > 0 && (
-                      <span className="flex items-center gap-1 bg-background px-2 py-0.5 rounded-md border border-border/60">
-                        <Paperclip className="h-3 w-3 text-amber-600" />
-                        {attachments.length} file(s)
+
+                    {preferredDate && (
+                      <span className="flex items-center gap-1 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20 text-purple-700 dark:text-purple-300">
+                        <CalendarIcon className="h-3 w-3 shrink-0" />
+                        <span>{preferredDate}</span>
                       </span>
                     )}
+
+                    {isRecurring && (
+                      <span className="flex items-center gap-1 bg-cyan-500/10 px-2 py-1 rounded-lg border border-cyan-500/20 text-cyan-700 dark:text-cyan-300">
+                        <Repeat className="h-3 w-3 shrink-0" />
+                        <span className="capitalize">{recurringInterval}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Live Attachment Thumbnails Preview */}
+                  {attachments.length > 0 && (
+                    <div className="pt-2 border-t border-border/50 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold text-[#0f5766] dark:text-[#38d8ef]">
+                          <Paperclip className="h-3 w-3" />
+                          Attached Media ({attachments.length}/5)
+                        </span>
+                        <span className="text-[10px]">
+                          {(attachments.reduce((sum, f) => sum + f.size, 0) / 1024).toFixed(0)} KB total
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                        {attachments.map((file, idx) => {
+                          const isImg = file.type.startsWith('image/');
+                          return (
+                            <div
+                              key={idx}
+                              className="h-10 w-10 rounded-lg border border-border/80 bg-muted/40 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs"
+                              title={file.name}
+                            >
+                              {isImg ? (
+                                <img
+                                  src={URL.createObjectURL(file)}
+                                  alt={file.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <FileText className="h-4 w-4 text-[#11adc4]" />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Destination Team Tag */}
+                  <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                    <Zap className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate">
+                      Auto-routes to <strong className="text-foreground">{DEPARTMENT_METADATA[supportCategory].team}</strong>
+                    </span>
                   </div>
                 </div>
 
                 <p className="text-[11px] text-muted-foreground text-center italic">
-                  This preview mirrors how your ticket will appear in technician dispatch.
+                  Exact preview of how dispatchers and technicians will see your ticket.
                 </p>
               </CardContent>
             </Card>
 
             {/* 2. Guaranteed SLA & Routing Commitment */}
-            <Card className="rounded-2xl border border-border/80 bg-card shadow-sm overflow-hidden">
-              <div className="px-5 py-3 border-b border-border/60 bg-muted/30 flex items-center justify-between">
+            <Card className="rounded-2xl border border-border/80 bg-card shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
+              {/* Header */}
+              <div className="px-5 py-3.5 border-b border-border/60 bg-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="h-6 w-6 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  </div>
                   Service Level Commitment
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-500/30 shadow-2xs">
                   SLA Active
                 </span>
               </div>
-              <CardContent className="p-5 space-y-3.5">
-                <div className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#11adc4]/20 to-[#0f5766]/20 border border-[#11adc4]/30 flex items-center justify-center text-[#0f5766] dark:text-[#11adc4] shrink-0 mt-0.5">
-                    <Clock className="h-4 w-4" />
+
+              <CardContent className="p-5 space-y-4">
+                {/* Dynamic Urgency / Target Time Banner */}
+                <div className={cn(
+                  'p-3.5 rounded-xl border transition-all space-y-1.5',
+                  formData.priority === 'critical'
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-100'
+                    : formData.priority === 'high'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-100'
+                    : 'bg-[#11adc4]/10 border-[#11adc4]/25 text-foreground'
+                )}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-[#11adc4]" />
+                      Response Guarantee
+                    </span>
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-background/80 border border-border/60">
+                      {PRIORITY_METADATA[formData.priority || 'medium'].sublabel}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">
-                      Target Response Time
-                    </p>
-                    <p className="text-sm font-extrabold text-[#0f5766] dark:text-[#38d8ef] mt-0.5">
-                      {PRIORITY_METADATA[formData.priority || 'medium'].timeframe}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {PRIORITY_METADATA[formData.priority || 'medium'].description}
-                    </p>
+                  <p className="text-base font-extrabold tracking-tight">
+                    {PRIORITY_METADATA[formData.priority || 'medium'].timeframe}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {PRIORITY_METADATA[formData.priority || 'medium'].description}
+                  </p>
+                </div>
+
+                {/* 3-Step Service Roadmap */}
+                <div className="space-y-2 pt-1">
+                  <p className="text-xs font-bold text-foreground">Service Fulfillment Flow:</p>
+                  <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                    <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-1">
+                      <div className="h-5 w-5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center font-bold text-[10px]">
+                        1
+                      </div>
+                      <p className="font-semibold text-foreground">Submit</p>
+                      <p className="text-[9px] text-muted-foreground">Instant Alert</p>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-1">
+                      <div className="h-5 w-5 rounded-full bg-[#11adc4]/20 text-[#0f5766] dark:text-[#11adc4] mx-auto flex items-center justify-center font-bold text-[10px]">
+                        2
+                      </div>
+                      <p className="font-semibold text-foreground">Triage</p>
+                      <p className="text-[9px] text-muted-foreground">&lt; 15 mins</p>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-muted/40 border border-border/70 space-y-1">
+                      <div className="h-5 w-5 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-400 mx-auto flex items-center justify-center font-bold text-[10px]">
+                        3
+                      </div>
+                      <p className="font-semibold text-foreground">Dispatch</p>
+                      <p className="text-[9px] text-muted-foreground">On-Site Tech</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-muted/40 border border-border/70 text-xs space-y-1">
-                  <p className="font-semibold text-foreground flex items-center gap-1.5">
+                {/* Assigned Team Details */}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border/70 text-xs space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-semibold text-foreground">
                     <Building2 className="h-3.5 w-3.5 text-[#11adc4]" />
-                    Routed Department:
-                  </p>
-                  <p className="text-muted-foreground text-[11px] pl-5">
+                    <span>Handling Department:</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground pl-5 font-medium">
                     {DEPARTMENT_METADATA[supportCategory].team}
                   </p>
+                  <div className="flex items-center gap-2 pl-5 pt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3 shrink-0" />
+                    <span>Telegram &amp; In-App push notifications enabled</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

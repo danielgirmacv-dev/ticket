@@ -26,6 +26,7 @@ laravelClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('eec_last_active_time');
       const onAuthPage = window.location.pathname === '/auth' || window.location.pathname.endsWith('/auth');
       if (!onAuthPage) {
         window.location.href = '/auth';

@@ -81,8 +81,9 @@ class ReportController extends Controller
      */
     public function performanceReport(Request $request)
     {
+        $user      = $request->user();
         $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
+        $endDate   = $request->input('end_date');
 
         $query = MaintenanceTicket::query();
 
@@ -94,43 +95,75 @@ class ReportController extends Controller
             $query->where('scheduled_date', '<=', $endDate);
         }
 
-        $totalTickets = $query->count();
-        $completedTickets = (clone $query)->where('status', 'completed')->count();
+        // Managers only see metrics for tickets within their category.
+        if ($user && $user->hasRole('admin') && ! $user->hasRole('super_admin')) {
+            $managerProfileId = $user->profile?->id;
+            $managerCategory  = $user->profile?->support_category;
+
+            // Derive category from heuristics when not explicitly set
+            if (! $managerCategory) {
+                $dept  = strtolower($user->profile?->department ?? '');
+                $uname = strtolower($user->name ?? '');
+                $email = strtolower($user->email ?? '');
+
+                if (str_contains($dept, 'sap') || str_contains($dept, 'erp')
+                    || str_contains($uname, 'sap') || str_contains($email, 'sap')) {
+                    $managerCategory = 'sap';
+                } elseif (str_contains($dept, 'facility') || str_contains($dept, 'facilities')
+                    || str_contains($dept, 'maintenance') || str_contains($dept, 'workplace')) {
+                    $managerCategory = 'general';
+                } else {
+                    $managerCategory = 'it_support';
+                }
+            }
+
+            $query->where(function ($q) use ($managerProfileId, $managerCategory) {
+                $q->where('assigned_manager_id', $managerProfileId)
+                  ->orWhere(function ($sub) use ($managerCategory) {
+                      $sub->whereNull('assigned_manager_id')
+                          ->where('support_category', $managerCategory);
+                  });
+            });
+        }
+
+        $totalTickets      = $query->count();
+        $completedTickets  = (clone $query)->where('status', 'completed')->count();
         $inProgressTickets = (clone $query)->where('status', 'in_progress')->count();
-        $overdueQuery = (clone $query)->where('scheduled_date', '<', now())
+        $overdueQuery      = (clone $query)->where('scheduled_date', '<', now())
             ->whereNotIn('status', ['completed', 'cancelled']);
         $overdueTickets = $overdueQuery->count();
 
         // Tickets by status
-        $ticketsByStatus = (clone $query)->select('status', DB::raw('count(*) as count'))
+        $ticketsByStatus = (clone $query)->select('status', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
             ->groupBy('status')
             ->get();
 
         // Tickets by priority
-        $ticketsByPriority = (clone $query)->select('priority', DB::raw('count(*) as count'))
+        $ticketsByPriority = (clone $query)->select('priority', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
             ->groupBy('priority')
             ->get();
 
         // Tickets by type
-        $ticketsByType = (clone $query)->select('type', DB::raw('count(*) as count'))
+        $ticketsByType = (clone $query)->select('type', \Illuminate\Support\Facades\DB::raw('count(*) as count'))
             ->groupBy('type')
             ->get();
 
         // Average completion time (in days) for completed tickets
         $avgCompletionTime = (clone $query)->where('status', 'completed')
             ->whereNotNull('completed_date')
-            ->select(DB::raw('AVG(DATEDIFF(completed_date, scheduled_date)) as avg_days'))
+            ->select(\Illuminate\Support\Facades\DB::raw('AVG(DATEDIFF(completed_date, scheduled_date)) as avg_days'))
             ->value('avg_days');
 
-        // Technician Performance Stats
-        $technicianStats = (clone $query)
-            ->whereNotNull('assigned_technician_id')
+        // Technician Performance Stats — scoped to same category as the calling manager
+        $techQuery = (clone $query)->whereNotNull('assigned_technician_id');
+
+        $technicianStats = $techQuery
             ->select(
                 'assigned_technician_id',
-                DB::raw('count(*) as total_assigned'),
-                DB::raw('sum(case when status = "completed" then 1 else 0 end) as completed_count'),
-                DB::raw('avg(feedback_rating) as avg_rating'),
-                DB::raw('avg(case when status = "completed" AND completed_date IS NOT NULL AND scheduled_date IS NOT NULL then DATEDIFF(completed_date, scheduled_date) else null end) as avg_completion_days')
+                \Illuminate\Support\Facades\DB::raw('count(*) as total_assigned'),
+                \Illuminate\Support\Facades\DB::raw('sum(case when status = "completed" then 1 else 0 end) as completed_count'),
+                \Illuminate\Support\Facades\DB::raw('avg(feedback_rating) as avg_rating'),
+                \Illuminate\Support\Facades\DB::raw('avg(case when status = "completed" AND completed_date IS NOT NULL AND scheduled_date IS NOT NULL then DATEDIFF(completed_date, scheduled_date) else null end) as avg_completion_days')
             )
             ->groupBy('assigned_technician_id')
             ->with('assignedTechnician')
@@ -138,19 +171,20 @@ class ReportController extends Controller
 
         return response()->json([
             'summary' => [
-                'total_tickets' => $totalTickets,
-                'completed_tickets' => $completedTickets,
-                'in_progress_tickets' => $inProgressTickets,
-                'overdue_tickets' => $overdueTickets,
-                'completion_rate' => $totalTickets > 0 ? round(($completedTickets / $totalTickets) * 100, 2) : 0,
-                'avg_completion_days' => round($avgCompletionTime ?? 0, 1),
+                'total_tickets'      => $totalTickets,
+                'completed_tickets'  => $completedTickets,
+                'in_progress_tickets'=> $inProgressTickets,
+                'overdue_tickets'    => $overdueTickets,
+                'completion_rate'    => $totalTickets > 0 ? round(($completedTickets / $totalTickets) * 100, 2) : 0,
+                'avg_completion_days'=> round($avgCompletionTime ?? 0, 1),
             ],
-            'tickets_by_status' => $ticketsByStatus,
+            'tickets_by_status'   => $ticketsByStatus,
             'tickets_by_priority' => $ticketsByPriority,
-            'tickets_by_type' => $ticketsByType,
-            'technician_stats' => $technicianStats,
+            'tickets_by_type'     => $ticketsByType,
+            'technician_stats'    => $technicianStats,
         ]);
     }
+
 
     /**
      * Export tickets to CSV.
