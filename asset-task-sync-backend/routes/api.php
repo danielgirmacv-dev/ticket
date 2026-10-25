@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -95,4 +96,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/performance', [ReportController::class, 'performanceReport']);
     Route::get('/reports/export/tickets', [ReportController::class, 'exportTicketsCsv']);
     Route::get('/reports/export/assets', [ReportController::class, 'exportAssetsCsv']);
+
+    // Settings (Super Admin only)
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::patch('/settings', [SettingsController::class, 'update']);
+    Route::get('/settings/export/{type}', [SettingsController::class, 'exportCsv']);
+    Route::delete('/settings/logs', [SettingsController::class, 'clearLogs']);
 });

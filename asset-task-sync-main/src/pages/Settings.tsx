@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Bell, Mail, Shield, Palette, Database, Link, Copy, MessageCircle, ExternalLink, Check, User } from 'lucide-react';
+import {
+  Bell,
+  Mail,
+  Shield,
+  Palette,
+  Database,
+  Link,
+  Copy,
+  MessageCircle,
+  ExternalLink,
+  Check,
+  User,
+  Download,
+  Trash2,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import laravelClient from '@/integrations/laravel/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -61,7 +77,120 @@ const Settings = () => {
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [showTelegramInstructions, setShowTelegramInstructions] = useState(false);
 
-  const handleProfileSave = async () => {
+  // System settings state (super admin only)
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isClearingLogs, setIsClearingLogs] = useState(false);
+
+  const REMINDER_OPTIONS = [
+    { value: '1', label: '1 hour before' },
+    { value: '24', label: '24 hours before' },
+    { value: '48', label: '48 hours before' },
+    { value: '168', label: '1 week before' },
+  ];
+
+  const ARCHIVE_OPTIONS = [
+    { value: '7', label: 'After 7 days' },
+    { value: '30', label: 'After 30 days' },
+    { value: '90', label: 'After 90 days' },
+    { value: 'never', label: 'Never' },
+  ];
+
+  const isSuperAdmin = role === 'super_admin';
+
+  // Fetch system settings
+  const fetchSettings = useCallback(async () => {
+    if (!isSuperAdmin) return;
+    setIsLoadingSettings(true);
+    try {
+      const response = await laravelClient.get('/settings');
+      setSettings(response.data.settings || {});
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  }, [isSuperAdmin]);
+
+  // Save system settings
+  const saveSettings = async (key: string, value: string) => {
+    if (!isSuperAdmin) return;
+    setIsSavingSettings(true);
+    try {
+      const response = await laravelClient.patch('/settings', { [key]: value });
+      setSettings(response.data.settings || {});
+      toast({
+        title: 'Setting Saved',
+        description: 'System setting updated successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to save setting.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }, [isSuperAdmin]);
+
+  // Export CSV
+  const handleExport = async (type: 'tickets' | 'assets') => {
+    if (!isSuperAdmin) return;
+    setIsExporting(true);
+    try {
+      const response = await laravelClient.get(`/settings/export/${type}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `maintenance-${type}-${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast({
+        title: 'Export Complete',
+        description: `${type} data exported successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: getApiErrorMessage(error, 'Failed to export data.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Clear activity logs
+  const handleClearLogs = async () => {
+    if (!isSuperAdmin) return;
+    if (!window.confirm('Are you sure you want to clear all activity logs? This cannot be undone.')) return;
+    setIsClearingLogs(true);
+    try {
+      const response = await laravelClient.delete('/settings/logs');
+      toast({
+        title: 'Logs Cleared',
+        description: response.data.message,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: getApiErrorMessage(error, 'Failed to clear logs.'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClearingLogs(false);
+    }
+  };
+
+  // Fetch Telegram status on mount
+  const fetchTelegramStatus = async () => {
     if (!profile) return;
     setIsSavingProfile(true);
     try {
@@ -215,7 +344,10 @@ const Settings = () => {
   // Load Telegram status on component mount
   useEffect(() => {
     fetchTelegramStatus();
-  }, []);
+    if (isSuperAdmin) {
+      fetchSettings();
+    }
+  }, [isSuperAdmin, fetchSettings, fetchTelegramStatus]);
 
   useEffect(() => {
     if (profile) {
@@ -243,7 +375,7 @@ const Settings = () => {
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
-          {role !== 'requester' && (
+          {role === 'super_admin' && (
             <TabsTrigger value="system" className="gap-2">
               <Database className="h-4 w-4" />
               System
@@ -681,50 +813,66 @@ const Settings = () => {
                 <CardHeader>
                   <CardTitle>Maintenance Settings</CardTitle>
                   <CardDescription>
-                    Configure default maintenance parameters
+                    Configure default maintenance parameters (Super Admin only)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">System maintenance settings are coming soon.</p>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <Label>Default Reminder Time</Label>
                       <p className="text-sm text-muted-foreground">
                         How early to send ticket reminders
                       </p>
                     </div>
-                    <Select defaultValue="24" disabled>
+                    <Select
+                      value={settings.reminder_time || '24'}
+                      onValueChange={(val) => saveSettings('reminder_time', val)}
+                      disabled={isSavingSettings || !isSuperAdmin}
+                    >
                       <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1">1 hour before</SelectItem>
-                        <SelectItem value="24">24 hours before</SelectItem>
-                        <SelectItem value="48">48 hours before</SelectItem>
-                        <SelectItem value="168">1 week before</SelectItem>
+                        {REMINDER_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {isSavingSettings && <span className="text-xs text-muted-foreground">Saving...</span>}
                   </div>
                   <Separator />
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 opacity-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-0.5">
                       <Label>Auto-archive Completed Tickets</Label>
                       <p className="text-sm text-muted-foreground">
                         Automatically archive tickets after completion
                       </p>
                     </div>
-                    <Select defaultValue="30" disabled>
+                    <Select
+                      value={settings.auto_archive_days || '30'}
+                      onValueChange={(val) => saveSettings('auto_archive_days', val)}
+                      disabled={isSavingSettings || !isSuperAdmin}
+                    >
                       <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="7">After 7 days</SelectItem>
-                        <SelectItem value="30">After 30 days</SelectItem>
-                        <SelectItem value="90">After 90 days</SelectItem>
-                        <SelectItem value="never">Never</SelectItem>
+                        {ARCHIVE_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {isSavingSettings && <span className="text-xs text-muted-foreground">Saving...</span>}
                   </div>
+                  {!isSuperAdmin && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Maintenance settings require Super Admin access.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -736,14 +884,43 @@ const Settings = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Data export and log management are coming soon.</p>
-                  <Button variant="outline" disabled>Export All Data</Button>
-                  <Button variant="destructive" disabled>Clear Activity Logs</Button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExport('tickets')}
+                      disabled={isExporting || !isSuperAdmin}
+                      className="w-full"
+                    >
+                      {isExporting && <Download className="h-4 w-4 mr-2" />}
+                      Export Tickets CSV
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExport('assets')}
+                      disabled={isExporting || !isSuperAdmin}
+                      className="w-full"
+                    >
+                      {isExporting && <Download className="h-4 w-4 mr-2" />}
+                      Export Assets CSV
+                    </Button>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={handleClearLogs}
+                    disabled={isClearingLogs || !isSuperAdmin}
+                    className="w-full"
+                  >
+                    {isClearingLogs && <AlertTriangle className="h-4 w-4 mr-2" />}
+                    Clear Activity Logs
+                  </Button>
+                  {!isSuperAdmin && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      Data management requires Super Admin access.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        )}
+            )}
       </Tabs>
     </DashboardLayout>
   );
