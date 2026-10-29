@@ -16,7 +16,11 @@ return new class extends Migration
         // ---------------------------------------------------------------------
         // 1. Backfill support_category for existing managers
         // ---------------------------------------------------------------------
-        $managers = User::role(['admin', 'super_admin'])->with('profile')->get();
+        try {
+            $managers = User::role(['admin', 'super_admin'])->with('profile')->get();
+        } catch (\Throwable $e) {
+            $managers = collect();
+        }
 
         foreach ($managers as $user) {
             $profile = $user->profile;

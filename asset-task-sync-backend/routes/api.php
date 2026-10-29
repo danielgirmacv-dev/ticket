@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users', [AuthController::class, 'storeUser']);
     Route::post('/users/{id}/approve', [AuthController::class, 'approveUser']);
     Route::post('/users/{id}/reject', [AuthController::class, 'rejectUser']);
+    Route::post('/users/{id}/reset-password', [AuthController::class, 'adminResetPassword']);
 
     // Telegram
     Route::post('/telegram/generate-link', [App\Http\Controllers\Api\TelegramWebhookController::class, 'generateLink']);

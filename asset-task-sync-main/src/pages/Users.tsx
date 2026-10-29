@@ -22,7 +22,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { useUsers, useCreateUser, useUpdateUserRole, AppRole, UserWithRole } from '@/hooks/useUsers';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useUsers, useCreateUser, useUpdateUserRole, useAdminResetPassword, AppRole, UserWithRole } from '@/hooks/useUsers';
 import { useLocations } from '@/hooks/useLocations';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,7 +32,7 @@ import {
   Plus, Search, UserPlus, Shield, Wrench, User as UserIcon, Mail, Building2, MapPin,
   MoreVertical, Edit, Trash2, Loader2, CheckCircle, XCircle, Clock, Upload, Download,
   Lock, LayoutGrid, List, Phone, Calendar, Copy, Check, RotateCcw, ShieldCheck, Sparkles,
-  ExternalLink, Eye, X, Filter
+  ExternalLink, Eye, X, Filter, KeyRound, EyeOff, RefreshCw
 } from 'lucide-react';
 import {
   Sheet,
@@ -298,6 +299,66 @@ const Users = () => {
   const { data: departments } = useDepartments();
   const createUser = useCreateUser();
   const updateUserRole = useUpdateUserRole();
+  const adminResetPassword = useAdminResetPassword();
+
+  const [resetPasswordUser, setResetPasswordUser] = useState<UserWithRole | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [notifyUserOnReset, setNotifyUserOnReset] = useState(true);
+  const [passwordCopied, setPasswordCopied] = useState(false);
+
+  const generateSecurePassword = () => {
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnopqrstuvwxyz';
+    const numbers = '23456789';
+    const special = '@#$%&*!';
+    let pass = '';
+    pass += upper[Math.floor(Math.random() * upper.length)];
+    pass += lower[Math.floor(Math.random() * lower.length)];
+    pass += numbers[Math.floor(Math.random() * numbers.length)];
+    pass += special[Math.floor(Math.random() * special.length)];
+    const all = upper + lower + numbers + special;
+    for (let i = 0; i < 6; i++) {
+      pass += all[Math.floor(Math.random() * all.length)];
+    }
+    return pass;
+  };
+
+  const handleOpenResetPassword = (user: UserWithRole) => {
+    setResetPasswordUser(user);
+    setResetPasswordValue(generateSecurePassword());
+    setShowResetPassword(false);
+    setNotifyUserOnReset(true);
+    setPasswordCopied(false);
+  };
+
+  const handleCopyNewPassword = () => {
+    if (!resetPasswordValue) return;
+    navigator.clipboard.writeText(resetPasswordValue);
+    setPasswordCopied(true);
+    toast.success('Password copied to clipboard');
+    setTimeout(() => setPasswordCopied(false), 2000);
+  };
+
+  const handleSubmitResetPassword = async () => {
+    if (!resetPasswordUser) return;
+    if (!resetPasswordValue || resetPasswordValue.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      await adminResetPassword.mutateAsync({
+        userId: resetPasswordUser.user_id,
+        password: resetPasswordValue,
+        notifyUser: notifyUserOnReset,
+      });
+      setResetPasswordUser(null);
+      setResetPasswordValue('');
+    } catch {
+      // Handled by hook error toast
+    }
+  };
 
   const [newUser, setNewUser] = useState({
     name: '',
@@ -1304,6 +1365,10 @@ const Users = () => {
                                     <Edit className="h-3.5 w-3.5 mr-2" />
                                     Edit User
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleOpenResetPassword(user)}>
+                                    <KeyRound className="h-3.5 w-3.5 mr-2 text-amber-500" />
+                                    Reset Password &amp; Notify
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
                                     <Trash2 className="h-3.5 w-3.5 mr-2" />
                                     Delete User
@@ -1494,6 +1559,10 @@ const Users = () => {
                             <DropdownMenuItem onClick={() => handleEditUser(user)}>
                               <Edit className="h-3.5 w-3.5 mr-2" />
                               Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenResetPassword(user)}>
+                              <KeyRound className="h-3.5 w-3.5 mr-2 text-amber-500" />
+                              Reset Password &amp; Notify
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDeleteUser(user.id)} className="text-destructive">
                               <Trash2 className="h-3.5 w-3.5 mr-2" />
@@ -1713,6 +1782,17 @@ const Users = () => {
                         <Edit className="h-3.5 w-3.5 mr-2 text-primary" /> Edit User Profile
                       </Button>
                       <Button
+                        variant="outline"
+                        className="w-full justify-start text-xs h-9 border-amber-300 dark:border-amber-800/80 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 font-medium"
+                        onClick={() => {
+                          const u = selectedUserForSheet;
+                          setSelectedUserForSheet(null);
+                          handleOpenResetPassword(u);
+                        }}
+                      >
+                        <KeyRound className="h-3.5 w-3.5 mr-2 text-amber-500" /> Reset Password &amp; Notify User
+                      </Button>
+                      <Button
                         variant="ghost"
                         className="w-full justify-start text-xs h-9 text-destructive hover:bg-destructive/10"
                         onClick={async () => {
@@ -1865,6 +1945,184 @@ const Users = () => {
             </Button>
             <Button onClick={handleUpdateUser}>
               Update User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset User Password Dialog */}
+      <Dialog open={!!resetPasswordUser} onOpenChange={(open) => !open && setResetPasswordUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25">
+                <KeyRound className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <DialogTitle className="text-base font-semibold">Reset User Password</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Set a new password for <strong className="text-foreground">{resetPasswordUser?.name}</strong> and dispatch notification.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {resetPasswordUser && (
+            <div className="space-y-4 py-1">
+              {/* Target User Info Summary */}
+              <div className="p-3 rounded-lg border border-border/70 bg-muted/30 flex items-center justify-between text-xs">
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground truncate">{resetPasswordUser.name}</p>
+                  <p className="text-muted-foreground truncate">{resetPasswordUser.email}</p>
+                  {resetPasswordUser.phone && (
+                    <p className="text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <Phone className="h-3 w-3" /> {resetPasswordUser.phone}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="outline" className="capitalize shrink-0 text-[11px]">
+                  {roleLabel(resetPasswordUser.role)}
+                </Badge>
+              </div>
+
+              {/* Password Input & Generator */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="new-admin-password" className="text-xs font-semibold">
+                    New Temporary Password
+                  </Label>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                      onClick={() => setResetPasswordValue(generateSecurePassword())}
+                      title="Generate new random password"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Regenerate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                      onClick={handleCopyNewPassword}
+                      title="Copy to clipboard"
+                    >
+                      {passwordCopied ? (
+                        <>
+                          <Check className="h-3 w-3 mr-1 text-emerald-500" />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Input
+                    id="new-admin-password"
+                    type={showResetPassword ? 'text' : 'password'}
+                    value={resetPasswordValue}
+                    onChange={(e) => setResetPasswordValue(e.target.value)}
+                    placeholder="Enter or generate temporary password"
+                    className="pr-10 text-xs font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    tabIndex={-1}
+                  >
+                    {showResetPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Must be at least 8 characters. Contains uppercase, lowercase, numbers, and symbols.
+                </p>
+              </div>
+
+              {/* Notification Checkbox & Channel Details */}
+              <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="notify-user-checkbox"
+                    checked={notifyUserOnReset}
+                    onCheckedChange={(checked) => setNotifyUserOnReset(Boolean(checked))}
+                    className="mt-0.5"
+                  />
+                  <div className="grid gap-0.5 leading-none">
+                    <label
+                      htmlFor="notify-user-checkbox"
+                      className="text-xs font-semibold text-foreground cursor-pointer"
+                    >
+                      Notify user with the new password
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      Dispatches login credentials so the user can sign in to their account and Outlook / workplace services.
+                    </p>
+                  </div>
+                </div>
+
+                {notifyUserOnReset && (
+                  <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground space-y-1 pl-6">
+                    <p className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Email: <strong className="text-foreground font-mono">{resetPasswordUser.email}</strong>
+                    </p>
+                    {resetPasswordUser.phone && (
+                      <p className="flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        SMS: <strong className="text-foreground font-mono">{resetPasswordUser.phone}</strong>
+                      </p>
+                    )}
+                    <p className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      In-App Alert &amp; Telegram (if linked)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setResetPasswordUser(null)}
+              disabled={adminResetPassword.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSubmitResetPassword}
+              disabled={adminResetPassword.isPending || !resetPasswordValue}
+              className="bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-medium"
+            >
+              {adminResetPassword.isPending ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <KeyRound className="h-3.5 w-3.5 mr-1.5" />
+                  Update Password &amp; Notify
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

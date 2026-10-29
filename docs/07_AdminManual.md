@@ -184,6 +184,27 @@ Currently, there is no soft-disable feature. To deactivate a user, you can:
 
 > ⚠️ **Note:** Direct user deletion is not implemented in the UI. Profile deletion can be done via the API `DELETE /profiles/{id}`. This is a sensitive operation.
 
+### 3.6 Resetting / Updating a User Password & Notifying the User
+
+Administrators (and Department Managers for their technicians) can directly update/reset a user's password and dispatch the new credentials to the user so they can sign in to their account and corporate workplace services.
+
+#### How to Reset a User's Password:
+1. Navigate to **Users** in the sidebar.
+2. In either **Table** or **Grid** view, click the three-dots menu (`...`) on the user's row/card, or click their row to open the **User Profile Drawer** and click **"Reset Password & Notify User"**.
+3. In the **Reset User Password** modal:
+   - View target user summary (Name, Email, Role, Phone).
+   - Enter a new password (min. 8 characters) or click **"Regenerate"** to create a strong, randomized temporary password.
+   - Use the **"Copy"** button if you want to provide credentials directly.
+   - Keep the **"Notify user with the new password"** checkbox checked (enabled by default).
+4. Click **"Update Password & Notify"**.
+
+#### Automated Notifications Dispatched:
+- **Email**: Sends a branded HTML notification with the new temporary credentials and direct sign-in button linking to the login portal (`/auth`).
+- **In-App Notification**: Logs an immediate in-app security notice in the user's notification center.
+- **SMS**: If the user has a phone number on their profile, an automated SMS alert is queued with their new login password.
+- **Telegram**: If the user has connected their Telegram account, an instant bot message delivers their updated password.
+- **Audit Logging**: The password reset event is permanently recorded in the administrative **Activity Logs**.
+
 ---
 
 ## 4. Role and Permission Management

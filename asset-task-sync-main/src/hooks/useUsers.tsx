@@ -105,3 +105,31 @@ export function useUpdateUserRole() {
     }
   });
 }
+
+interface AdminResetPasswordData {
+  userId: number | string;
+  password: string;
+  notifyUser?: boolean;
+}
+
+export function useAdminResetPassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, password, notifyUser = true }: AdminResetPasswordData) => {
+      const response = await laravelClient.post(`/users/${userId}/reset-password`, {
+        password,
+        notify_user: notifyUser,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(data?.message || 'Password updated and user notified successfully');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update user password'));
+    }
+  });
+}
+

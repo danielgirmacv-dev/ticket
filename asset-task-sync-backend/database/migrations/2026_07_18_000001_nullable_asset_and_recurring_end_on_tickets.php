@@ -14,7 +14,9 @@ return new class extends Migration
         });
 
         // Make asset_id nullable without requiring doctrine/dbal
-        DB::statement('ALTER TABLE maintenance_tickets MODIFY asset_id CHAR(36) NULL');
+        if (in_array(DB::getDriverName(), ['mysql', 'mariadb'])) {
+            DB::statement('ALTER TABLE maintenance_tickets MODIFY asset_id CHAR(36) NULL');
+        }
 
         Schema::table('maintenance_tickets', function (Blueprint $table) {
             $table->foreign('asset_id')->references('id')->on('assets')->onDelete('set null');

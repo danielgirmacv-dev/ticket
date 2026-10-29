@@ -57,7 +57,12 @@ class SettingsController extends Controller
             ? 'maintenance-tickets-' . now()->format('Y-m-d') . '.csv'
             : 'assets-' . now()->format('Y-m-d') . '.csv';
 
-        return (new StreamedResponse(function () use ($type) {
+        $headers = [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        return response()->stream(function () use ($type) {
             $handle = fopen('php://output', 'w');
 
             if ($type === 'tickets') {
@@ -95,10 +100,7 @@ class SettingsController extends Controller
             }
 
             fclose($handle);
-        }))->withHeaders([
-            'Content-Type'        => 'text/csv',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        }, 200, $headers);
     }
 
     public function clearLogs(Request $request)

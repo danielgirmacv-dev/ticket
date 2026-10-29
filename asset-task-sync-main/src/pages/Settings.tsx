@@ -134,7 +134,7 @@ const Settings = () => {
     } finally {
       setIsSavingSettings(false);
     }
-  }, [isSuperAdmin]);
+  };
 
   // Export CSV
   const handleExport = async (type: 'tickets' | 'assets') => {
@@ -189,8 +189,8 @@ const Settings = () => {
     }
   };
 
-  // Fetch Telegram status on mount
-  const fetchTelegramStatus = async () => {
+  // Profile update handler
+  const handleProfileSave = async () => {
     if (!profile) return;
     setIsSavingProfile(true);
     try {
@@ -272,7 +272,7 @@ const Settings = () => {
   };
 
   // Fetch Telegram status on mount
-  const fetchTelegramStatus = async () => {
+  const fetchTelegramStatus = useCallback(async () => {
     try {
       const response = await laravelClient.get('/telegram/status');
       setTelegramLinked(response.data.linked);
@@ -280,7 +280,7 @@ const Settings = () => {
     } catch (error) {
       console.error('Failed to fetch Telegram status:', error);
     }
-  };
+  }, []);
 
   // Generate Telegram link
   const handleGenerateLink = async () => {
@@ -920,7 +920,9 @@ const Settings = () => {
                   )}
                 </CardContent>
               </Card>
-            )}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
     </DashboardLayout>
   );

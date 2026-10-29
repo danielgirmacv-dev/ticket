@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Api\MaintenanceTicketController;
 use App\Http\Controllers\Controller;
 use App\Mail\NewUserRegistrationMail;
+use App\Mail\UserPasswordResetMail;
 use App\Models\Notification;
 use App\Models\Profile;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\NotificationService;
 use App\Services\TelegramService;
 use App\Services\UserApprovalService;
@@ -462,4 +464,148 @@ class AuthController extends Controller
             'user' => $user,
         ]);
     }
+
+    /**
+     * Reset/update user password (Admin / Super Admin).
+     * Notifies the user via Email, In-App Notification, SMS, and Telegram with their new password.
+     */
+    public function adminResetPassword(Request $request, $id)
+    {
+        $admin = $request->user();
+
+        if (! $admin->hasAnyRole(['admin', 'super_admin'])) {
+            return response()->json(['message' => 'Unauthorized. Only administrators and managers can update user passwords.'], 403);
+        }
+
+        $user = User::where('id', $id)
+            ->orWhereHas('profile', function ($q) use ($id) {
+                $q->where('id', $id);
+            })
+            ->with(['profile', 'roles'])
+            ->firstOrFail();
+
+        // Managers cannot reset passwords for other managers, super admins, or requesters (locked from managers)
+        if ($admin->hasRole('admin') && ! $admin->hasRole('super_admin')) {
+            if ($user->hasRole('super_admin')) {
+                return response()->json([
+                    'message' => 'Managers cannot reset passwords for Super Administrators.',
+                ], 403);
+            }
+            if ($user->hasRole('admin') && $user->id !== $admin->id) {
+                return response()->json([
+                    'message' => 'Managers cannot reset passwords for other managers.',
+                ], 403);
+            }
+            if ($user->hasRole('requester')) {
+                return response()->json([
+                    'message' => 'Requester accounts are locked. Only Super Administrators can update requester passwords.',
+                ], 403);
+            }
+        }
+
+        $validated = $request->validate([
+            'password'    => 'required|string|min:8',
+            'notify_user' => 'nullable|boolean',
+        ]);
+
+        $newPassword = $validated['password'];
+        $notifyUser = $request->boolean('notify_user', true);
+
+        // Update password (hashed cast automatically hashes the password in User model)
+        $user->password = $newPassword;
+        $user->save();
+
+        ActivityLogger::log(
+            'updated',
+            'User',
+            $user->id,
+            "Password reset by {$admin->name} for user: {$user->name} ({$user->email})"
+        );
+
+        // Multi-channel notifications
+        $notificationSummary = [
+            'in_app'   => false,
+            'email'    => false,
+            'sms'      => false,
+            'telegram' => false,
+        ];
+
+        // 1. In-App Notification (always created)
+        try {
+            NotificationService::create(
+                $user->id,
+                'Password Updated by Administrator',
+                "Your account password has been updated by an administrator. Please use your newly provided password to sign in.",
+                'info',
+                '/profile'
+            );
+            $notificationSummary['in_app'] = true;
+        } catch (\Throwable $e) {
+            Log::warning('In-app notification failed on password reset: ' . $e->getMessage());
+        }
+
+        if ($notifyUser) {
+            // 2. Email notification
+            if (! empty($user->email)) {
+                try {
+                    Mail::to($user->email)->send(new UserPasswordResetMail($user, $newPassword));
+                    $notificationSummary['email'] = true;
+                } catch (\Throwable $e) {
+                    Log::warning("Password reset email dispatch failed for {$user->email}: " . $e->getMessage());
+                }
+            }
+
+            // 3. SMS notification (if user has phone)
+            $phone = $user->profile?->phone;
+            if (! empty($phone)) {
+                try {
+                    $loginUrl = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/') . '/auth';
+                    $smsText = "EEC IT: Your password has been updated by admin. Email: {$user->email}, New Password: {$newPassword}. Use this to log in at {$loginUrl}";
+                    NotificationService::sms($user->id, $smsText);
+                    $notificationSummary['sms'] = true;
+                } catch (\Throwable $e) {
+                    Log::warning("Password reset SMS dispatch failed for user {$user->id}: " . $e->getMessage());
+                }
+            }
+
+            // 4. Telegram notification (if user has telegram linked)
+            $telegramChatId = $user->profile?->telegram_chat_id;
+            if (! empty($telegramChatId)) {
+                try {
+                    $loginUrl = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/') . '/auth';
+                    $tgMessage = "🔐 *Account Password Updated*\n\n"
+                        . "Hello *{$user->name}*,\n\n"
+                        . "An administrator has updated your password for the *Asset & Ticket Management System*.\n\n"
+                        . "📧 *Email:* {$user->email}\n"
+                        . "🔑 *New Password:* `{$newPassword}`\n\n"
+                        . "Please use this given password to sign in:\n"
+                        . "🔗 [Sign In to Your Account]({$loginUrl})\n\n"
+                        . "⚠️ _For security, we recommend changing your password after logging in._";
+
+                    app(TelegramService::class)->sendMessage($telegramChatId, $tgMessage);
+                    $notificationSummary['telegram'] = true;
+                } catch (\Throwable $e) {
+                    Log::warning("Password reset Telegram notification failed for user {$user->id}: " . $e->getMessage());
+                }
+            }
+        }
+
+        $noticeMsg = "Password for {$user->name} has been updated successfully.";
+        if ($notifyUser) {
+            $channels = [];
+            if ($notificationSummary['email']) $channels[] = 'Email';
+            if ($notificationSummary['sms']) $channels[] = 'SMS';
+            if ($notificationSummary['telegram']) $channels[] = 'Telegram';
+            if (! empty($channels)) {
+                $noticeMsg .= ' Notification sent via ' . implode(', ', $channels) . '.';
+            }
+        }
+
+        return response()->json([
+            'message'              => $noticeMsg,
+            'user'                 => $user->fresh(['profile', 'roles']),
+            'notification_summary' => $notificationSummary,
+        ]);
+    }
 }
+
