@@ -23,7 +23,10 @@ class UserPasswordResetMail extends Mailable implements ShouldQueue
     {
         $this->user = $user;
         $this->newPassword = $newPassword;
-        $frontend = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/');
+        $frontend = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+        if (empty($frontend) || str_contains($frontend, 'localhost') || str_contains($frontend, '127.0.0.1')) {
+            $frontend = 'https://it-support.eecproducts.com';
+        }
         $this->loginUrl = "{$frontend}/auth";
         $this->subject = 'Your EEC IT Account Password Has Been Updated';
     }

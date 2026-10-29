@@ -555,11 +555,16 @@ class AuthController extends Controller
                 }
             }
 
+            $frontendUrl = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+            if (empty($frontendUrl) || str_contains($frontendUrl, 'localhost') || str_contains($frontendUrl, '127.0.0.1')) {
+                $frontendUrl = 'https://it-support.eecproducts.com';
+            }
+            $loginUrl = "{$frontendUrl}/auth";
+
             // 3. SMS notification (if user has phone)
             $phone = $user->profile?->phone;
             if (! empty($phone)) {
                 try {
-                    $loginUrl = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/') . '/auth';
                     $smsText = "EEC IT: Your password has been updated by admin. Email: {$user->email}, New Password: {$newPassword}. Use this to log in at {$loginUrl}";
                     NotificationService::sms($user->id, $smsText);
                     $notificationSummary['sms'] = true;
@@ -572,7 +577,6 @@ class AuthController extends Controller
             $telegramChatId = $user->profile?->telegram_chat_id;
             if (! empty($telegramChatId)) {
                 try {
-                    $loginUrl = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/') . '/auth';
                     $tgMessage = "🔐 *Account Password Updated*\n\n"
                         . "Hello *{$user->name}*,\n\n"
                         . "An administrator has updated your password for the *Asset & Ticket Management System*.\n\n"

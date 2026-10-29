@@ -25,7 +25,10 @@ class AccountApproved extends Mailable implements ShouldQueue
     public function __construct(User $user)
     {
         $this->user = $user;
-        $frontend = rtrim(env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080')), '/');
+        $frontend = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+        if (empty($frontend) || str_contains($frontend, 'localhost') || str_contains($frontend, '127.0.0.1')) {
+            $frontend = 'https://it-support.eecproducts.com';
+        }
         $this->loginUrl = "{$frontend}/auth";
         $this->telegramBotUsername = env('TELEGRAM_BOT_USERNAME', 'eec_it_bot');
         $this->telegramBotLink = "https://t.me/{$this->telegramBotUsername}?start";

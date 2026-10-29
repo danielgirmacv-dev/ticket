@@ -44,5 +44,7 @@ class AccountApprovedEmailTest extends TestCase
         $this->assertStringContainsString('Civil Engineering', $rendered);
         $this->assertStringContainsString('Sign In to Your Account', $rendered);
         $this->assertStringContainsString('Submit Work Orders', $rendered);
+        $this->assertStringContainsString('https://it-support.eecproducts.com/auth', $rendered);
+        $this->assertStringNotContainsString('localhost', $rendered);
     }
 }

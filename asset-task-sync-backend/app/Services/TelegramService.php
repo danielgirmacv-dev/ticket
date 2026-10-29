@@ -57,7 +57,10 @@ class TelegramService
      */
     public function sendApprovalNotification($user)
     {
-        $appUrl = env('FRONTEND_URL', env('APP_URL', 'http://localhost:8080'));
+        $appUrl = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+        if (empty($appUrl) || str_contains($appUrl, 'localhost') || str_contains($appUrl, '127.0.0.1')) {
+            $appUrl = 'https://it-support.eecproducts.com';
+        }
 
         $message = "🎉 *Account Approved!*\n\n";
         $message .= "Hello {$user->name},\n\n";

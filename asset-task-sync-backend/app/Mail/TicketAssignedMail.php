@@ -22,6 +22,9 @@ class TicketAssignedMail extends Mailable implements ShouldQueue
         $this->ticket = $ticket;
         $this->technician = $technician;
         $frontend = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+        if (empty($frontend) || str_contains($frontend, 'localhost') || str_contains($frontend, '127.0.0.1')) {
+            $frontend = 'https://it-support.eecproducts.com';
+        }
         $this->ticketUrl = "{$frontend}/tickets/{$ticket->id}";
         $this->subject = "New Ticket Assigned to You - #{$ticket->id}: {$ticket->title}";
     }

@@ -21,6 +21,9 @@ class NewUserRegistrationMail extends Mailable implements ShouldQueue
         $this->newUser = $newUser;
         $this->adminName = $adminName;
         $frontend = rtrim(env('FRONTEND_URL', 'https://it-support.eecproducts.com'), '/');
+        if (empty($frontend) || str_contains($frontend, 'localhost') || str_contains($frontend, '127.0.0.1')) {
+            $frontend = 'https://it-support.eecproducts.com';
+        }
         $this->usersUrl = "{$frontend}/users";
         $this->subject = "New User Registration Awaiting Approval - {$newUser->name}";
     }
