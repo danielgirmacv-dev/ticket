@@ -23,6 +23,12 @@ class ProfileController extends Controller
             'user.roles',
             'location',
         ])
+        ->withCount([
+            'assignedTickets as active_assigned_tickets_count' => function ($q) {
+                $q->whereIn('status', ['assigned', 'in_progress', 'completed_pending_review', 'reopened']);
+            },
+            'assignedTickets as total_assigned_tickets_count',
+        ])
         ->orderByRaw("
             CASE WHEN EXISTS (
                 SELECT 1 FROM users

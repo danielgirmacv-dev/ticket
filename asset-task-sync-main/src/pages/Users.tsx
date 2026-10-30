@@ -169,6 +169,7 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [techWorkloadFilter, setTechWorkloadFilter] = useState<'all' | 'available' | 'assigned'>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUserForSheet, setSelectedUserForSheet] = useState<UserWithRole | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -540,6 +541,10 @@ const Users = () => {
     return true;
   }) || [];
 
+  const techUsers = visibleUsers.filter(u => u.role === 'technician');
+  const availableTechsCount = techUsers.filter(u => (u.active_assigned_tickets_count || 0) === 0).length;
+  const assignedTechsCount = techUsers.filter(u => (u.active_assigned_tickets_count || 0) > 0).length;
+
   const usersByRole = visibleUsers.reduce(
     (acc, user) => {
       acc[user.role] = (acc[user.role] || 0) + 1;
@@ -556,7 +561,19 @@ const Users = () => {
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     const matchesLocation = locationFilter === 'all' || user.location_id === locationFilter;
-    return matchesSearch && matchesRole && matchesStatus && matchesLocation;
+
+    let matchesWorkload = true;
+    if (techWorkloadFilter !== 'all') {
+      if (user.role !== 'technician') {
+        matchesWorkload = false;
+      } else {
+        const isAssigned = (user.active_assigned_tickets_count || 0) > 0;
+        if (techWorkloadFilter === 'available' && isAssigned) matchesWorkload = false;
+        if (techWorkloadFilter === 'assigned' && !isAssigned) matchesWorkload = false;
+      }
+    }
+
+    return matchesSearch && matchesRole && matchesStatus && matchesLocation && matchesWorkload;
   })).sort((a, b) => {
     // Pending users always at top
     if (a.status === 'pending' && b.status !== 'pending') return -1;
@@ -566,12 +583,13 @@ const Users = () => {
   });
 
   const pendingCount = visibleUsers.filter(u => u.status === 'pending').length;
-  const isFiltered = searchQuery !== '' || roleFilter !== 'all' || statusFilter !== 'all' || locationFilter !== 'all';
+  const isFiltered = searchQuery !== '' || roleFilter !== 'all' || statusFilter !== 'all' || locationFilter !== 'all' || techWorkloadFilter !== 'all';
   const handleResetFilters = () => {
     setSearchQuery('');
     setRoleFilter('all');
     setStatusFilter('all');
     setLocationFilter('all');
+    setTechWorkloadFilter('all');
   };
 
   if (isLoading) {
@@ -696,11 +714,20 @@ const Users = () => {
         <Card
           className={cn(
             'relative overflow-hidden cursor-pointer rounded-xl border transition-all duration-200 bg-card shadow-2xs hover:shadow-md border-t-4 border-t-blue-500',
-            roleFilter === 'technician'
+            roleFilter === 'technician' && techWorkloadFilter === 'all'
               ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-sm'
               : 'border-border/70 hover:border-blue-500/40'
           )}
-          onClick={() => { setRoleFilter(roleFilter === 'technician' ? 'all' : 'technician'); setStatusFilter('all'); }}
+          onClick={() => {
+            if (roleFilter === 'technician') {
+              setRoleFilter('all');
+              setTechWorkloadFilter('all');
+            } else {
+              setRoleFilter('technician');
+              setTechWorkloadFilter('all');
+            }
+            setStatusFilter('all');
+          }}
         >
           <CardContent className="p-4 sm:p-4.5">
             <div className="flex items-center justify-between mb-2">
@@ -710,9 +737,17 @@ const Users = () => {
               </div>
             </div>
             <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground leading-none">{usersByRole.technician}</p>
-            <p className="text-xs text-muted-foreground mt-1 truncate">
-              {isManager ? `${managerDepartment}` : 'Support & field team'}
-            </p>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {availableTechsCount} Free
+              </span>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                {assignedTechsCount} Assigned
+              </span>
+            </div>
           </CardContent>
         </Card>
 
@@ -770,18 +805,18 @@ const Users = () => {
           <Button
             type="button"
             size="sm"
-            variant={roleFilter === 'all' && statusFilter === 'all' ? 'default' : 'outline'}
+            variant={roleFilter === 'all' && statusFilter === 'all' && techWorkloadFilter === 'all' ? 'default' : 'outline'}
             className="h-8 rounded-full text-xs font-medium px-3.5"
-            onClick={() => { setRoleFilter('all'); setStatusFilter('all'); }}
+            onClick={() => { setRoleFilter('all'); setStatusFilter('all'); setTechWorkloadFilter('all'); }}
           >
             All Users ({visibleUsers.length})
           </Button>
           <Button
             type="button"
             size="sm"
-            variant={roleFilter === 'technician' ? 'default' : 'outline'}
+            variant={roleFilter === 'technician' && techWorkloadFilter === 'all' ? 'default' : 'outline'}
             className="h-8 rounded-full text-xs font-medium px-3.5"
-            onClick={() => { setRoleFilter(roleFilter === 'technician' ? 'all' : 'technician'); }}
+            onClick={() => { setRoleFilter('technician'); setTechWorkloadFilter('all'); }}
           >
             <Wrench className="h-3.5 w-3.5 mr-1 text-blue-500" />
             Technicians ({usersByRole.technician})
@@ -789,9 +824,39 @@ const Users = () => {
           <Button
             type="button"
             size="sm"
+            variant={roleFilter === 'technician' && techWorkloadFilter === 'available' ? 'default' : 'outline'}
+            className={cn(
+              "h-8 rounded-full text-xs font-medium px-3.5",
+              roleFilter === 'technician' && techWorkloadFilter === 'available'
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : "border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/10"
+            )}
+            onClick={() => { setRoleFilter('technician'); setTechWorkloadFilter('available'); }}
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+            Available / Not Assigned ({availableTechsCount})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={roleFilter === 'technician' && techWorkloadFilter === 'assigned' ? 'default' : 'outline'}
+            className={cn(
+              "h-8 rounded-full text-xs font-medium px-3.5",
+              roleFilter === 'technician' && techWorkloadFilter === 'assigned'
+                ? "bg-amber-600 hover:bg-amber-700 text-white"
+                : "border-amber-300 text-amber-800 dark:border-amber-800 dark:text-amber-300 hover:bg-amber-500/10"
+            )}
+            onClick={() => { setRoleFilter('technician'); setTechWorkloadFilter('assigned'); }}
+          >
+            <span className="h-2 w-2 rounded-full bg-amber-500 mr-1.5" />
+            Assigned ({assignedTechsCount})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
             variant={roleFilter === 'requester' ? 'default' : 'outline'}
             className="h-8 rounded-full text-xs font-medium px-3.5"
-            onClick={() => { setRoleFilter(roleFilter === 'requester' ? 'all' : 'requester'); }}
+            onClick={() => { setRoleFilter('requester'); setTechWorkloadFilter('all'); }}
           >
             <UserIcon className="h-3.5 w-3.5 mr-1 text-slate-500" />
             Requesters ({usersByRole.requester})
@@ -801,7 +866,7 @@ const Users = () => {
             size="sm"
             variant={roleFilter === 'admin' ? 'default' : 'outline'}
             className="h-8 rounded-full text-xs font-medium px-3.5"
-            onClick={() => { setRoleFilter(roleFilter === 'admin' ? 'all' : 'admin'); }}
+            onClick={() => { setRoleFilter('admin'); setTechWorkloadFilter('all'); }}
           >
             <Shield className="h-3.5 w-3.5 mr-1 text-[#11adc4]" />
             Managers ({usersByRole.admin + (isSuperAdmin ? usersByRole.super_admin : 0)})
@@ -846,6 +911,19 @@ const Users = () => {
                 </button>
               )}
             </div>
+
+            {roleFilter === 'technician' && (
+              <Select value={techWorkloadFilter} onValueChange={(val: any) => setTechWorkloadFilter(val)}>
+                <SelectTrigger className="w-[145px] sm:w-[160px] h-9 text-xs bg-card">
+                  <SelectValue placeholder="Technician Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Technicians ({usersByRole.technician})</SelectItem>
+                  <SelectItem value="available">🟢 Available (Not Assigned)</SelectItem>
+                  <SelectItem value="assigned">🟠 Assigned ({assignedTechsCount})</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[115px] sm:w-[125px] h-9 text-xs bg-card">
@@ -1157,6 +1235,7 @@ const Users = () => {
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Email & Contact</th>
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Role</th>
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Domain</th>
+                    <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Technician Workload</th>
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Department</th>
                     <th className="py-3 px-4 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Location</th>
@@ -1264,6 +1343,31 @@ const Users = () => {
                             </span>
                           ) : (
                             <span className="text-muted-foreground/50 text-xs">—</span>
+                          )}
+                        </td>
+
+                        {/* Technician Workload / Assignment */}
+                        <td className="py-3 px-4">
+                          {user.role === 'technician' ? (
+                            (user.active_assigned_tickets_count || 0) === 0 ? (
+                              <Badge
+                                variant="outline"
+                                className="gap-1.5 border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-medium text-[11px] whitespace-nowrap"
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Available (Not Assigned)
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="gap-1.5 border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 font-medium text-[11px] whitespace-nowrap"
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                Assigned ({user.active_assigned_tickets_count} active)
+                              </Badge>
+                            )
+                          ) : (
+                            <span className="text-muted-foreground/40 text-xs">—</span>
                           )}
                         </td>
 
@@ -1517,6 +1621,29 @@ const Users = () => {
                         </span>
                       </div>
                     )}
+
+                    {/* Technician Workload Status Pill */}
+                    {user.role === 'technician' && (
+                      <div className="pt-1">
+                        {(user.active_assigned_tickets_count || 0) === 0 ? (
+                          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-400">
+                            <span className="flex items-center gap-1.5 font-medium text-[11px]">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                              Available (Not Assigned)
+                            </span>
+                            <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-medium">Free</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
+                            <span className="flex items-center gap-1.5 font-medium text-[11px]">
+                              <span className="h-2 w-2 rounded-full bg-amber-500" />
+                              Assigned Workload
+                            </span>
+                            <span className="text-[10px] font-semibold">{user.active_assigned_tickets_count} active</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Actions Footer */}
@@ -1719,6 +1846,38 @@ const Users = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Technician Assignment Workload for Technicians */}
+                {selectedUserForSheet.role === 'technician' && (
+                  <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <Wrench className="h-3.5 w-3.5 text-blue-500" /> Technician Workload
+                      </h5>
+                      {(selectedUserForSheet.active_assigned_tickets_count || 0) === 0 ? (
+                        <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 gap-1 text-[11px]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Available (Not Assigned)
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 gap-1 text-[11px]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          Assigned ({selectedUserForSheet.active_assigned_tickets_count} active)
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-lg border border-border/60 bg-background/60">
+                        <span className="text-muted-foreground text-[11px]">Active Tickets in Progress</span>
+                        <p className="text-xl font-bold mt-1 text-foreground">{selectedUserForSheet.active_assigned_tickets_count ?? 0}</p>
+                      </div>
+                      <div className="p-3 rounded-lg border border-border/60 bg-background/60">
+                        <span className="text-muted-foreground text-[11px]">Total Career Assignments</span>
+                        <p className="text-xl font-bold mt-1 text-foreground">{selectedUserForSheet.total_assigned_tickets_count ?? 0}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Role & Permissions Info */}
                 <div className="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2 text-xs">

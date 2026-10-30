@@ -71,32 +71,44 @@ const Tickets = () => {
     const allTechs = users?.filter(u => u.role === 'technician') || [];
     const isManagerSap = isSapEntity(profile?.department, profile?.name, profile?.email);
 
+    let filtered = allTechs;
     if (!ticket) {
       if (isManagerSap) {
-        return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+        filtered = allTechs.filter(t => isSapEntity(t.department, t.name, t.email));
+      } else if (role === 'admin') {
+        filtered = allTechs.filter(t => !isSapEntity(t.department, t.name, t.email));
       }
-      if (role === 'admin') {
-        return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
+    } else {
+      const category = ticket.support_category || (isManagerSap ? 'sap' : 'it_support');
+      if (category === 'sap') {
+        filtered = allTechs.filter(t => isSapEntity(t.department, t.name, t.email));
+      } else if (category === 'it_support') {
+        filtered = allTechs.filter(t => !isSapEntity(t.department, t.name, t.email));
+      } else {
+        if (isManagerSap) {
+          filtered = allTechs.filter(t => isSapEntity(t.department, t.name, t.email));
+        } else if (role === 'admin') {
+          filtered = allTechs.filter(t => !isSapEntity(t.department, t.name, t.email));
+        }
       }
-      return allTechs.map(u => ({ id: u.id, name: u.name }));
     }
 
-    const category = ticket.support_category || (isManagerSap ? 'sap' : 'it_support');
-    if (category === 'sap') {
-      return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
-    }
-    if (category === 'it_support') {
-      return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
-    }
+    return filtered.map(u => {
+      // Calculate live active ticket count if tickets array is available
+      const liveActiveCount = tickets ? tickets.filter(t => 
+        t.assigned_technician_id === u.id && 
+        ['assigned', 'in_progress', 'completed_pending_review', 'reopened'].includes(t.status)
+      ).length : (u.active_assigned_tickets_count ?? 0);
 
-    // General tickets:
-    if (isManagerSap) {
-      return allTechs.filter(t => isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
-    }
-    if (role === 'admin') {
-      return allTechs.filter(t => !isSapEntity(t.department, t.name, t.email)).map(u => ({ id: u.id, name: u.name }));
-    }
-    return allTechs.map(u => ({ id: u.id, name: u.name }));
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        department: u.department,
+        phone: (u as any).phone,
+        active_assigned_tickets_count: liveActiveCount,
+      };
+    });
   };
 
   useEffect(() => {

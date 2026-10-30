@@ -51,11 +51,13 @@ import { useDeleteTicket } from '@/hooks/useTicketWorkflow';
 import { useUpdateTicket, useTransferTicket } from '@/hooks/useTickets';
 import { cn } from '@/lib/utils';
 
+import { AssignableTechnician } from '@/components/tickets/AssignTechnicianDialog';
+
 interface TicketDetailsDialogProps {
     ticket: MaintenanceTicket | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    technicians?: Array<{ id: string; name: string }>;
+    technicians?: AssignableTechnician[];
     onApprove?: () => void;
 }
 

@@ -19,16 +19,13 @@ import {
   Star,
 } from 'lucide-react';
 
-interface TicketCardTechnician {
-  id: string;
-  name: string;
-}
+import { AssignableTechnician } from '@/components/tickets/AssignTechnicianDialog';
 
 interface TicketCardProps {
   ticket: MaintenanceTicket;
   index?: number;
   onOpen: (ticket: MaintenanceTicket) => void;
-  technicians: TicketCardTechnician[];
+  technicians: AssignableTechnician[];
   onApproveAssign: (ticket: MaintenanceTicket) => void;
 }
 

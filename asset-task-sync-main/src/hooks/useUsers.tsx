@@ -18,6 +18,8 @@ export interface UserWithRole {
   created_at: string;
   role: AppRole;
   status?: 'pending' | 'active' | 'rejected';
+  active_assigned_tickets_count?: number;
+  total_assigned_tickets_count?: number;
 }
 
 export function useUsers() {
@@ -27,7 +29,7 @@ export function useUsers() {
       const response = await laravelClient.get('/profiles');
       const profiles = response.data;
 
-      return profiles.map((profile: Profile) => {
+      return profiles.map((profile: Profile & { active_assigned_tickets_count?: number; total_assigned_tickets_count?: number }) => {
         const role = profile.user?.roles?.[0]?.name as AppRole || 'requester';
         return {
           id: profile.id,
@@ -41,7 +43,9 @@ export function useUsers() {
           location: profile.location,
           created_at: profile.created_at,
           role: role,
-          status: profile.user?.status || 'active'
+          status: profile.user?.status || 'active',
+          active_assigned_tickets_count: profile.active_assigned_tickets_count ?? 0,
+          total_assigned_tickets_count: profile.total_assigned_tickets_count ?? 0,
         };
       });
     }

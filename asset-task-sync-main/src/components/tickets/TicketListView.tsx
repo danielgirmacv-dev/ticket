@@ -2,10 +2,12 @@ import { MaintenanceTicket } from '@/integrations/laravel/client';
 import { TicketListHeader, TicketListRow } from '@/components/tickets/TicketListRow';
 import { cn } from '@/lib/utils';
 
+import { AssignableTechnician } from '@/components/tickets/AssignTechnicianDialog';
+
 interface TicketListViewProps {
   tickets: MaintenanceTicket[];
   onOpen: (ticket: MaintenanceTicket) => void;
-  getTechnicians: (ticket: MaintenanceTicket) => Array<{ id: string; name: string }>;
+  getTechnicians: (ticket: MaintenanceTicket) => AssignableTechnician[];
   onApproveAssign: (ticket: MaintenanceTicket) => void;
   className?: string;
 }

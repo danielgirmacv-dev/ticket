@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Combobox } from '@/components/ui/combobox';
+import { AssignTechnicianDialog, AssignableTechnician } from '@/components/tickets/AssignTechnicianDialog';
 import { CheckCircle, XCircle, UserPlus, Play, CheckCheck, Star, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +35,7 @@ const parseSpareParts = (text: string) =>
 
 interface TicketWorkflowProps {
     ticket: MaintenanceTicket;
-    technicians?: Array<{ id: string; name: string }>;
+    technicians?: AssignableTechnician[];
     onApprove?: () => void;
     /** Cancel ticket is only shown in detail view by default */
     showCancel?: boolean;
@@ -209,32 +210,12 @@ export function TicketWorkflow({
                     </Button>
                     {cancelButton}
 
-                    <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-                        <DialogContent className="w-[95vw] sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Assign Technician</DialogTitle>
-                                <DialogDescription>Select a technician to assign to this ticket.</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4">
-                                <div className="flex flex-col gap-2">
-                                    <Label>Technician</Label>
-                                    <Combobox
-                                        options={technicians.map(tech => ({ value: tech.id, label: tech.name }))}
-                                        value={selectedTechnician}
-                                        onValueChange={setSelectedTechnician}
-                                        placeholder="Select technician"
-                                        emptyText="No technician found"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                                <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
-                                    Cancel
-                                </Button>
-                                <Button onClick={handleAssign}>Assign</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <AssignTechnicianDialog
+                        open={showAssignDialog}
+                        onOpenChange={setShowAssignDialog}
+                        ticket={ticket}
+                        technicians={technicians}
+                    />
                 </div>
             );
         }

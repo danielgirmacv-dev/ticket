@@ -7,11 +7,13 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ArrowUpRight, Paperclip, Star } from 'lucide-react';
 
+import { AssignableTechnician } from '@/components/tickets/AssignTechnicianDialog';
+
 interface TicketListRowProps {
   ticket: MaintenanceTicket;
   index?: number;
   onOpen: (ticket: MaintenanceTicket) => void;
-  technicians: Array<{ id: string; name: string }>;
+  technicians: AssignableTechnician[];
   onApproveAssign: (ticket: MaintenanceTicket) => void;
 }
 
