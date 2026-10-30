@@ -111,18 +111,15 @@ export function TicketWorkflow({
     ) : null;
 
     const handleApprove = () => {
-        approveTicket.mutate(
-            { id: ticket.id },
-            {
-                onSuccess: () => {
-                    if (onApprove) {
-                        onApprove();
-                    } else {
-                        setShowAssignDialog(true);
-                    }
-                }
-            }
-        );
+        // Immediately pop up assign technician card with 0ms delay
+        if (onApprove) {
+            onApprove();
+        } else {
+            setShowAssignDialog(true);
+        }
+
+        // Trigger optimistic approval in the background
+        approveTicket.mutate({ id: ticket.id });
     };
 
     const handleReject = () => {
@@ -197,6 +194,13 @@ export function TicketWorkflow({
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
+
+                    <AssignTechnicianDialog
+                        open={showAssignDialog}
+                        onOpenChange={setShowAssignDialog}
+                        ticket={ticket}
+                        technicians={technicians}
+                    />
                 </div>
             );
         }

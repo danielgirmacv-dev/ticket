@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,18 @@ const Tickets = () => {
     return text.includes('sap') || text.includes('erp');
   };
 
+  const techActiveCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!tickets) return map;
+    const activeStatuses = ['assigned', 'in_progress', 'completed_pending_review', 'reopened'];
+    for (const t of tickets) {
+      if (t.assigned_technician_id && activeStatuses.includes(t.status)) {
+        map.set(t.assigned_technician_id, (map.get(t.assigned_technician_id) || 0) + 1);
+      }
+    }
+    return map;
+  }, [tickets]);
+
   const getTechniciansForTicket = (ticket: MaintenanceTicket | null) => {
     const allTechs = users?.filter(u => u.role === 'technician') || [];
     const isManagerSap = isSapEntity(profile?.department, profile?.name, profile?.email);
@@ -94,11 +106,9 @@ const Tickets = () => {
     }
 
     return filtered.map(u => {
-      // Calculate live active ticket count if tickets array is available
-      const liveActiveCount = tickets ? tickets.filter(t => 
-        t.assigned_technician_id === u.id && 
-        ['assigned', 'in_progress', 'completed_pending_review', 'reopened'].includes(t.status)
-      ).length : (u.active_assigned_tickets_count ?? 0);
+      const liveActiveCount = techActiveCountMap.has(u.id)
+        ? techActiveCountMap.get(u.id)!
+        : (u.active_assigned_tickets_count ?? 0);
 
       return {
         id: u.id,
