@@ -6,6 +6,7 @@ import RecentActivity from '@/components/dashboard/RecentActivity';
 import TicketsOverview from '@/components/dashboard/TicketsOverview';
 import TopTechnicians from '@/components/dashboard/TopTechnicians';
 import { TicketStatusChart, AssetTypeChart, MonthlyTicketsChart } from '@/components/dashboard/Charts';
+import { TechnicianDashboard } from '@/components/dashboard/TechnicianDashboard';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -192,6 +193,18 @@ const Index = () => {
     return (
       <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
         <DashboardOverviewSkeleton />
+      </DashboardLayout>
+    );
+  }
+
+  if (isTechnician) {
+    return (
+      <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
+        <TechnicianDashboard
+          tickets={tickets || []}
+          profile={profile}
+          supportCategory={supportCategory}
+        />
       </DashboardLayout>
     );
   }
